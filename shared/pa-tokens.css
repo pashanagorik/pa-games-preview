@@ -1,0 +1,110 @@
+/*
+ * pa-tokens.css — Prothom Alo hero-games design tokens.
+ * Established by the শব্দভেদ build; inherited by the other four heroes
+ * and the 35 catalogue reskins.
+ *
+ * THE SYSTEM IS A TWO-COLOUR PRESS.
+ * Prothom Alo's printed puzzle page is cyan tint + spot red on newsprint.
+ * Every surface colour here is a screen of one of those two inks, or paper,
+ * or ink-black. Nothing else is admitted. That constraint is what makes a
+ * grid of 64 cells read as a newspaper rather than as a UI.
+ *
+ * Portal chrome (violet) is inherited for interactive affordances only —
+ * app bar controls, sheet tabs, primary buttons — so a game launched from
+ * the portal does not read as a different product.
+ */
+
+:root {
+  /* ---- paper & ink ------------------------------------------------ */
+  --pa-paper:        #F4F3EF;  /* cool newsprint, not cream */
+  --pa-paper-lift:   #FBFAF8;
+  --pa-cell:         #FFFFFF;  /* unprinted stock inside the grid */
+  --pa-ink:          #16171A;
+  --pa-ink-2:        #55585F;
+  --pa-ink-3:        #8A8D94;
+  --pa-rule:         #D6D5D0;
+  --pa-rule-strong:  #16171A;
+
+  /* ---- cyan ink, by screen percentage ----------------------------- */
+  --pa-cyan-08:      #EDF4F9;
+  --pa-cyan-16:      #D7E7F2;  /* block cells — measured off the print scans */
+  --pa-cyan-30:      #B9D8EC;  /* active word */
+  --pa-cyan-45:      #93C1DF;
+  --pa-cyan:         #1B6FA8;
+
+  /* ---- red ink, by screen percentage ------------------------------ */
+  --pa-red-08:       #FDECE8;
+  --pa-red-16:       #FBD9D2;  /* active cell */
+  --pa-red-40:       #F6A492;
+  --pa-red:          #EE4023;  /* PA masthead red */
+  --pa-red-deep:     #C22A12;
+
+  /* ---- portal chrome (inherited, interactive affordances only) ----- */
+  --pa-chrome:        #7C3AED;
+  --pa-chrome-strong: #6D28D9;
+  --pa-chrome-tint:   #F3F0FB;
+  --pa-chrome-line:   #7C3AED29;
+
+  /* ---- type ------------------------------------------------------- */
+  --pa-serif: 'Noto Serif Bengali', 'Kalpurush', Georgia, serif;
+  --pa-sans:  'Noto Sans Bengali', 'Kalpurush', system-ui, sans-serif;
+
+  --pa-size-masthead: 1.625rem;
+  --pa-size-title:    1.25rem;
+  --pa-size-body:     0.9375rem;
+  --pa-size-meta:     0.75rem;
+  /* four steps, each a real one. A fifth size 9% off its neighbour was
+     noise pretending to be hierarchy. */
+
+  /* Bangla needs more leading than Latin — kars and conjuncts extend
+     above and below the x-height on both sides. */
+  --pa-leading-tight: 1.35;
+  --pa-leading-body:  1.7;
+
+  /* ---- metrics ---------------------------------------------------- */
+  --pa-r-sm: 0.375rem;
+  --pa-r-md: 0.5rem;
+  --pa-r-lg: 0.75rem;
+  --pa-r-xl: 1rem;
+
+  --pa-s-1: 0.25rem;
+  --pa-s-2: 0.5rem;
+  --pa-s-3: 0.75rem;
+  --pa-s-4: 1rem;
+  --pa-s-5: 1.5rem;
+  --pa-s-6: 2rem;
+
+  --pa-bar-h: 3rem;
+  --pa-tap:   2.75rem;   /* WCAG AA touch target floor */
+
+  /* Depth is one press impression: offset plus soft blur, never a halo. */
+  --pa-lift-1: 0 1px 2px rgba(22, 23, 26, 0.06), 0 2px 8px rgba(22, 23, 26, 0.05);
+  --pa-lift-2: 0 2px 4px rgba(22, 23, 26, 0.08), 0 12px 28px rgba(22, 23, 26, 0.12);
+
+  --pa-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ---- desktop: the same four steps, set larger -----------------------
+   A phone type ramp on a 27-inch monitor reads as a shrunken phone, which
+   is exactly what it is. This scales the ramp rather than adding to it:
+   still four steps, still real ratios (1.33 / 1.41 / 1.31), so The Real
+   Step Rule holds. Bound to the same two-dimensional breakpoint the
+   spread layout uses, so type and layout change together. */
+@media (min-width: 60rem) and (min-height: 40rem) {
+  :root {
+    --pa-size-masthead: 2rem;
+    --pa-size-title:    1.5rem;
+    --pa-size-body:     1.0625rem;
+    --pa-size-meta:     0.8125rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root { --pa-ease: linear; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

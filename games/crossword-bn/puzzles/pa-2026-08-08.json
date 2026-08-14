@@ -1,0 +1,46 @@
+{
+  "id": "pa-2026-08-08",
+  "date": "2026-08-08",
+  "source": "Prothom Alo print edition, শব্দভেদ, 8 August 2026. Grid and clues from Screenshot/8.8.26.png; solution grid from Screenshot/9.8.26.png.",
+  "verified": true,
+  "verificationNote": "All 12 across and 12 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs. Note the 7-cell spine কর্তব্যপরায়ণ down column 1 — the longest entry in the pack.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    "ক", "টু", null, "খ", null, "দা", "মা", "ল",
+    "র্ত", null, "আ", "ব", "হা", "ও", "য়া", null,
+    "ব্য", "ব", "হা", "র", null, "য়া", null, "দো",
+    "প", null, "র", null, "গ", "ত", "ভা", "ষ",
+    "রা", "গ", null, "ই", "তি", null, "গা", null,
+    "য়", null, "ঘা", "ট", null, "খ", "ড়", "ম",
+    "ণ", null, "প", null, "গ", "ণ্ডি", null, "রু",
+    null, "জ", "টি", "ল", null, "ত", "রু", null
+  ],
+  "entries": [
+    { "n": 1,  "dir": "across", "cell": 0,  "len": 2, "clue": "কঠোর বা বিস্বাদ।" },
+    { "n": 3,  "dir": "across", "cell": 5,  "len": 3, "clue": "অতিশয় দুরন্ত।" },
+    { "n": 5,  "dir": "across", "cell": 10, "len": 5, "clue": "জলবায়ু।" },
+    { "n": 6,  "dir": "across", "cell": 16, "len": 4, "clue": "আচরণ।" },
+    { "n": 8,  "dir": "across", "cell": 28, "len": 4, "clue": "বাক্‌শক্তি হারিয়েছে এমন।" },
+    { "n": 10, "dir": "across", "cell": 32, "len": 2, "clue": "ক্রোধ।" },
+    { "n": 11, "dir": "across", "cell": 35, "len": 2, "clue": "সমাপ্তি।" },
+    { "n": 12, "dir": "across", "cell": 42, "len": 2, "clue": "নৌকা বা জাহাজ ভেড়ার স্থান।" },
+    { "n": 13, "dir": "across", "cell": 45, "len": 3, "clue": "কাঠের পাদুকা।" },
+    { "n": 15, "dir": "across", "cell": 52, "len": 2, "clue": "সীমা, পরিধি।" },
+    { "n": 16, "dir": "across", "cell": 57, "len": 3, "clue": "দুর্বোধ্য।" },
+    { "n": 17, "dir": "across", "cell": 61, "len": 2, "clue": "বৃক্ষ।" },
+
+    { "n": 1,  "dir": "down", "cell": 0,  "len": 7, "clue": "কর্তব্য পালনে যত্নবান।" },
+    { "n": 2,  "dir": "down", "cell": 3,  "len": 3, "clue": "বার্তা।" },
+    { "n": 3,  "dir": "down", "cell": 5,  "len": 4, "clue": "নিমন্ত্রণ।" },
+    { "n": 4,  "dir": "down", "cell": 6,  "len": 2, "clue": "মমতা।" },
+    { "n": 5,  "dir": "down", "cell": 10, "len": 3, "clue": "ভোজন।" },
+    { "n": 7,  "dir": "down", "cell": 23, "len": 2, "clue": "ত্রুটি।" },
+    { "n": 8,  "dir": "down", "cell": 28, "len": 2, "clue": "বেগ।" },
+    { "n": 9,  "dir": "down", "cell": 30, "len": 3, "clue": "মৃত গবাদিপশু ফেলার স্থান।" },
+    { "n": 11, "dir": "down", "cell": 35, "len": 2, "clue": "ইষ্টক।" },
+    { "n": 12, "dir": "down", "cell": 42, "len": 3, "clue": "ওত।" },
+    { "n": 13, "dir": "down", "cell": 45, "len": 3, "clue": "খণ্ড করা হয়েছে এমন।" },
+    { "n": 14, "dir": "down", "cell": 47, "len": 2, "clue": "শুষ্ক ও বিরান ভূমি।" }
+  ]
+}

@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>শব্দ সন্ধান — প্রথম আলো</title>
+<meta name="description" content="প্রথম আলোর দৈনিক শব্দ সন্ধান। ৮×৮ ঘরে লুকানো আটটি বাংলা শব্দ খুঁজে বের করুন।">
+<meta name="theme-color" content="#F4F3EF">
+<link rel="stylesheet" href="../../shared/pa-fonts.css">
+<link rel="stylesheet" href="../../shared/pa-tokens.css">
+<link rel="stylesheet" href="../../shared/pa-ui.css">
+<style>
+/* =====================================================================
+   শব্দ সন্ধান — game surface.
+
+   Inherits the two-colour press whole from pa-tokens.css. The board's two
+   states are the system's two inks used as DESIGN.md assigns them: red is
+   *now* (the run under the finger), cyan is *not yours to fill* (a word
+   already found and set into the page). A word search has no blocked
+   squares, so cyan 16% is free to carry the second half of its own meaning
+   without ever colliding with the first — sanctioned extension, resolved
+   2026-08-14, not a reassignment of the protected value.
+   ===================================================================== */
+
+/* Height is taken from the SMALLEST viewport, not the dynamic one. iOS
+   Chrome reports a dvh that includes the area its collapsing toolbar will
+   later occupy, so a bottom-docked zone — here the word list — gets cropped
+   the moment the toolbar returns. svh is the height that is always visible;
+   when the toolbar hides, the surplus shows as more paper, which costs
+   nothing because the page ground is paper anyway. */
+.ws {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#app[data-view='front'] .ws-board { display: none; }
+#app[data-view='board'] .ws-front { display: none; }
+
+/* Progress vocabulary, shared by the front page and the archive rows so the
+   two surfaces agree — the same dots শব্দভেদ uses. */
+.ws-dot {
+  flex: none;
+  width: 0.5rem; height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--pa-rule);
+  background: transparent;
+}
+/* Both states are the same ink at different depths, so neither reads as an
+   error: a puzzle under way is a pale screen, a finished one is solid. The
+   crossword marks solved in spot red; this game does not, because red here
+   is reserved for the live drag and the wrong answer. */
+.ws-dot.is-started { background: var(--pa-cyan-45); border-color: var(--pa-cyan-45); }
+.ws-dot.is-solved { background: var(--pa-cyan); border-color: var(--pa-cyan); }
+
+/* ---- front page ------------------------------------------------------
+   The top of a printed puzzle page, not a menu. Structure is শব্দভেদ's,
+   line for line: kicker, the puzzle's print date at masthead scale, the
+   board at thumbnail scale beside its facts, one primary action, then the
+   standing items under a hairline. The theme sits under the date rather
+   than replacing it, so both hero front pages read as the same page. */
+
+.ws-front {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(34rem, 100%);
+  margin-inline: auto;
+}
+.ws-front__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--pa-s-5) var(--pa-s-4) calc(var(--pa-s-5) + env(safe-area-inset-bottom, 0px));
+}
+
+.ws-kicker {
+  margin: 0 0 var(--pa-s-1);
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  color: var(--pa-red);
+}
+/* Ink-faint when the pack has run past today: the kicker stops claiming to
+   be today's puzzle rather than quietly lying in spot red. */
+.ws-kicker.is-stale { color: var(--pa-ink-3); }
+
+.ws-date {
+  margin: 0 0 var(--pa-s-1);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-masthead);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+.ws-themeline {
+  margin: 0 0 var(--pa-s-4);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-title);
+  line-height: 1.2;
+  color: var(--pa-ink-2);
+}
+
+.ws-lead__row { display: flex; gap: var(--pa-s-4); align-items: flex-start; margin-bottom: var(--pa-s-4); }
+
+/* Thumbnail of today's grid: blocks and the reader's own progress, no
+   letters — a conjunct at a 15px square is noise pretending to be
+   information. Progress takes cyan 45%, not the board's 16%: at thumbnail
+   scale the palest step is not a signal. */
+.ws-mini {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 1px;
+  width: 8.75rem;
+  aspect-ratio: 1;
+  padding: 3px;
+  background: var(--pa-rule-strong);
+}
+.ws-mini i { background: var(--pa-cell); }
+.ws-mini i.is-found { background: var(--pa-cyan-45); }
+
+.ws-facts { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--pa-s-1); min-width: 0; padding-block-start: 2px; }
+.ws-facts__m { font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.ws-facts__s {
+  display: flex; align-items: baseline; gap: 0.35rem;
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+  line-height: 1.2; font-variant-numeric: tabular-nums;
+}
+
+.ws-cta { width: 100%; }
+
+/* ---- standing rows & footer ------------------------------------------ */
+
+.ws-rows { margin-block-start: var(--pa-s-5); border-block-start: 1px solid var(--pa-rule); }
+.ws-row {
+  display: flex; align-items: center; gap: var(--pa-s-2);
+  width: 100%;
+  min-height: 3.25rem;
+  padding: var(--pa-s-2) var(--pa-s-1);
+  text-align: start;
+  border-block-end: 1px solid var(--pa-rule);
+  transition: background-color 140ms var(--pa-ease);
+}
+.ws-row:hover { background: var(--pa-chrome-tint); }
+.ws-row__t { font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); }
+.ws-row__end { margin-inline-start: auto; display: flex; align-items: center; gap: var(--pa-s-2); color: var(--pa-ink-3); }
+.ws-row__m { font-size: var(--pa-size-meta); }
+
+.ws-foot {
+  margin: var(--pa-s-6) 0 0;
+  text-align: center;
+  font-family: var(--pa-serif);
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-3);
+}
+
+/* ---- archive list ----------------------------------------------------
+   One renderer, two homes: a bottom sheet on a phone, and this list inline
+   in the front page's second column on a desktop. */
+
+.ws-aside__h {
+  display: flex; align-items: baseline; gap: var(--pa-s-2);
+  margin: 0;
+  padding-block-end: var(--pa-s-2);
+  border-block-end: 2px solid var(--pa-red);
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+}
+.ws-aside__n { margin-inline-start: auto; font-family: var(--pa-sans); font-weight: 400; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+
+/* The rail exists only on the spread; on a phone the same list lives in the
+   bottom sheet and this column would just be a second copy. */
+.ws-aside { display: none; }
+
+.ws-arclist { list-style: none; margin: 0; padding: var(--pa-s-1) 0 var(--pa-s-4); }
+.ws-arcrow {
+  display: flex; align-items: center; gap: var(--pa-s-2);
+  width: 100%;
+  min-height: var(--pa-tap);
+  padding: var(--pa-s-2) var(--pa-s-4);
+  text-align: start;
+  transition: background-color 140ms var(--pa-ease);
+}
+.ws-arcrow:hover { background: var(--pa-cyan-08); }
+.ws-arcrow[aria-current='true'] { background: var(--pa-red-08); }
+.ws-arcrow__date { font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-body); }
+.ws-arcrow__badge {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-red);
+  color: #fff;
+  font-size: var(--pa-size-meta); font-weight: 600; line-height: 1.6;
+}
+.ws-arcrow__badge.is-latest { background: var(--pa-cyan); }
+.ws-arcrow__theme { margin-inline-start: auto; flex: none; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.ws-arcrow__state { flex: none; display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.ws-arcrow__time { flex: none; min-width: 2.75rem; text-align: end; font-family: var(--pa-serif); font-variant-numeric: tabular-nums; font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.ws-aside .ws-arclist { padding-block: 0; }
+.ws-aside .ws-arcrow { padding-inline: var(--pa-s-1); border-block-end: 1px solid var(--pa-rule); }
+
+/* ---- board ----------------------------------------------------------- */
+
+/* The masthead is the shared one, unchanged: centred nameplate, controls in
+   the lead and tail clusters, dateline on the spot-red rule. The tail
+   carries the count-up, which is exactly where শব্দভেদ puts its own. */
+
+/* ---- reading line ----------------------------------------------------
+   The Map and the Reader Rule: a four-codepoint conjunct in a 40px square
+   is a map marker, not type, so the board is a map and this band is the
+   reading surface. It never collapses — at rest it names the theme, which
+   also gives the theme a home now that the nameplate holds the game title.
+   A band that appeared and vanished would reflow the grid mid-drag. */
+.ws-reading {
+  flex: none;
+  margin: 0;              /* it is a <p>: the UA's 1em block margins were
+                             spending ~51px of board height at every size */
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--pa-s-3);
+  font-family: var(--pa-serif);
+  font-size: var(--pa-size-title);
+  line-height: 1.3;
+  color: var(--pa-ink-3);
+  background: var(--pa-paper);
+  border-bottom: 1px solid var(--pa-rule);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.ws-reading.is-on { color: var(--pa-red-deep); font-weight: 700; }
+/* The band holds the word it just accepted, in the settled ink, before it
+   goes back to naming the theme. Clearing instantly reads as the drag having
+   been thrown away rather than taken. */
+.ws-reading.is-set { color: var(--pa-cyan); font-weight: 700; }
+
+/* --ws-max is the board's ceiling, read by the sizing routine rather than
+   hardcoded. It grows with the screen so a desktop is not a phone centred in
+   1920px of paper — but it is a ceiling, so past a point the board stops
+   growing and the page stays a page. */
+.ws-main {
+  --ws-max: 544px;
+  position: relative;        /* the fleck layer measures against this */
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--pa-s-3);
+}
+
+/* ---- ink flecks -------------------------------------------------------
+   A press throws a little ink when it strikes. Small hard squares — no
+   glow, no halo, no rounding — in the cyan that just landed, so they read
+   as spatter off the impression rather than as confetti borrowed from
+   another product. They live outside the board's flow entirely, so nothing
+   they do can move a cell. */
+.ws-fx { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.ws-fleck {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: var(--pa-cyan);
+  opacity: 0;
+  animation: ws-fleck 480ms var(--pa-ease) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes ws-fleck {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.85; }
+  100% { transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.2); opacity: 0; }
+}
+
+/* Squares on an ink ground showing through 1px gaps, 3px of the same ink
+   around the outside — that is how a printed grid gets its rules. No radius
+   anywhere inside. */
+.ws-grid {
+  width: var(--ws-side, 20rem);
+  height: var(--ws-side, 20rem);
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 1px;
+  padding: 3px;
+  background: var(--pa-rule-strong);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.ws-cell {
+  display: grid;
+  place-items: center;
+  background: var(--pa-cell);
+  font-size: calc(var(--ws-side, 20rem) / 8 * 0.5);
+  line-height: 1;
+  font-weight: 500;
+  transition: background-color 110ms var(--pa-ease);
+}
+.ws-cell__ch { font-size: var(--ws-fs, 1em); pointer-events: none; }
+.ws-cell.is-found { background: var(--pa-cyan-16); }
+.ws-cell.is-sel { background: var(--pa-red-16); color: var(--pa-red-deep); }
+.ws-cell.is-miss { animation: ws-miss 320ms var(--pa-ease); }
+@keyframes ws-miss {
+  0%, 100% { background: var(--pa-cell); }
+  30%, 70% { background: var(--pa-red-08); }
+}
+
+/* ---- the moment a word lands -----------------------------------------
+   The ink is laid down one square at a time, in the direction the finger
+   travelled, at 30ms a square — a word of five sets in 150ms, which is long
+   enough to read as a stroke and short enough never to delay the next drag.
+
+   It goes red → cyan, which is the whole state change stated in colour: the
+   square stops being the thing you are doing and becomes part of the printed
+   page. The full-strength rule that flashes with it is a rule, not a fill,
+   so the One Full-Strength Rule holds. No third hue, no glow, no bounce —
+   `prefers-reduced-motion` flattens all of it at the token layer. */
+.ws-cell.just-set {
+  /* Lifted above its neighbours for the length of the animation, so the
+     square that swells covers the ink gap instead of being clipped by it. */
+  position: relative;
+  z-index: 2;
+  animation: ws-set 460ms var(--pa-ease) both;
+  animation-delay: var(--d, 0ms);
+}
+/* No red anywhere in this. Red is the colour of *now* and of *wrong*, and a
+   square that has just been answered correctly is neither — flashing red on
+   success read as a rejection for the fraction of a second it was on screen.
+   The square goes from unprinted stock straight to the settled cyan, which
+   is the ink actually landing. */
+/* The square strikes at a deep screen of the same ink and settles down the
+   ramp into the resting tint — 45% → 30% → 16%. It is one colour throughout,
+   which is why it can be emphatic without becoming a second signal: the eye
+   reads "more of that" rather than "something else".
+
+   Screens above 16% were reserved for the keyboard. They are admitted here
+   as TRANSIENT FRAMES only — the square passes through them in 460ms and
+   comes to rest at 16%. No board state is ever painted 30% or 45%. */
+/* Every frame is cyan. The animation must NOT open on paper white: it runs
+   with fill-mode `both` and a per-square delay, so a 0% of white would be
+   painted backwards over each square for up to 150ms while it waits its
+   turn — the squares would blink white after being answered, which is
+   exactly the wrong-looking flash we removed the red for. */
+@keyframes ws-set {
+  0%   { transform: scale(1);    background: var(--pa-cyan-45); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
+  25%  { transform: scale(1.14); background: var(--pa-cyan-45); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
+  55%  { transform: scale(0.98); background: var(--pa-cyan-30); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
+  100% { transform: scale(1);    background: var(--pa-cyan-16); box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+}
+
+/* The whole board takes the spot red once and releases it, wiping along the
+   diagonal — the same gesture শব্দভেদ makes when its grid is solved, so the
+   two games finish the same way. */
+.ws-cell.is-solved {
+  animation: ws-solve 560ms var(--pa-ease) both;
+  animation-delay: var(--d, 0ms);
+}
+/* A rule, not a fill: the sweep crosses filler squares too, and those are
+   unprinted white — inking their background would say they were part of an
+   answer. A spot-red rule passing over says "the page is finished" without
+   claiming anything about the square underneath. */
+@keyframes ws-solve {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+  45%      { box-shadow: inset 0 0 0 2px var(--pa-cyan); }
+}
+/* The squares that hold an answer brighten and settle as the sweep passes;
+   filler squares take only the rule, so the wipe never claims an empty
+   square was part of a word. */
+.ws-cell.is-found.is-solved {
+  animation: ws-solve-found 560ms var(--pa-ease) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes ws-solve-found {
+  0%, 100% { background: var(--pa-cyan-16); box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+  45%      { background: var(--pa-cyan-45); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
+}
+
+/* ---- word list -------------------------------------------------------
+   The count lives here as a section head rather than in the masthead tail,
+   which the count-up now occupies. This is the count's natural home: the
+   list already shows which words are found. */
+
+.ws-listzone { flex: none; background: var(--pa-paper-lift); border-top: 1px solid var(--pa-rule); }
+.ws-listhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pa-s-3);
+  padding: var(--pa-s-2) var(--pa-s-4);
+  border-bottom: 1px solid var(--pa-rule);
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-3);
+}
+.ws-listhead__n { font-variant-numeric: tabular-nums; color: var(--pa-ink-2); }
+/* The count takes full-strength cyan for a beat as it increments — the ink
+   of a settled answer, not the red of a live or wrong one. A numeral at full
+   strength is ink, not a fill, so this stays inside the system. */
+.ws-listhead__n.is-tick { animation: ws-tick 520ms var(--pa-ease); }
+@keyframes ws-tick { 0%, 35% { color: var(--pa-cyan); } 100% { color: var(--pa-ink-2); } }
+
+.ws-words {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--pa-s-1) var(--pa-s-3);
+  margin: 0;
+  padding: var(--pa-s-3) var(--pa-s-4) calc(var(--pa-s-3) + env(safe-area-inset-bottom, 0px));
+  list-style: none;
+  /* On a short landscape phone the list would otherwise push the board past
+     its floor; it scrolls inside itself instead of stealing the board's zone. */
+  max-height: 38svh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.ws-word {
+  position: relative;
+  justify-self: start;          /* hug the word, so the rule spans the word */
+  font-family: var(--pa-serif);
+  font-size: var(--pa-size-body);
+  line-height: var(--pa-leading-tight);
+  transition: color 200ms var(--pa-ease);
+}
+/* Struck in cyan, not the crossword's strike red. This rule is permanent —
+   it sits on every solved word for the rest of the session — so it was the
+   loudest remaining place where a correct answer was drawn in the colour of
+   *wrong*. Drawn as a rule rather than text-decoration so it can be struck
+   THROUGH the word left to right, the way a hand crosses a list off. */
+.ws-word.is-found { color: var(--pa-ink-3); }
+.ws-word.is-found::after {
+  content: '';
+  position: absolute;
+  inset-inline: -0.1em;
+  top: 52%;
+  height: 2px;
+  background: var(--pa-cyan-45);
+  transform-origin: left center;
+}
+.ws-word.is-hit::after { animation: ws-rule 300ms var(--pa-ease) both; }
+@keyframes ws-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* ---- archive rows ---------------------------------------------------- */
+
+.ws-arcrow:disabled { opacity: 0.45; cursor: default; }
+.ws-arcrow:disabled:hover { background: none; }
+
+/* ---- sheets ---------------------------------------------------------- */
+
+.ws-sheetbody { padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-5); }
+
+.ws-htp { margin: 0; padding: 0; list-style: none; counter-reset: htp; }
+.ws-htp > li { counter-increment: htp; margin-bottom: var(--pa-s-5); }
+.ws-htp__h {
+  display: flex; align-items: baseline; gap: var(--pa-s-2);
+  margin: 0 0 var(--pa-s-1);
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+}
+.ws-htp__h::before { content: counter(htp); color: var(--pa-red); font-variant-numeric: tabular-nums; }
+.ws-htp__p { margin: 0; color: var(--pa-ink-2); }
+/* Board states are shown as real cells, never as icons or swatches. */
+.ws-figs { display: flex; gap: var(--pa-s-3); margin-top: var(--pa-s-3); }
+.ws-fig { display: flex; flex-direction: column; align-items: center; gap: var(--pa-s-1); }
+.ws-fig__c {
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  background: var(--pa-cell);
+  box-shadow: 0 0 0 1px var(--pa-rule-strong);
+  font-size: 1.25rem; line-height: 1;
+}
+.ws-fig__c.is-sel { background: var(--pa-red-16); color: var(--pa-red-deep); }
+.ws-fig__c.is-found { background: var(--pa-cyan-16); }
+.ws-fig__l { font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+
+/* ---- completion card ------------------------------------------------- */
+
+.ws-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; }
+.ws-win__mark {
+  margin: 0 0 var(--pa-s-1);
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead);
+}
+.ws-win__theme { margin: 0 0 var(--pa-s-4); color: var(--pa-ink-2); }
+.ws-win__nums {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  margin-bottom: var(--pa-s-3);
+  border-block: 1px solid var(--pa-rule);
+}
+.ws-win__num { padding: var(--pa-s-3) var(--pa-s-1); }
+.ws-win__num + .ws-win__num { border-inline-start: 1px solid var(--pa-rule); }
+.ws-win__v {
+  display: block;
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+  font-variant-numeric: tabular-nums;
+}
+.ws-win__k { display: block; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.ws-win__note { margin: 0 0 var(--pa-s-4); font-size: var(--pa-size-meta); color: var(--pa-ink-3); min-height: 1.2em; }
+.ws-win__acts { display: flex; flex-direction: column; gap: var(--pa-s-2); }
+.ws-win__ghosts { display: flex; gap: var(--pa-s-2); }
+.ws-win__ghosts .pa-btn { flex: 1; }
+
+/* ---- tablet ----------------------------------------------------------
+   Still the phone column, but full-bleed surfaces are capped and centred —
+   a reading band and a two-up word list stretched across 768px is neither. */
+@media (min-width: 48rem) {
+  .ws-reading { padding-inline: max(var(--pa-s-3), calc((100% - 34rem) / 2)); }
+  .ws-listzone > * { width: min(34rem, 100%); margin-inline: auto; }
+}
+
+/* ---- spread ----------------------------------------------------------
+   Board left, word list as a permanent right rail — the same arrangement
+   শব্দভেদ gives its clue lists. The rail scrolls inside itself. */
+/* ---- spread ----------------------------------------------------------
+   A desktop layout is not a phone layout centred. Three things scale
+   together or the page reads as a shrunken phone: the type ramp (handled at
+   the token layer), the board ceiling (--ws-max below), and the list, which
+   is promoted from a docked strip into a permanent rail — the same
+   arrangement শব্দভেদ gives its clue lists.
+
+   The whole spread is capped and centred between hairline page edges: past
+   that it stops growing, because it is a page and not a billboard. */
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .ws-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+    grid-template-rows: auto auto 1fr auto;
+    width: min(100rem, 100%);
+    margin-inline: auto;
+    border-inline: 1px solid var(--pa-rule);
+  }
+  .ws-board > .pa-masthead { grid-column: 1 / -1; }
+
+  /* The band belongs to the board, not to the page. Spanning both columns
+     put the theme on the page's centre line, 221px off the board it names —
+     the two read as unrelated objects. It takes the board's column so the
+     two share a centre. */
+  .ws-reading { grid-column: 1; grid-row: 2; }
+
+  .ws-main { --ws-max: 672px; grid-column: 1; grid-row: 3; padding: var(--pa-s-5); }
+
+  /* A counterweight the same height as the reading band, so the board
+     centres in the whole area under the masthead rather than in the leftover
+     beneath the band. Without it the board hangs 47px low and the column
+     reads bottom-heavy. */
+  .ws-board::after { content: ''; grid-column: 1; grid-row: 4; min-height: 2.5rem; }
+
+  .ws-listzone {
+    grid-column: 2; grid-row: 2 / -1;
+    display: flex; flex-direction: column; min-height: 0;
+    background: none;
+    border-top: 0;
+    border-inline-start: 1px solid var(--pa-rule);
+  }
+  /* margin-inline must be reset, not just width. An auto cross-axis margin
+     on a column flex item cancels `stretch`, so the tablet rule's centring
+     shrink-wrapped the whole rail to its text and left the section head with
+     no free space for space-between to distribute — which is why শব্দ and
+     the count were touching. */
+  .ws-listzone > * { width: auto; margin-inline: 0; }
+  /* The rail is the tallest thing on the page without exceeding it, and it
+     scrolls inside itself — never by dragging the page. */
+  /* One column in the rail, so the list needs its own vertical rhythm — the
+     two-up phone gap reads as cramped once the words are stacked. */
+  .ws-words {
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: var(--pa-s-2);
+    padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-5);
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  /* Below this the front page is one column, which is right on a phone and
+     absurd on a monitor — a 34rem strip adrift in 1920px of paper. Here the
+     lead takes the measure it deserves and the puzzle list comes out from
+     behind its sheet to fill the second column. Fixed measures, centred —
+     not two stretching columns. */
+  .ws-front { width: min(76rem, 100%); }
+  .ws-front__body { padding: var(--pa-s-6) var(--pa-s-5); }
+  .ws-spread {
+    display: grid;
+    grid-template-columns: minmax(0, 34rem) minmax(18rem, 24rem);
+    justify-content: center;
+    gap: var(--pa-s-6);
+    align-items: start;
+  }
+  /* Budgeted against the viewport so the rail is the tallest thing on the
+     page without exceeding it — two scrollbars on one screen is a layout
+     that has given up deciding what scrolls. */
+  .ws-aside { display: flex; flex-direction: column; min-height: 12rem; }
+  .ws-mini { width: 15rem; }
+  .ws-lead__row { gap: var(--pa-s-5); }
+  /* Exactly the thumbnail's width, directly beneath it — the action belongs
+     to the board, so it shares its measure and its centre line. */
+  .ws-cta { width: 15rem; }
+  /* The list is on the page now; the row that opened it is noise. */
+  #fp-archive { display: none; }
+}
+
+/* The rail only earns its own scrollbar when the page can actually hold it.
+   Budgeted against everything else — masthead, body padding, the standing
+   rows, the footer — not against the viewport alone. Below this height the
+   lead block is taller than any budget the rail could take, so the rail runs
+   free and the page is the single scroller: one scrollbar, which is the
+   whole point of the rule. */
+@media (min-width: 60rem) and (min-height: 46rem) {
+  .ws-aside { max-height: calc(100svh - 22rem); }
+  .ws-aside .ws-arclist { min-height: 0; overflow-y: auto; }
+}
+
+/* Past this the board ceiling stops binding and available height governs,
+   which is the intended end state: the board grows until the window stops
+   it, not until a constant does. */
+@media (min-width: 90rem) and (min-height: 48rem) {
+  .ws-main { --ws-max: 896px; }
+  .ws-board { grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem); }
+}
+</style>
+</head>
+<body>
+<!--
+  THESIS: The newspaper word search, kept as print set it. Eight words in a
+  ruled square and the list beneath — the reader is not being tested, they
+  are passing ten minutes with tea.
+
+  OWN-WORLD: the two-colour press, inherited whole. The board's two states
+  are the two inks doing exactly what DESIGN.md assigns them: red is the run
+  under the finger, cyan is a word already set into the page.
+
+  STORY: a reader opens it, sees today's date and today's theme on a front
+  page, taps in, drags across eight squares, watches the run set itself in
+  red and confirm at readable size above the grid, lets go, and the run goes
+  cyan while the word rules itself off the list.
+
+  FORM: front page → board, two views in one document, switched by data-view
+  on the shell. The clock holds at zero until the reader enters the board —
+  loading a puzzle is not starting one.
+-->
+<div class="ws" id="app" data-view="front">
+
+<!-- =====================================================================
+     FRONT PAGE
+     ===================================================================== -->
+<section class="ws-front pa-scroll">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="exit" aria-label="সব গেম">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">শব্দ সন্ধান</h1>
+      <span class="pa-masthead__tail">
+        <button class="pa-iconbtn" id="top-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114.1 2.2c-.9.7-1.7 1.1-1.7 2.1"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <button class="pa-masthead__date" id="dateline" aria-haspopup="dialog" aria-label="অন্য ধাঁধা বেছে নিন">
+        <span id="date"></span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="ws-front__body pa-scroll">
+    <div class="ws-spread">
+      <section class="ws-lead">
+        <p class="ws-kicker" id="fp-kicker">আজকের ধাঁধা</p>
+        <h2 class="ws-date" id="fp-date">—</h2>
+        <p class="ws-themeline" id="fp-theme">…</p>
+
+        <div class="ws-lead__row">
+          <div class="ws-mini" id="fp-mini" aria-hidden="true"></div>
+          <div class="ws-facts">
+            <span class="ws-facts__m" id="fp-size">৮×৮ · ৮ শব্দ</span>
+            <span class="ws-facts__s"><i class="ws-dot" id="fp-dot"></i><span id="fp-state">লোড হচ্ছে…</span></span>
+          </div>
+        </div>
+
+        <button class="pa-btn pa-btn--primary ws-cta" id="fp-cta">শুরু করুন</button>
+      </section>
+
+      <aside class="ws-aside">
+        <h2 class="ws-aside__h">সব ধাঁধা<span class="ws-aside__n" id="fp-aside-count"></span></h2>
+        <div class="ws-arclist pa-scroll" id="fp-archlist"></div>
+      </aside>
+    </div>
+
+    <nav class="ws-rows">
+      <button class="ws-row" id="fp-archive" aria-haspopup="dialog">
+        <span class="ws-row__t">সব ধাঁধা</span>
+        <span class="ws-row__end">
+          <span class="ws-row__m" id="fp-archive-meta"></span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+      <button class="ws-row" id="fp-howto" aria-haspopup="dialog">
+        <span class="ws-row__t">কীভাবে খেলবেন</span>
+        <span class="ws-row__end">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+    </nav>
+
+    <p class="ws-foot">প্রথম আলো</p>
+  </div>
+</section>
+
+<!-- =====================================================================
+     BOARD
+     ===================================================================== -->
+<section class="ws-board ws" aria-label="শব্দ সন্ধান বোর্ড">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="back" aria-label="নামপাতা">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">শব্দ সন্ধান</h1>
+      <span class="pa-masthead__tail">
+        <span class="pa-masthead__timer" id="timer" role="timer" aria-label="সময়">০:০০</span>
+        <button class="pa-iconbtn" id="board-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 113.5 2.3c-.6.3-1 .9-1 1.6v.3"/><path d="M12 17h.01"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <span class="pa-masthead__date" id="board-date"></span>
+    </div>
+  </header>
+
+  <p class="ws-reading" id="reading" aria-live="polite"></p>
+
+  <div class="ws-main" id="board-main">
+    <div class="ws-grid" id="grid" role="grid" aria-label="অক্ষরের ছক"></div>
+    <div class="ws-fx" id="fx" aria-hidden="true"></div>
+  </div>
+
+  <div class="ws-listzone">
+    <div class="ws-listhead">
+      <span>শব্দ</span>
+      <span class="ws-listhead__n" id="count">০ / ৮</span>
+    </div>
+    <ul class="ws-words pa-scroll" id="words"></ul>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SHEETS
+     ===================================================================== -->
+<div class="pa-sheet" id="sheet-arch" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সব ধাঁধা" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">সব ধাঁধা</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="ws-arclist" id="arch-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-howto" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="কীভাবে খেলবেন" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">কীভাবে খেলবেন</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll ws-sheetbody">
+      <ol class="ws-htp">
+        <li>
+          <h4 class="ws-htp__h">শব্দ খুঁজুন</h4>
+          <p class="ws-htp__p">নিচের তালিকার আটটি শব্দ ছকের ভেতরে লুকানো আছে — পাশাপাশি, ওপর-নিচে বা কোনাকুনি, সোজা কিংবা উল্টো দিকে।</p>
+        </li>
+        <li>
+          <h4 class="ws-htp__h">এক ঘরে এক অক্ষর</h4>
+          <p class="ws-htp__p">যুক্তাক্ষর বা কারসহ অক্ষর একটি ঘরেই বসে — কা, ক্ষ, র্ম প্রতিটি একটি ঘর।</p>
+          <div class="ws-figs">
+            <span class="ws-fig"><span class="ws-fig__c">কা</span><span class="ws-fig__l">এক ঘর</span></span>
+            <span class="ws-fig"><span class="ws-fig__c">ক্ষ</span><span class="ws-fig__l">এক ঘর</span></span>
+            <span class="ws-fig"><span class="ws-fig__c">র্ম</span><span class="ws-fig__l">এক ঘর</span></span>
+          </div>
+        </li>
+        <li>
+          <h4 class="ws-htp__h">আঙুল টেনে বেছে নিন</h4>
+          <p class="ws-htp__p">শব্দের প্রথম ঘরে আঙুল রেখে শেষ ঘর পর্যন্ত টানুন। ছকের ওপরে বড় করে দেখা যাবে কোন শব্দটি বেছে নিচ্ছেন।</p>
+          <div class="ws-figs">
+            <span class="ws-fig"><span class="ws-fig__c is-sel">পে</span><span class="ws-fig__l">বেছে নেওয়া</span></span>
+            <span class="ws-fig"><span class="ws-fig__c is-found">রা</span><span class="ws-fig__l">পাওয়া গেছে</span></span>
+          </div>
+        </li>
+        <li>
+          <h4 class="ws-htp__h">মিলে গেলে</h4>
+          <p class="ws-htp__p">ঘরগুলো নীল হয়ে যাবে আর তালিকায় শব্দটি কাটা পড়বে। আটটি শব্দ পেলেই ধাঁধা শেষ।</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-win" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সম্পূর্ণ" tabindex="-1">
+    <div class="ws-win">
+      <p class="ws-win__mark">চমৎকার!</p>
+      <p class="ws-win__theme" id="win-theme"></p>
+      <div class="ws-win__nums">
+        <span class="ws-win__num"><b class="ws-win__v" id="win-time">০:০০</b><span class="ws-win__k">সময়</span></span>
+        <span class="ws-win__num"><b class="ws-win__v" id="win-best">০:০০</b><span class="ws-win__k">সেরা</span></span>
+        <span class="ws-win__num"><b class="ws-win__v" id="win-words">৮</b><span class="ws-win__k">শব্দ</span></span>
+      </div>
+      <p class="ws-win__note" id="win-note"></p>
+      <div class="ws-win__acts">
+        <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
+        <span class="ws-win__ghosts">
+          <button class="pa-btn pa-btn--ghost" id="win-board">ফিরে দেখুন</button>
+          <button class="pa-btn pa-btn--ghost" id="win-front">প্রথম পাতা</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script src="../../shared/bn-text.js"></script>
+<script src="wsgrid.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

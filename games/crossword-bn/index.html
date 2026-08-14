@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>শব্দভেদ — প্রথম আলো</title>
+<meta name="description" content="প্রথম আলোর দৈনিক শব্দভেদ। ৮×৮ বাংলা শব্দজট, প্রতিদিন নতুন।">
+<meta name="theme-color" content="#F4F3EF">
+<link rel="stylesheet" href="../../shared/pa-fonts.css">
+<link rel="stylesheet" href="../../shared/pa-tokens.css">
+<link rel="stylesheet" href="../../shared/pa-ui.css">
+<style>
+/* =====================================================================
+   শব্দভেদ — game surface.
+   Layout is three zones: fixed head (bar, dateline, clue, strip),
+   flexible middle (grid), docked foot (type-case keyboard).
+   ===================================================================== */
+
+.xw {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 100svh;
+  overflow: hidden;
+}
+
+/* ---- clue bar -------------------------------------------------------- */
+
+/* The head zone never shrinks. Only the board absorbs leftover height —
+   letting these compress instead clips the reading strip's cells, which is
+   the one surface that exists to be legible. */
+.xw-clue, .xw-coach, .xw-full, .xw-strip { flex: none; }
+
+.xw-clue {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr 2.25rem;
+  align-items: stretch;
+  background: var(--pa-cyan-08);
+  border-bottom: 1px solid var(--pa-rule);
+}
+.xw-clue__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  color: var(--pa-cyan);
+  transition: background-color 140ms var(--pa-ease);
+}
+.xw-clue__nav:hover { background: var(--pa-cyan-16); }
+.xw-clue__body {
+  display: flex;
+  align-items: center;
+  gap: var(--pa-s-2);
+  min-height: 3.125rem;
+  padding: var(--pa-s-1) var(--pa-s-1);
+  text-align: start;
+  overflow: hidden;
+}
+.xw-clue__num {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  flex: none;
+  padding: 0.1rem 0.35rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-cyan);
+  color: #fff;
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  line-height: 1.5;
+}
+.xw-clue__num svg { display: block; }
+.xw-clue__text {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  font-family: var(--pa-serif);
+  font-weight: 400;
+  font-size: var(--pa-size-body);
+  line-height: var(--pa-leading-tight);
+  overflow: hidden;
+}
+.xw-clue__list {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--pa-cyan);
+  padding-inline: 0.15rem;
+}
+
+/* ---- magnified active-entry strip ------------------------------------
+   The grid is a map; this is the reading and writing surface. Bangla
+   conjuncts at grid scale are not legible and are not meant to be.      */
+
+.xw-strip {
+  display: flex;
+  justify-content: safe center;
+  align-items: flex-end;
+  gap: 2px;
+  padding: var(--pa-s-1) var(--pa-s-3) var(--pa-s-2);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  background: var(--pa-paper);
+  border-bottom: 1px solid var(--pa-rule);
+}
+.xw-strip::-webkit-scrollbar { display: none; }
+
+.xw-scell {
+  position: relative;
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: var(--scell, 3.5rem);
+  height: var(--scell, 3.5rem);
+  background: transparent;
+  border: 1px solid var(--pa-rule);
+  box-shadow: inset 0 -2px 0 var(--pa-rule);
+  font-size: calc(var(--scell, 3.5rem) * 0.5);
+  line-height: 1;
+  font-weight: 500;
+  transition: background-color 120ms var(--pa-ease);
+}
+.xw-scell.has-v { background: var(--pa-cell); border-color: var(--pa-rule-strong); box-shadow: none; }
+.xw-scell.is-active {
+  background: var(--pa-red-16);
+  box-shadow: inset 0 0 0 2px var(--pa-red);
+  z-index: 1;
+}
+.xw-scell__n {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 3px;
+  font-size: max(9px, calc(var(--scell, 3.5rem) * 0.2));
+  font-weight: 600;
+  line-height: 1;
+  color: var(--pa-ink-2);
+}
+.xw-scell__v { display: block; transform-origin: center; }
+.xw-scell.is-wrong { color: var(--pa-red-deep); }
+.xw-scell.is-wrong::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  background: linear-gradient(to top right, transparent 48.6%, var(--pa-red) 48.6% 51.4%, transparent 51.4%);
+}
+
+/* caret on the active composition cell */
+.xw-scell.is-active.is-composing .xw-scell__v { border-bottom: 2px solid var(--pa-red); }
+
+/* TWO MODES, bound to the keyboard.
+   Typing: the strip is visible (the reader) and the grid is small and
+   auto-scrolled (the map). Scanning: the keyboard is collapsed, so the strip
+   goes with it and the grid takes the whole page. Both surfaces serve the
+   same act; a 640dp phone cannot show both at full size, and pretending
+   otherwise is what kept clipping the last row. */
+.xw.is-scanning .xw-strip { display: none; }
+
+/* ---- grid ------------------------------------------------------------ */
+
+/* The ceiling on cell size, read by sizeGrid(). A board capped at phone
+   scale is the whole reason the desktop page read as shrunken: 8×8 at 64px
+   is a 512px square adrift in a 1920px page. */
+.xw-gridwrap {
+  --cell-max: 64px;
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  min-height: 0;
+  padding: var(--pa-s-2);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+/* Only when the grid genuinely overflows. Applied unconditionally it dissolves
+   the 3px outer rule and bleaches the active-word tint on the last row —
+   the highlight looks broken when it is not. */
+.xw-gridwrap.is-scrollable {
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 18px), transparent);
+}
+
+.xw-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 8), var(--cell, 2.5rem));
+  grid-auto-rows: var(--cell, 2.5rem);
+  gap: 1px;
+  padding: 3px;
+  background: var(--pa-rule-strong);
+}
+
+.xw-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  background: var(--pa-cell);
+  font-size: calc(var(--cell, 2.5rem) * 0.52);
+  line-height: 1;
+  overflow: hidden;
+  transition: background-color 110ms var(--pa-ease);
+}
+.xw-cell--block { background: var(--pa-cyan-16); }
+.xw-cell.in-word { background: var(--pa-red-08); }
+.xw-cell.is-active { background: var(--pa-red-16); }
+.xw-cell.is-active::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 0 2px var(--pa-red);
+  pointer-events: none;
+}
+.xw-cell__n {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 1px;
+  font-size: max(9px, calc(var(--cell, 2.5rem) * 0.28));
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--pa-ink-2);
+  pointer-events: none;
+}
+.xw-cell__v {
+  display: block;
+  transform-origin: center;
+  padding-block-start: calc(var(--cell, 2.5rem) * 0.14);
+}
+.xw-cell.is-wrong::after {
+  content: '';
+  position: absolute;
+  inset: 14%;
+  background: linear-gradient(to top right, transparent 48%, var(--pa-red) 48% 52%, transparent 52%);
+  pointer-events: none;
+}
+.xw-cell.is-revealed .xw-cell__v { color: var(--pa-cyan); }
+
+/* solved: the whole board takes the spot-red ink once */
+.xw-grid.is-solved .xw-cell:not(.xw-cell--block) {
+  animation: xw-set 620ms var(--pa-ease) both;
+  animation-delay: calc(var(--i, 0) * 14ms);
+}
+@keyframes xw-set {
+  0%   { background: var(--pa-cell); }
+  40%  { background: var(--pa-red-16); }
+  100% { background: var(--pa-cell); }
+}
+
+/* ---- type-case keyboard ---------------------------------------------- */
+
+.xw-kb {
+  flex: none;
+  padding: 0 var(--pa-s-2) calc(var(--pa-s-2) + env(safe-area-inset-bottom, 0px));
+  background: var(--pa-paper-lift);
+  border-top: 1px solid var(--pa-rule);
+  user-select: none;
+}
+.xw-kb__row {
+  display: grid;
+  gap: 3px;
+  margin-block-end: 3px;
+}
+.xw-kb__row:last-child { margin-block-end: 0; }
+.xw-kb__row--kar  { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.xw-kb__row--karend { margin-block-end: 7px; }
+.xw-kb__row--v   { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+.xw-kb__row--c   { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+
+.xw-key {
+  display: grid;
+  place-items: center;
+  min-height: 1.9rem;
+  padding-block: 0.1rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-cell);
+  border: 1px solid var(--pa-rule);
+  font-size: var(--pa-size-title);
+  line-height: 1.2;
+  transition: background-color 90ms var(--pa-ease), transform 90ms var(--pa-ease);
+}
+.xw-key:active { background: var(--pa-cyan-30); transform: translateY(1px); }
+@media (hover: hover) { .xw-key:hover { background: var(--pa-cyan-08); } }
+
+/* kars are marks, not letters — set them on a tinted ground with a
+   dotted-circle placeholder so they read as diacritics */
+.xw-key--kar { background: var(--pa-cyan-08); color: var(--pa-cyan); }
+.xw-key--kar:active { background: var(--pa-cyan-45); }
+.xw-key--hasant { font-weight: 700; }
+.xw-key--del { grid-column: span 3; background: var(--pa-cyan-08); color: var(--pa-cyan); }
+.xw-key--del:active { background: var(--pa-cyan-45); }
+
+.xw-kb__grab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 1.375rem;
+  color: var(--pa-ink-3);
+}
+.xw-kb__grab { gap: var(--pa-s-2); font-size: var(--pa-size-meta); letter-spacing: 0.04em; }
+.xw-kb__pill {
+  width: 2.25rem;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--pa-rule);
+  transition: background-color 140ms var(--pa-ease);
+}
+.xw-kb__grab:hover .xw-kb__pill { background: var(--pa-ink-3); }
+.xw-kb__reopen { display: none; align-items: center; gap: var(--pa-s-2); color: var(--pa-ink); }
+.xw-kb.is-collapsed .xw-kb__grab { height: 2.5rem; }
+.xw-kb.is-collapsed .xw-kb__pill { display: none; }
+.xw-kb.is-collapsed .xw-kb__reopen { display: inline-flex; }
+.xw-kb.is-collapsed .xw-kb__row { display: none; }
+
+/* the বর্গ boundary — a compositor's type case groups by class */
+.xw-key--gap { margin-inline-start: 5px; }
+
+/* ---- clue list sheet -------------------------------------------------- */
+
+.xw-tabs {
+  display: flex;
+  gap: var(--pa-s-4);
+  padding: 0 var(--pa-s-4);
+  border-bottom: 1px solid var(--pa-rule);
+}
+.xw-tab {
+  position: relative;
+  padding: var(--pa-s-2) 0 calc(var(--pa-s-2) + 2px);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-meta);
+  color: var(--pa-ink-3);
+}
+.xw-tab[aria-selected='true'] { color: var(--pa-ink); }
+.xw-tab[aria-selected='true']::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 0;
+  height: 2px;
+  background: var(--pa-chrome);
+}
+
+.xw-cluelist { list-style: none; margin: 0; padding: var(--pa-s-2) 0 var(--pa-s-4); }
+.xw-cluerow {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: var(--pa-s-2);
+  width: 100%;
+  padding: var(--pa-s-2) var(--pa-s-4);
+  text-align: start;
+  line-height: var(--pa-leading-tight);
+}
+.xw-cluerow:hover { background: var(--pa-cyan-08); }
+.xw-cluerow[aria-current='true'] { background: var(--pa-cyan-16); }
+.xw-cluerow.is-filled .xw-cluerow__t { color: var(--pa-ink-2); text-decoration: line-through; text-decoration-color: var(--pa-red-40); }
+.xw-cluerow__n { font-weight: 700; color: var(--pa-cyan); font-variant-numeric: tabular-nums; }
+.xw-cluerow__t { font-family: var(--pa-serif); font-weight: 400; }
+
+/* section heading inside the always-open desktop list */
+.xw-cluehead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-1);
+  background: var(--pa-paper-lift);
+  border-block-end: 1px solid var(--pa-rule);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.02em;
+}
+
+/* ---- archive --------------------------------------------------------- */
+
+.xw-arclist { list-style: none; margin: 0; padding: var(--pa-s-1) 0 var(--pa-s-4); }
+.xw-arcrow {
+  display: flex;
+  align-items: center;
+  gap: var(--pa-s-2);
+  width: 100%;
+  min-height: var(--pa-tap);
+  padding: var(--pa-s-2) var(--pa-s-4);
+  text-align: start;
+}
+.xw-arcrow:hover { background: var(--pa-cyan-08); }
+.xw-arcrow[aria-current='true'] { background: var(--pa-red-08); }
+.xw-arcrow__date {
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-body);
+}
+.xw-arcrow__today.is-latest { background: var(--pa-cyan); }
+.xw-arcrow__today {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-red);
+  color: #fff;
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  line-height: 1.6;
+}
+.xw-arcrow__state {
+  margin-inline-start: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: none;
+  color: var(--pa-ink-2);
+  font-size: var(--pa-size-meta);
+}
+.xw-arcrow__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--pa-r-pill, 999px);
+  border: 1px solid var(--pa-ink-3);
+}
+.xw-arcrow__dot.is-solved { background: var(--pa-red); border-color: var(--pa-red); }
+.xw-arcrow__dot.is-started { background: var(--pa-cyan); border-color: var(--pa-cyan); }
+.xw-arcrow__time {
+  flex: none;
+  min-width: 2.75rem;
+  text-align: end;
+  font-family: var(--pa-serif);
+  font-variant-numeric: tabular-nums;
+  color: var(--pa-ink-2);
+  font-size: var(--pa-size-meta);
+}
+
+/* ---- win ------------------------------------------------------------- */
+
+.xw-win {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--pa-s-4);
+  background: rgba(22, 23, 26, 0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 320ms var(--pa-ease);
+}
+.xw-win.is-open { opacity: 1; pointer-events: auto; }
+.xw-win__card {
+  width: min(22rem, 100%);
+  max-height: 88dvh;
+  overflow-y: auto;
+  padding: var(--pa-s-4) var(--pa-s-5) var(--pa-s-5);
+  background: var(--pa-paper-lift);
+  border-block-start: 3px solid var(--pa-red);
+  transform: translateY(12px);
+  transition: transform 420ms var(--pa-ease);
+}
+.xw-win.is-open .xw-win__card { transform: none; }
+.xw-win__title {
+  margin: 0 0 var(--pa-s-2);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-masthead);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+.xw-win__rule { height: 1px; margin: 0 0 var(--pa-s-3); background: var(--pa-rule); }
+
+/* three numbers under a hairline — a result line, not a score panel */
+.xw-win__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 0 var(--pa-s-3);
+}
+.xw-win__stat { display: flex; flex-direction: column; gap: 0.1rem; padding-inline: var(--pa-s-2); }
+.xw-win__stat:first-child { padding-inline-start: 0; }
+.xw-win__stat + .xw-win__stat { border-inline-start: 1px solid var(--pa-rule); }
+.xw-win__v {
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-title);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.xw-win__k { font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+
+.xw-win__best { margin: 0 0 var(--pa-s-4); color: var(--pa-ink-2); font-size: var(--pa-size-meta); }
+.xw-win__card .pa-btn--primary { width: 100%; }
+.xw-win__row { display: flex; gap: var(--pa-s-2); margin-block-start: var(--pa-s-2); }
+.xw-win__row .pa-btn { flex: 1 1 0; padding-inline: var(--pa-s-3); }
+
+/* ---- app shell: two views, one document ------------------------------
+   The front page and the board live in the same document. Nothing reloads
+   between them, so the loaded puzzle, the restored grid and the timer all
+   survive the move — and the clock does not start until the reader
+   actually enters the board. */
+
+.pa-app {
+  height: 100dvh;
+  min-height: 100svh;
+  overflow: hidden;
+}
+.pa-app[data-view='front'] .xw { display: none; }
+.pa-app[data-view='play'] .pa-front { display: none; }
+
+/* ---- front page ------------------------------------------------------
+   The top of a printed puzzle page, not a splash screen: masthead, dateline
+   on the spot-red rule, a lead block carrying today's grid at thumbnail
+   scale, then the standing items beneath a hairline. The column is capped
+   and centred so the head and the body stay one measure on desktop. */
+
+.pa-front {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  width: min(34rem, 100%);
+  margin-inline: auto;
+}
+.pa-front__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--pa-s-5) var(--pa-s-4) calc(var(--pa-s-5) + env(safe-area-inset-bottom, 0px));
+}
+
+.fp-kicker {
+  margin: 0 0 var(--pa-s-1);
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  color: var(--pa-red);
+}
+/* only the puzzle that really is today's gets the spot red */
+.fp-kicker.is-stale { color: var(--pa-ink-3); }
+
+.fp-date {
+  margin: 0 0 var(--pa-s-4);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-masthead);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+}
+
+.fp-lead__row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pa-s-4);
+  margin-block-end: var(--pa-s-4);
+}
+
+/* the board at thumbnail scale — blocks and progress only. A conjunct is
+   not legible at 15px and no letter is drawn here. */
+.fp-preview {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(var(--pcols, 8), 1fr);
+  gap: 1px;
+  padding: 2px;
+  width: 8.75rem;
+  background: var(--pa-rule-strong);
+}
+.fp-preview span { display: block; aspect-ratio: 1; background: var(--pa-cell); }
+.fp-preview span.is-block { background: var(--pa-cyan-16); }
+/* red 16%, not the 8% word tint: at a 15px square the palest step is not a
+   signal. There is no active cell at thumbnail scale, so 16% is unambiguous
+   here — it can only mean "you filled this". */
+.fp-preview span.is-filled { background: var(--pa-red-16); }
+.fp-preview.is-waiting { background: var(--pa-rule); }
+.fp-preview.is-waiting span { background: var(--pa-paper); }
+
+.fp-facts {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pa-s-1);
+  padding-block-start: 2px;
+}
+.fp-facts__m { font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.fp-facts__s {
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-title);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.fp-facts__dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-inline-end: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid var(--pa-ink-3);
+  vertical-align: baseline;
+}
+.fp-facts__dot.is-solved { background: var(--pa-red); border-color: var(--pa-red); }
+.fp-facts__dot.is-started { background: var(--pa-cyan); border-color: var(--pa-cyan); }
+
+.fp-cta { width: 100%; }
+.fp-alt { width: 100%; margin-block-start: var(--pa-s-2); }
+
+.fp-rows { margin-block-start: var(--pa-s-5); border-block-start: 1px solid var(--pa-rule); }
+.fp-row {
+  display: flex;
+  align-items: center;
+  gap: var(--pa-s-2);
+  width: 100%;
+  min-height: 3.25rem;
+  padding: var(--pa-s-2) var(--pa-s-1);
+  text-align: start;
+  border-block-end: 1px solid var(--pa-rule);
+  transition: background-color 140ms var(--pa-ease);
+}
+.fp-row:hover { background: var(--pa-chrome-tint); }
+.fp-row__t {
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-title);
+}
+.fp-row__end {
+  margin-inline-start: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--pa-s-2);
+  color: var(--pa-ink-3);
+}
+.fp-row__m { font-size: var(--pa-size-meta); }
+.fp-new {
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-red);
+  color: #fff;
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.fp-foot {
+  margin: var(--pa-s-5) 0 0;
+  text-align: center;
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-3);
+}
+
+.fp-error p { margin: 0 0 var(--pa-s-3); color: var(--pa-ink-2); }
+
+/* the inline puzzle list — desktop only; on a phone it stays behind the
+   dateline sheet, where it does not cost a screen of height */
+.fp-aside { display: none; }
+.fp-aside__h {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pa-s-2);
+  margin: 0;
+  padding: 0 var(--pa-s-1) var(--pa-s-2);
+  border-block-end: 2px solid var(--pa-red);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-title);
+  line-height: 1.2;
+}
+.fp-aside__n {
+  margin-inline-start: auto;
+  font-family: var(--pa-sans);
+  font-weight: 400;
+  font-size: var(--pa-size-meta);
+  color: var(--pa-ink-3);
+}
+.fp-aside .xw-arclist { padding-block: 0; }
+.fp-aside .xw-arcrow { padding-inline: var(--pa-s-1); border-block-end: 1px solid var(--pa-rule); }
+
+/* ---- front page: the desktop spread ----------------------------------
+   Below this the front page is one column, which is correct on a phone and
+   absurd on a monitor — a 34rem strip adrift in 1920px of paper. Here the
+   lead takes the measure it deserves and the puzzle list comes out from
+   behind its sheet to fill the second column. */
+
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .pa-front { width: min(76rem, 100%); }
+  .pa-front__body { padding: var(--pa-s-6) var(--pa-s-5) var(--pa-s-6); }
+  /* Fixed measures, centred — not two stretching columns. Letting the lead
+     grow with the viewport pushed its own caption a screen away from the
+     thumbnail it describes. A front page has a column width; it does not
+     spread to fill whatever monitor it lands on. */
+  .fp-spread {
+    display: grid;
+    grid-template-columns: minmax(0, 34rem) minmax(18rem, 24rem);
+    justify-content: center;
+    gap: var(--pa-s-6);
+    align-items: start;
+  }
+  /* The list scrolls inside itself, not by dragging the page. Left to grow,
+     sixty puzzles push the date, the board and the start button off-screen —
+     so reaching last month's puzzle costs you the thing you came for. */
+  /* Budgeted so the rail is the tallest thing on the page without pushing
+     it past the viewport — two scrollbars on one screen is a layout that
+     has given up deciding what scrolls. */
+  .fp-aside {
+    display: flex;
+    flex-direction: column;
+    min-height: 12rem;
+    max-height: calc(100dvh - 17rem);
+  }
+  .fp-aside .xw-arclist { min-height: 0; overflow-y: auto; }
+  .fp-preview { width: 15rem; }
+  .fp-lead__row { gap: var(--pa-s-5); }
+  /* exactly the board's width, directly beneath it — the action belongs to
+     the board, so it shares its measure and its centre line */
+  .fp-cta { width: 15rem; min-width: 0; }
+  /* the list is on the page now; the row that opened it is noise */
+  #fp-archive { display: none; }
+  .fp-rows { margin-block-start: var(--pa-s-6); }
+  .fp-foot { margin-block-start: var(--pa-s-6); }
+}
+
+/* ---- first-run coach --------------------------------------------------
+   One line, dismissible, shown once ever. It costs height on a 640dp phone,
+   so it is meta-sized and retires itself after the third filled square. */
+
+.xw-coach {
+  display: flex;
+  align-items: center;
+  gap: var(--pa-s-2);
+  padding: 0 var(--pa-s-1) 0 var(--pa-s-3);
+  background: var(--pa-cyan-08);
+  border-block-end: 1px solid var(--pa-rule);
+}
+.xw-coach[hidden] { display: none; }
+.xw-coach__t {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding-block: var(--pa-s-1);
+  font-size: var(--pa-size-meta);
+  line-height: var(--pa-leading-tight);
+  color: var(--pa-ink-2);
+}
+.xw-coach__more {
+  flex: none;
+  padding: 0.4rem 0.25rem;
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  color: var(--pa-chrome);
+}
+.xw-coach__x { width: 2rem; height: 2rem; flex: none; color: var(--pa-ink-3); }
+
+/* ---- grid-full notice -------------------------------------------------
+   The moment the last square is filled is the moment the player believes
+   they have won. Saying nothing there is the cruellest state in the build.
+   This states the fact and stops: it does not mark the paper. The slashes
+   are drawn only if they ask for পরীক্ষা, and only that spends an assist.
+   Red 8% ground and a red 40% hairline carry "something is wrong" without
+   putting full-strength ink behind text. */
+
+.xw-full {
+  display: flex;
+  align-items: center;
+  gap: var(--pa-s-2);
+  padding: 0 var(--pa-s-1) 0 var(--pa-s-3);
+  background: var(--pa-red-08);
+  border-block-end: 1px solid var(--pa-red-40);
+}
+.xw-full[hidden] { display: none; }
+.xw-full__t {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  padding-block: var(--pa-s-1);
+  font-size: var(--pa-size-meta);
+  line-height: var(--pa-leading-tight);
+  color: var(--pa-ink);
+}
+.xw-full__act {
+  flex: none;
+  min-height: 2rem;
+  padding-inline: var(--pa-s-4);
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-chrome);
+  color: #fff;
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  transition: background-color 140ms var(--pa-ease);
+}
+.xw-full__act:hover { background: var(--pa-chrome-strong); }
+.xw-full__act:focus-visible { outline-color: var(--pa-ink); outline-offset: 3px; }
+.xw-full__x { width: 2rem; height: 2rem; flex: none; color: var(--pa-ink-3); }
+
+/* ---- how to play -----------------------------------------------------
+   The reader knows crosswords. What they have never done is type Bangla on
+   glass, so section 2 is the one that earns its space: it shows the
+   two-tap composition as keystrokes resolving into one square. */
+
+.ht { padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-5); }
+.ht__sec + .ht__sec {
+  margin-block-start: var(--pa-s-4);
+  padding-block-start: var(--pa-s-4);
+  border-block-start: 1px solid var(--pa-rule);
+}
+.ht__h {
+  display: flex;
+  align-items: baseline;
+  gap: var(--pa-s-2);
+  margin: 0 0 var(--pa-s-2);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-title);
+  line-height: 1.2;
+}
+.ht__n {
+  font-family: var(--pa-sans);
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  color: var(--pa-red);
+}
+.ht__p { margin: 0; color: var(--pa-ink-2); }
+.ht__p + .ht__p { margin-block-start: var(--pa-s-2); }
+.ht__fig {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--pa-s-4);
+  margin-block-start: var(--pa-s-3);
+}
+
+.ht-item { display: flex; flex-direction: column; align-items: center; gap: var(--pa-s-1); }
+.ht-item__l { font-size: var(--pa-size-meta); color: var(--pa-ink-3); text-align: center; }
+
+.ht-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  background: var(--pa-cell);
+  box-shadow: 0 0 0 1px var(--pa-rule-strong);
+  font-size: var(--pa-size-title);
+  line-height: 1;
+}
+.ht-cell--block { background: var(--pa-cyan-16); }
+.ht-cell--active {
+  background: var(--pa-red-16);
+  box-shadow: 0 0 0 1px var(--pa-rule-strong), inset 0 0 0 2px var(--pa-red);
+}
+.ht-cell--wrong { color: var(--pa-red-deep); }
+.ht-cell--wrong::after {
+  content: '';
+  position: absolute;
+  inset: 14%;
+  background: linear-gradient(to top right, transparent 48%, var(--pa-red) 48% 52%, transparent 52%);
+}
+.ht-cell--revealed { color: var(--pa-cyan); }
+
+.ht-steps {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pa-s-1);
+  margin-block-start: var(--pa-s-3);
+}
+.ht-steps + .ht-steps { margin-block-start: var(--pa-s-2); }
+.ht-key {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding-inline: 0.35rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-cell);
+  border: 1px solid var(--pa-rule);
+  font-size: var(--pa-size-body);
+  line-height: 1;
+}
+.ht-key--mark { background: var(--pa-cyan-08); border-color: var(--pa-cyan-30); color: var(--pa-cyan); }
+.ht-arrow { display: flex; color: var(--pa-ink-3); padding-inline: 0.15rem; }
+.ht-steps .ht-cell { width: 2.5rem; height: 2.5rem; }
+
+/* ---- tablet: stop the phone layout from stretching -------------------
+   Between the phone and the spread there is a band where the mobile column
+   is right but its full-bleed surfaces are not: a 14-column keyboard across
+   768px gives absurd keys, and the reading strip runs wider than any word
+   in it. Cap the surfaces, leave the board free to grow. */
+
+@media (min-width: 48rem) {
+  .xw-kb { width: min(34rem, 100%); margin-inline: auto; }
+  .xw-strip { padding-inline: max(var(--pa-s-3), calc((100% - 34rem) / 2)); }
+  .xw-clue { padding-inline: max(0px, calc((100% - 46rem) / 2)); }
+}
+
+/* ---- desktop: the printed spread ------------------------------------- */
+
+@media (min-width: 60rem) and (min-height: 40rem) {
+  /* a page, not a billboard — past this the spread stops growing and the
+     paper runs out to the edges either side */
+  .xw {
+    max-width: 100rem;
+    margin-inline: auto;
+    border-inline: 1px solid var(--pa-rule);
+  }
+  .xw-gridwrap { --cell-max: 84px; padding: var(--pa-s-4); }
+  .xw-kb { width: min(44rem, 100%); }
+  .xw-strip, .xw-clue { padding-inline: var(--pa-s-4); }
+
+  .xw { display: grid; grid-template-columns: 1fr minmax(20rem, 26rem); grid-template-rows: auto auto auto auto 1fr auto; }
+  .pa-masthead { grid-column: 1; grid-row: 1; }
+  .pa-masthead__top { padding-inline: var(--pa-s-3); }
+  .pa-masthead__rule { margin-inline: var(--pa-s-5); }
+  .xw-clue { grid-column: 1; grid-row: 2; }
+  .xw-coach { grid-column: 1; grid-row: 3; }
+  .xw-full { grid-column: 1; grid-row: 4; }
+  .xw-strip { display: none; }
+  .xw-gridwrap { grid-column: 1; grid-row: 5; padding-block: var(--pa-s-4); }
+  .xw-kb { grid-column: 1; grid-row: 6; width: min(40rem, 100%); margin-inline: auto; }
+  #tabs-desk { display: none; }
+  .xw-aside {
+    grid-column: 2;
+    grid-row: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    border-inline-start: 1px solid var(--pa-rule);
+    background: var(--pa-paper-lift);
+    overflow: hidden;
+  }
+  .xw-aside .xw-cluelist { overflow-y: auto; }
+}
+.xw-aside { display: none; }
+@media (min-width: 60rem) and (min-height: 40rem) { .xw-aside { display: flex; } }
+
+/* Large desktop: let the board keep growing. Height, not this ceiling, is
+   what actually stops it here — on a 1080p window the fit lands near 103px,
+   so the cap only has to stay out of the way. */
+@media (min-width: 90rem) and (min-height: 48rem) {
+  .xw-gridwrap { --cell-max: 112px; }
+  .xw { grid-template-columns: 1fr minmax(24rem, 30rem); }
+  .fp-preview { width: 18rem; }
+  .fp-cta { width: 18rem; }
+  .fp-spread { grid-template-columns: minmax(0, 38rem) minmax(20rem, 26rem); }
+}
+</style>
+</head>
+<body>
+<!--
+  THESIS: A newspaper page, not an app screen. It refuses the puzzle-app
+  arrangement — dark chrome, a rounded card, a floating timer badge — because
+  the primary user has solved this exact grid on newsprint for years and
+  already knows where to look.
+
+  OWN-WORLD: A two-colour press. Cool newsprint (#F4F3EF) and ink (#16171A);
+  every other surface is a screen of exactly two inks — PA cyan (16% for the
+  blocked squares, matching the print scans; 30% for the active word) and PA
+  spot red (16% active cell, full strength for rules and marks). Hairline 1px
+  cell rules over a black grid ground. Noto Serif Bengali sets the masthead
+  and clues, Noto Sans Bengali the grid and the type-case keyboard. Portal violet
+  appears only on interactive chrome, so the game does not read as a separate
+  product from the portal it launched from.
+
+  STORY: A reader who solves শব্দভেদ on paper opens it, sees today's date
+  and today's grid on a front page, enters it, recognises the pale blue
+  blocks instantly, taps a square, reads the clue enlarged, and types
+  Bangla the way they write it — consonant, then kar.
+
+  FLOW: front page → board → completion, two views in one document. Nothing
+  reloads between them, so the loaded puzzle, the restored grid and the
+  timer survive the move — and the count-up does not start until the reader
+  enters the board, rather than while they are still orienting.
+
+  FIRST VIEWPORT (front): masthead over the spot-red rule; a lead block —
+  kicker, date set at masthead scale, the 8×8 board at thumbnail scale
+  carrying its blocks and the reader's own progress, the state line; one
+  primary action; then সব শব্দভেদ and কীভাবে খেলবেন beneath a hairline.
+
+  SECOND VIEWPORT (board): the active clue with step arrows; the active
+  entry enlarged to roughly 2× across the full width; the 8×8 grid centred;
+  the varnamala keyboard docked at the foot, grouped in বর্গ.
+
+  FORM: focus-strip-over-map, ranked 1 of 7 candidate structures. User-pinned
+  across two grill rounds, so the concept roll was skipped as re-litigation
+  rather than rolled. No seed key.
+
+  FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, and DESIGN.md
+-->
+<div class="pa-app" id="app" data-view="front">
+
+<!-- =====================================================================
+     FRONT PAGE. Not a splash and not a menu screen: the top of a printed
+     puzzle page. Masthead, dateline on the red rule, the lead block
+     carrying today's grid at thumbnail scale, then the standing items.
+     It exists because the clock used to start before the reader had read
+     anything — on a board whose keyboard they have never used.
+     ===================================================================== -->
+<section class="pa-front" id="front">
+
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="btn-exit" aria-label="সব গেম">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">শব্দভেদ</h1>
+      <span class="pa-masthead__tail">
+        <button class="pa-iconbtn" id="btn-howto-top" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114.1 2.2c-.9.7-1.7 1.1-1.7 2.1"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <span class="pa-masthead__date" id="front-today">—</span>
+    </div>
+  </header>
+
+  <div class="pa-front__body pa-scroll">
+   <div class="fp-spread">
+    <section class="fp-lead" id="fp-lead">
+      <p class="fp-kicker" id="fp-kicker">আজকের ধাঁধা</p>
+      <h2 class="fp-date" id="fp-date">—</h2>
+      <div class="fp-lead__row">
+        <div class="fp-preview is-waiting" id="fp-preview" aria-hidden="true"></div>
+        <div class="fp-facts">
+          <span class="fp-facts__m" id="fp-size">—</span>
+          <span class="fp-facts__s" id="fp-state">লোড হচ্ছে…</span>
+          <span class="fp-facts__m" id="fp-sub"></span>
+        </div>
+      </div>
+      <button class="pa-btn pa-btn--primary fp-cta" id="fp-cta" disabled>শুরু করুন</button>
+    </section>
+
+    <aside class="fp-aside">
+      <h2 class="fp-aside__h">সব শব্দভেদ<span class="fp-aside__n" id="fp-aside-count"></span></h2>
+      <ul class="xw-arclist pa-scroll" id="fp-archivelist"></ul>
+    </aside>
+   </div>
+
+    <nav class="fp-rows">
+      <button class="fp-row" id="fp-archive" aria-haspopup="dialog">
+        <span class="fp-row__t">সব শব্দভেদ</span>
+        <span class="fp-row__end">
+          <span class="fp-row__m" id="fp-archive-meta"></span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+      <button class="fp-row" id="fp-howto" aria-haspopup="dialog">
+        <span class="fp-row__t">কীভাবে খেলবেন</span>
+        <span class="fp-row__end">
+          <span class="fp-new" id="fp-howto-new" hidden>নতুন</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+    </nav>
+
+    <p class="fp-foot">প্রথম আলো</p>
+  </div>
+</section>
+
+<div class="xw">
+
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="btn-back" aria-label="নামপাতা">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">শব্দভেদ</h1>
+      <span class="pa-masthead__tail">
+        <span class="pa-masthead__timer" id="timer" role="timer" aria-label="সময়">০:০০</span>
+        <button class="pa-iconbtn" id="btn-menu" aria-label="সহায়তা ও সেটিংস" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <button class="pa-masthead__date" id="dateline" aria-haspopup="dialog" aria-label="অন্য ধাঁধা বেছে নিন">
+        <span id="dateline-text">—</span>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="xw-clue">
+    <button class="xw-clue__nav" id="btn-prev" aria-label="আগের সংকেত">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg>
+    </button>
+    <button class="xw-clue__body" id="btn-clue" aria-label="সব সংকেত দেখুন" aria-haspopup="dialog">
+      <span class="xw-clue__num" id="clue-num"></span>
+      <span class="xw-clue__text" id="clue-text"></span>
+      <span class="xw-clue__list">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+      </span>
+    </button>
+    <button class="xw-clue__nav" id="btn-next" aria-label="পরের সংকেত">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+
+  <!-- first run only; retires itself after the third filled square -->
+  <div class="xw-coach" id="coach" hidden>
+    <p class="xw-coach__t">একই ঘরে আবার চাপলে দিক বদলায়।</p>
+    <button class="xw-coach__more" id="coach-more" aria-haspopup="dialog">কীভাবে খেলবেন</button>
+    <button class="pa-iconbtn xw-coach__x" id="coach-x" aria-label="বন্ধ করুন">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <!-- shown once per fill: the grid is complete but does not match -->
+  <div class="xw-full" id="full" role="status" hidden>
+    <p class="xw-full__t">কিছু অক্ষর মিলছে না।</p>
+    <button class="xw-full__act" id="full-check">পরীক্ষা</button>
+    <button class="pa-iconbtn xw-full__x" id="full-x" aria-label="বন্ধ করুন">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </div>
+
+  <div class="xw-strip" id="strip" aria-live="polite" aria-label="চলতি শব্দ"></div>
+
+  <div class="xw-gridwrap pa-scroll" id="gridwrap">
+    <div class="xw-grid" id="grid" role="grid" aria-label="শব্দভেদ ছক"></div>
+  </div>
+
+  <aside class="xw-aside">
+    <div class="xw-tabs" role="tablist" id="tabs-desk"></div>
+    <ul class="xw-cluelist pa-scroll" id="cluelist-desk"></ul>
+  </aside>
+
+  <div class="xw-kb" id="kb"></div>
+</div>
+
+</div><!-- /.pa-app -->
+
+<!-- clue list sheet -->
+<div class="pa-sheet" id="sheet-clues" role="dialog" aria-modal="true" aria-label="সংকেত" hidden>
+  <div class="pa-sheet__scrim" data-close></div>
+  <div class="pa-sheet__panel" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h2 class="pa-sheet__title">সংকেত</h2>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="xw-tabs" role="tablist" id="tabs"></div>
+    <div class="pa-sheet__body pa-scroll"><ul class="xw-cluelist" id="cluelist"></ul></div>
+  </div>
+</div>
+
+<!-- archive sheet -->
+<div class="pa-sheet" id="sheet-archive" role="dialog" aria-modal="true" aria-label="সব শব্দভেদ" hidden>
+  <div class="pa-sheet__scrim" data-close></div>
+  <div class="pa-sheet__panel" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h2 class="pa-sheet__title">সব শব্দভেদ</h2>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll"><ul class="xw-arclist" id="archivelist"></ul></div>
+  </div>
+</div>
+
+<!-- how to play.
+     The reader has solved this grid on newsprint for years, so there is no
+     crossword tutorial here. Section 2 is the one that earns its space:
+     typing Bangla on glass is the genuinely new act. -->
+<div class="pa-sheet" id="sheet-howto" role="dialog" aria-modal="true" aria-label="কীভাবে খেলবেন" hidden>
+  <div class="pa-sheet__scrim" data-close></div>
+  <div class="pa-sheet__panel" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h2 class="pa-sheet__title">কীভাবে খেলবেন</h2>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="ht">
+
+        <section class="ht__sec">
+          <h3 class="ht__h"><span class="ht__n">১</span>ছক</h3>
+          <p class="ht__p">ফাঁকা ঘরে চাপলে সেই শব্দটি সক্রিয় হয়। একই ঘরে আবার চাপলে বাঁ থেকে ডানে আর ওপর থেকে নিচে — দিক বদলে যায়।</p>
+          <div class="ht__fig">
+            <span class="ht-item"><span class="ht-cell"></span><span class="ht-item__l">খালি ঘর</span></span>
+            <span class="ht-item"><span class="ht-cell ht-cell--block"></span><span class="ht-item__l">বন্ধ ঘর</span></span>
+            <span class="ht-item"><span class="ht-cell ht-cell--active">ক</span><span class="ht-item__l">চলতি ঘর</span></span>
+          </div>
+        </section>
+
+        <section class="ht__sec">
+          <h3 class="ht__h"><span class="ht__n">২</span>অক্ষর লেখা</h3>
+          <p class="ht__p">প্রতিটি ঘরে একটি পূর্ণ অক্ষর বসে। আগে ব্যঞ্জন, তারপর কার বা হসন্ত — যেভাবে হাতে লেখা হয়।</p>
+          <div class="ht-steps">
+            <span class="ht-key">ধ</span>
+            <span class="ht-key ht-key--mark">◌ো</span>
+            <span class="ht-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h13M13 7l5 5-5 5"/></svg></span>
+            <span class="ht-cell">ধো</span>
+          </div>
+          <div class="ht-steps">
+            <span class="ht-key">ন</span>
+            <span class="ht-key ht-key--mark">্</span>
+            <span class="ht-key">দ</span>
+            <span class="ht-key ht-key--mark">্</span>
+            <span class="ht-key">র</span>
+            <span class="ht-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h13M13 7l5 5-5 5"/></svg></span>
+            <span class="ht-cell">ন্দ্র</span>
+          </div>
+          <p class="ht__p">নতুন ব্যঞ্জন চাপলে ঘরটি সম্পূর্ণ হয় আর পরের ঘরে চলে যায়। মুছুন বোতাম একবারে একটি অংশ তুলে নেয়।</p>
+        </section>
+
+        <section class="ht__sec">
+          <h3 class="ht__h"><span class="ht__n">৩</span>পরীক্ষা ও প্রকাশ</h3>
+          <p class="ht__p">ওপরের ডানদিকের সহায়তা বোতাম থেকে পরীক্ষা করলে ভুল অক্ষরের ওপর লাল দাগ পড়ে। প্রকাশ করলে অক্ষরটি নীল রঙে বসে, যাতে মনে থাকে কোনটি নিজে মেলানো হয়নি।</p>
+          <div class="ht__fig">
+            <span class="ht-item"><span class="ht-cell ht-cell--wrong">ক</span><span class="ht-item__l">ভুল</span></span>
+            <span class="ht-item"><span class="ht-cell ht-cell--revealed">খ</span><span class="ht-item__l">প্রকাশ করা</span></span>
+          </div>
+        </section>
+
+        <section class="ht__sec">
+          <h3 class="ht__h"><span class="ht__n">৪</span>পুরো ছক দেখা</h3>
+          <p class="ht__p">কীবোর্ডের ওপরের হাতলে চাপলে কীবোর্ড আর বড় শব্দপট্টি একসঙ্গে গুটিয়ে যায়, তখন পুরো ছক বড় করে দেখা যায়। যেকোনো ঘরে চাপলে আবার ফিরে আসে।</p>
+          <p class="ht__p">সময় গোনা হয়, কিন্তু হারার কিছু নেই।</p>
+        </section>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- menu sheet -->
+<div class="pa-sheet" id="sheet-menu" role="dialog" aria-modal="true" aria-label="সহায়তা ও সেটিংস" hidden>
+  <div class="pa-sheet__scrim" data-close></div>
+  <div class="pa-sheet__panel" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h2 class="pa-sheet__title">সহায়তা</h2>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="pa-menu">
+        <button class="pa-menu__row" data-act="howto"><span class="pa-menu__label">কীভাবে খেলবেন</span></button>
+        <div class="pa-menu__sep"></div>
+        <button class="pa-menu__row" data-act="check-cell"><span class="pa-menu__label">পরীক্ষা — ঘর</span></button>
+        <button class="pa-menu__row" data-act="check-word"><span class="pa-menu__label">পরীক্ষা — শব্দ</span></button>
+        <button class="pa-menu__row" data-act="check-all"><span class="pa-menu__label">পরীক্ষা — পুরো ছক</span></button>
+        <div class="pa-menu__sep"></div>
+        <button class="pa-menu__row" data-act="reveal-cell"><span class="pa-menu__label">প্রকাশ — ঘর</span></button>
+        <button class="pa-menu__row" data-act="reveal-word"><span class="pa-menu__label">প্রকাশ — শব্দ</span></button>
+        <button class="pa-menu__row" data-act="reveal-all"><span class="pa-menu__label">প্রকাশ — পুরো ছক</span><span class="pa-menu__hint">সমাধান দেখাবে</span></button>
+        <div class="pa-menu__sep"></div>
+        <button class="pa-menu__row" id="row-autocheck" role="switch" aria-checked="false" data-act="autocheck">
+          <span class="pa-menu__label">স্বয়ংপরীক্ষা</span><span class="pa-switch" aria-hidden="true"></span>
+        </button>
+        <div class="pa-menu__sep"></div>
+        <button class="pa-menu__row" data-act="clear"><span class="pa-menu__label">ছক খালি করুন</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- win -->
+<div class="xw-win" id="win" role="dialog" aria-modal="true" aria-label="সমাধান সম্পূর্ণ">
+  <div class="xw-win__card">
+    <h2 class="xw-win__title">সমাধান সম্পূর্ণ</h2>
+    <div class="xw-win__rule"></div>
+    <div class="xw-win__stats">
+      <span class="xw-win__stat"><span class="xw-win__v" id="win-time">০:০০</span><span class="xw-win__k">সময়</span></span>
+      <span class="xw-win__stat"><span class="xw-win__v" id="win-bestv">—</span><span class="xw-win__k">সেরা</span></span>
+      <span class="xw-win__stat"><span class="xw-win__v" id="win-assist">০</span><span class="xw-win__k">সহায়তা</span></span>
+    </div>
+    <p class="xw-win__best" id="win-best"></p>
+    <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
+    <div class="xw-win__row">
+      <button class="pa-btn pa-btn--ghost" id="win-close">ছক দেখুন</button>
+      <button class="pa-btn pa-btn--ghost" id="win-home">নামপাতা</button>
+    </div>
+  </div>
+</div>
+
+<script src="../../shared/bn-text.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+{
+  "game": "crossword-bn",
+  "title": "শব্দভেদ",
+  "note": "Archive. The daily is the puzzle whose date is today, falling back to the most recent one already published; a future-dated puzzle is never served. Everything listed here is browsable in-game, so only validated transcriptions belong — run `node puzzles/validate.mjs` before adding one.",
+  "puzzles": [
+    { "id": "pa-2026-08-05", "date": "2026-08-05" },
+    { "id": "pa-2026-08-06", "date": "2026-08-06" },
+    { "id": "pa-2026-08-07", "date": "2026-08-07" },
+    { "id": "pa-2026-08-08", "date": "2026-08-08" },
+    { "id": "pa-2026-08-09", "date": "2026-08-09" }
+  ]
+}

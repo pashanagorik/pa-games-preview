@@ -1,0 +1,47 @@
+{
+  "id": "pa-2026-08-07",
+  "date": "2026-08-07",
+  "source": "Prothom Alo print edition, শব্দভেদ, 7 August 2026. Grid and clues from Screenshot/7.8.26.png; solution grid from Screenshot/8.8.26.png.",
+  "verified": true,
+  "verificationNote": "All 15 across and 10 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    null, "লা", "ল", null, "অ", null, "তা", "প",
+    "ভা", null, "ট", "ক", "ট", "কে", null, "রি",
+    "স্ব", "ভা", "ব", null, "ল", null, "মা", "চা",
+    "র", null, "হ", "টা", null, "মো", "ড়", "ল",
+    null, "তা", "র", null, "ব", "র", null, "ক",
+    "খা", "ড়া", null, "অ", "জ", "গ", "র", null,
+    null, "তা", "ন", "পু", "রা", null, "ক্ষ", "য়",
+    "খ", "ড়ি", null, "ষ্টি", null, "সেঁ", "ক", null
+  ],
+  "entries": [
+    { "n": 1,  "dir": "across", "cell": 1,  "len": 2, "clue": "রক্তবর্ণ।" },
+    { "n": 4,  "dir": "across", "cell": 6,  "len": 2, "clue": "উষ্ণতা।" },
+    { "n": 7,  "dir": "across", "cell": 10, "len": 4, "clue": "অত্যন্ত উজ্জ্বল।" },
+    { "n": 8,  "dir": "across", "cell": 16, "len": 3, "clue": "চরিত্র, আচরণ।" },
+    { "n": 9,  "dir": "across", "cell": 22, "len": 2, "clue": "বাঁশ, কাঠ প্রভৃতি দিয়ে তৈরি উঁচু স্থান।" },
+    { "n": 10, "dir": "across", "cell": 26, "len": 2, "clue": "সরে যাওয়া।" },
+    { "n": 11, "dir": "across", "cell": 29, "len": 3, "clue": "গ্রামের প্রধান ব্যক্তি।" },
+    { "n": 12, "dir": "across", "cell": 33, "len": 2, "clue": "ধাতুর তৈরি রজ্জু।" },
+    { "n": 13, "dir": "across", "cell": 36, "len": 2, "clue": "বিয়ের পাত্র।" },
+    { "n": 14, "dir": "across", "cell": 40, "len": 2, "clue": "লম্বভাবে অবস্থিত।" },
+    { "n": 15, "dir": "across", "cell": 43, "len": 4, "clue": "একজাতীয় বিরাট সাপ।" },
+    { "n": 17, "dir": "across", "cell": 49, "len": 4, "clue": "তন্ত্রীযুক্ত বাদ্যযন্ত্র।" },
+    { "n": 18, "dir": "across", "cell": 54, "len": 2, "clue": "হ্রাস।" },
+    { "n": 19, "dir": "across", "cell": 56, "len": 2, "clue": "জ্বালানি কাঠ।" },
+    { "n": 20, "dir": "across", "cell": 61, "len": 2, "clue": "গরম পানি বা বস্ত্রাদি দিয়ে তাপ প্রয়োগ।" },
+
+    { "n": 2,  "dir": "down", "cell": 2,  "len": 5, "clue": "যাত্রীদের সঙ্গের মালপত্র।" },
+    { "n": 3,  "dir": "down", "cell": 4,  "len": 3, "clue": "টলানো যায় না এমন।" },
+    { "n": 5,  "dir": "down", "cell": 7,  "len": 5, "clue": "পরিচালনাকারী।" },
+    { "n": 6,  "dir": "down", "cell": 8,  "len": 3, "clue": "দীপ্তিমান।" },
+    { "n": 9,  "dir": "down", "cell": 22, "len": 2, "clue": "ভাতের ফেন।" },
+    { "n": 11, "dir": "down", "cell": 29, "len": 3, "clue": "পুরুষ কুক্কুট।" },
+    { "n": 12, "dir": "down", "cell": 33, "len": 4, "clue": "ব্যস্ততা, ত্বরা।" },
+    { "n": 13, "dir": "down", "cell": 36, "len": 3, "clue": "বড় এবং ধীরগামী নৌকা।" },
+    { "n": 15, "dir": "down", "cell": 43, "len": 3, "clue": "পুষ্টির অভাব।" },
+    { "n": 16, "dir": "down", "cell": 46, "len": 3, "clue": "রক্ষাকারী।" }
+  ]
+}

@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>খেলাঘর — প্রথম আলো</title>
+<meta name="description" content="প্রথম আলোর দৈনিক ধাঁধা — শব্দভেদ, শব্দ সন্ধান এবং আরও।">
+<meta name="theme-color" content="#F4F3EF">
+<link rel="stylesheet" href="../shared/pa-fonts.css">
+<link rel="stylesheet" href="../shared/pa-tokens.css">
+<link rel="stylesheet" href="../shared/pa-ui.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23F4F3EF'/%3E%3Cg stroke='%2316171A' stroke-width='1.5'%3E%3Crect x='6.75' y='6.75' width='18.5' height='18.5' fill='none'/%3E%3Cpath d='M6.75 13h18.5M6.75 19h18.5M13 6.75v18.5M19 6.75v18.5'/%3E%3C/g%3E%3Crect x='19' y='19' width='6.25' height='6.25' fill='%23EE4023'/%3E%3C/svg%3E">
+<style>
+/* ======================================================================
+   খেলাঘর — the dated ledger.
+   Materials come from pa-tokens.css. Nothing below invents a colour, a
+   type size, or a radius the press does not already have.
+   ====================================================================== */
+
+body { background: var(--pa-paper); }
+
+.kg { max-width: 34rem; margin: 0 auto; padding: 0 var(--pa-s-4) var(--pa-s-6); }
+
+/* ---- masthead --------------------------------------------------------
+   A newspaper's nameplate, set left, over the spot-red rule that every
+   Prothom Alo section head carries. Not an app bar: no back arrow, no
+   centred title, no elevation. */
+
+.kg-head { padding-top: calc(env(safe-area-inset-top, 0px) + var(--pa-s-4)); }
+.kg-head__top { display: flex; align-items: center; justify-content: space-between; gap: var(--pa-s-3); }
+.kg-head__name {
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: calc(var(--pa-size-masthead) * 1.3);
+  line-height: 1.05;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+.kg-head__rule {
+  height: 2px;
+  background: var(--pa-red);
+  margin: var(--pa-s-3) 0 var(--pa-s-2);
+  transform-origin: left center;
+  animation: kg-press 520ms var(--pa-ease) both;
+}
+@keyframes kg-press { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+/* The folio line, not a kicker: publisher, date and edition set on one
+   line beneath the nameplate rule, the way a newspaper prints its own
+   particulars. */
+.kg-head__date {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--pa-s-2) var(--pa-s-3);
+  font-size: var(--pa-size-meta);
+  color: var(--pa-ink-2);
+  line-height: 1.4;
+}
+.kg-head__pub { font-weight: 600; color: var(--pa-red-deep); }
+.kg-head__ed { color: var(--pa-ink-2); margin-inline-start: auto; }
+
+/* profile chip — dormant. Streaks live in an account; this says so
+   without pretending we have one. */
+.kg-chip {
+  display: inline-flex; align-items: center; gap: var(--pa-s-2);
+  min-height: var(--pa-tap); padding: 0 var(--pa-s-3);
+  border: 1px solid var(--pa-rule);
+  border-radius: var(--pa-r-md);
+  background: var(--pa-paper-lift);
+  font-size: var(--pa-size-meta); font-weight: 600; color: var(--pa-ink-2);
+  white-space: nowrap;
+  transition: border-color 160ms var(--pa-ease), color 160ms var(--pa-ease);
+}
+.kg-chip:hover { border-color: var(--pa-chrome); color: var(--pa-chrome-strong); }
+.kg-chip svg { color: var(--pa-ink-2); }
+.kg-chip:hover svg { color: var(--pa-chrome); }
+
+/* ---- the ledger ------------------------------------------------------
+   The week as a printed calendar strip: seven ruled cells on the paper's
+   own grid, one row of tally marks per day. This is the navigation and
+   the streak at once — walking back through weeks IS the archive. */
+
+.kg-ledger { margin-top: var(--pa-s-5); }
+.kg-ledger__head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: var(--pa-s-3);
+  margin-bottom: var(--pa-s-2);
+}
+.kg-streak { display: flex; align-items: baseline; gap: var(--pa-s-2); }
+.kg-streak__n {
+  font-family: var(--pa-serif); font-weight: 700;
+  font-size: var(--pa-size-masthead); line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.kg-streak__l { font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.kg-streak.is-risk .kg-streak__n { color: var(--pa-red); }
+
+.kg-weeknav { display: flex; align-items: center; gap: var(--pa-s-1); }
+.kg-weeknav__label {
+  font-size: var(--pa-size-meta); color: var(--pa-ink-2);
+  min-width: 7.5rem; text-align: center;
+}
+.kg-weeknav .pa-iconbtn:disabled { opacity: 0.3; cursor: default; }
+
+/* Seven cells sharing one ink ground — the 1px gaps are the rules, exactly
+   as the board's cells are separated in every game in this system. */
+.kg-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--pa-rule);
+  border: 1px solid var(--pa-rule);
+}
+.kg-day {
+  display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
+  padding: var(--pa-s-2) 0 var(--pa-s-2);
+  min-height: 4.25rem;
+  background: var(--pa-paper-lift);
+  color: var(--pa-ink);
+  text-align: center;
+  transition: background 160ms var(--pa-ease);
+}
+.kg-day__w { font-size: var(--pa-size-meta); color: var(--pa-ink-2); line-height: 1; }
+.kg-day__n {
+  font-family: var(--pa-serif); font-weight: 700;
+  font-size: var(--pa-size-title); line-height: 1; font-variant-numeric: tabular-nums;
+}
+.kg-day__tally { display: flex; gap: 2px; min-height: 6px; align-items: center; }
+.kg-day__tally i { width: 6px; height: 6px; background: var(--pa-ink); display: block; }
+.kg-day__tally i.is-part { background: none; box-shadow: inset 0 0 0 1px var(--pa-ink-2); }
+
+.kg-day.is-solved { background: var(--pa-cyan-08); }
+.kg-day.is-future { background: var(--pa-paper); color: var(--pa-ink-2); cursor: default; }
+.kg-day.is-future .kg-day__n { color: var(--pa-rule); }
+.kg-day.is-empty .kg-day__n { color: var(--pa-ink-2); }
+.kg-day:not(.is-future):hover { background: var(--pa-cyan-16); }
+
+.kg-day.is-today {
+  background: var(--pa-cell);
+  box-shadow: inset 0 3px 0 var(--pa-red);
+  animation: kg-ink 620ms var(--pa-ease) both;
+}
+@keyframes kg-ink { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+.kg-day.is-today .kg-day__w { color: var(--pa-red-deep); font-weight: 600; }
+.kg-day.is-sel { box-shadow: inset 0 0 0 2px var(--pa-ink); }
+.kg-day.is-today.is-sel { box-shadow: inset 0 3px 0 var(--pa-red), inset 0 0 0 2px var(--pa-ink); }
+
+.kg-ledger__note {
+  margin: var(--pa-s-2) 0 0;
+  font-size: var(--pa-size-meta);
+  color: var(--pa-ink-2);
+  line-height: 1.5;
+}
+.kg-ledger__note b { color: var(--pa-red-deep); font-weight: 600; }
+
+/* ---- section heads ---------------------------------------------------- */
+
+.kg-sec { margin-top: var(--pa-s-6); }
+.kg-sec__head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--pa-s-3);
+  border-bottom: 1px solid var(--pa-rule-strong);
+  padding-bottom: var(--pa-s-2);
+}
+.kg-sec__h {
+  margin: 0;
+  font-family: var(--pa-serif); font-weight: 700;
+  font-size: var(--pa-size-title); line-height: 1.2;
+}
+.kg-sec__m { font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+/* Violet is borrowed chrome — buttons, focus, hover grounds. A link inside
+   an editorial head is not chrome, so it is set in ink and underlined. */
+.kg-sec__m button { color: var(--pa-ink); font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.kg-sec__m button:hover { color: var(--pa-red-deep); }
+
+/* ---- the day's games -------------------------------------------------- */
+
+.kg-games { list-style: none; margin: 0; padding: 0; }
+.kg-games li + li { border-top: 1px solid var(--pa-rule); }
+
+.kg-game {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr auto;
+  align-items: center;
+  gap: var(--pa-s-3);
+  width: 100%;
+  padding: var(--pa-s-3) 0;
+  text-align: start;
+  color: inherit;
+  text-decoration: none;
+  transition: background 160ms var(--pa-ease);
+}
+a.kg-game:hover { background: var(--pa-chrome-tint); }
+.kg-game__body { min-width: 0; }
+.kg-game__t {
+  display: block;
+  font-family: var(--pa-serif); font-weight: 700;
+  font-size: var(--pa-size-body); line-height: 1.25;
+}
+.kg-game__d {
+  display: block;
+  font-size: var(--pa-size-meta); color: var(--pa-ink-2);
+  line-height: 1.5;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kg-game__s {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  margin-top: 0.15rem;
+  font-size: var(--pa-size-meta); font-weight: 600; line-height: 1.4;
+}
+/* Spot red at meta size is 3.5:1 on newsprint. Text takes the deep step,
+   which is 5.2:1; full strength stays on rules, marks and display numerals,
+   which is where the press puts it anyway. */
+.kg-game__s.is-new { color: var(--pa-red-deep); }
+.kg-game__s.is-run { color: var(--pa-cyan); }
+.kg-game__s.is-done { color: var(--pa-ink-2); }
+.kg-game__s svg { color: currentColor; }
+.kg-game__end { display: flex; align-items: center; gap: var(--pa-s-2); color: var(--pa-ink-2); }
+.kg-game__best { font-size: var(--pa-size-meta); color: var(--pa-ink-2); font-variant-numeric: tabular-nums; }
+
+.kg-game.is-soon { color: var(--pa-ink-2); }
+.kg-game.is-soon .kg-game__t { color: var(--pa-ink-2); }
+.kg-game.is-soon .kg-game__s { color: var(--pa-ink-2); font-weight: 400; }
+
+/* Thumbnails are printed puzzle content: square corners, 1px ink ground,
+   blocks and progress only — never a letter. */
+.kg-thumb { display: block; width: 3.5rem; height: 3.5rem; }
+/* Blocks at cyan 16%, the reader's own filled squares at red 16%, nothing
+   else — the thumbnail vocabulary DESIGN.md sets for every game in the
+   system. Inking filled squares solid black made a solved puzzle read as a
+   smudge and broke the parity with শব্দভেদ's own front page. */
+.kg-thumb rect.b { fill: var(--pa-cyan-16); }
+.kg-thumb rect.f { fill: var(--pa-red-16); }
+.kg-thumb rect.bg { fill: var(--pa-cell); }
+.kg-thumb.is-soon rect.bg { fill: var(--pa-paper); }
+.kg-thumb .g { stroke: var(--pa-rule); stroke-width: 1; }
+.kg-thumb .fr { stroke: var(--pa-ink); stroke-width: 2; fill: none; }
+/* Ink-faint is a drawing weight here, not text: an unbuilt game's schematic
+   must sit behind the two that are playable. */
+.kg-thumb.is-soon .fr { stroke: var(--pa-ink-3); }
+
+/* the assist bar under a started game */
+.kg-prog { height: 2px; background: var(--pa-rule); margin-top: 0.35rem; }
+.kg-prog i { display: block; height: 100%; background: var(--pa-cyan); }
+
+/* ---- next-edition line ------------------------------------------------ */
+
+.kg-next {
+  margin-top: var(--pa-s-5);
+  border-top: 1px solid var(--pa-rule);
+  border-bottom: 1px solid var(--pa-rule);
+  padding: var(--pa-s-3) 0;
+  text-align: center;
+  font-size: var(--pa-size-meta);
+  color: var(--pa-ink-2);
+}
+.kg-next b { font-weight: 600; color: var(--pa-ink); font-variant-numeric: tabular-nums; }
+
+/* ---- catalogue index -------------------------------------------------- */
+
+/* A newspaper index carries its rule weights: the section takes the ink
+   rule, each category a hairline, each entry the dot leader. */
+.kg-cat { margin-top: var(--pa-s-4); }
+.kg-cat__h {
+  margin: 0 0 var(--pa-s-1);
+  padding-top: var(--pa-s-2);
+  border-top: 1px solid var(--pa-rule);
+  font-family: var(--pa-sans); font-weight: 600;
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.06em;
+  color: var(--pa-ink-2);
+}
+.kg-idx { list-style: none; margin: 0 0 var(--pa-s-4); padding: 0; }
+.kg-idx li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: var(--pa-s-2);
+  padding: 0.3rem 0;
+  font-size: var(--pa-size-body);
+}
+.kg-idx__lead { border-bottom: 1px dotted var(--pa-rule); transform: translateY(-0.3em); }
+/* One legend in the section head, then a mark per entry — thirty-five
+   repetitions of the same grey word was type doing a mark's job, and it
+   left the largest region of the page with no ink in it.
+   Full strength, not a screen: cyan 16% on paper is 1.1:1, and this mark is
+   the only sighted carrier of "আসছে" on thirty-five rows. Full-strength cyan
+   is 4.87:1, and full strength is what the press reserves for marks. */
+.kg-idx__mark {
+  width: 0.4375rem; height: 0.4375rem;
+  background: var(--pa-cyan);
+  align-self: center;
+}
+
+.kg-foot {
+  margin-top: var(--pa-s-6);
+  border-top: 1px solid var(--pa-rule-strong);
+  padding-top: var(--pa-s-3);
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--pa-s-3);
+  font-size: var(--pa-size-meta); color: var(--pa-ink-2);
+}
+
+/* ---- sheets ----------------------------------------------------------- */
+
+.kg-stats { padding: var(--pa-s-4) var(--pa-s-4) var(--pa-s-6); }
+.kg-stats__g + .kg-stats__g { margin-top: var(--pa-s-5); }
+.kg-stats__t {
+  margin: 0 0 var(--pa-s-2);
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+  border-bottom: 1px solid var(--pa-rule); padding-bottom: var(--pa-s-2);
+}
+.kg-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--pa-s-2); }
+.kg-nums div { text-align: center; }
+.kg-nums dt { font-size: var(--pa-size-meta); color: var(--pa-ink-2); line-height: 1.4; }
+.kg-nums dd {
+  margin: 0;
+  font-family: var(--pa-serif); font-weight: 700;
+  font-size: var(--pa-size-title); font-variant-numeric: tabular-nums;
+}
+.kg-bars { display: flex; align-items: flex-end; gap: 3px; height: 2.5rem; margin-top: var(--pa-s-3); }
+.kg-bars i { flex: 1; background: var(--pa-cyan-30); min-height: 2px; }
+.kg-bars i.is-none { background: var(--pa-rule); }
+.kg-bars i.is-today { background: var(--pa-red); }
+.kg-bars__l { display: flex; justify-content: space-between; font-size: var(--pa-size-meta); color: var(--pa-ink-2); margin-top: var(--pa-s-1); }
+
+.kg-demo {
+  margin-top: var(--pa-s-5);
+  border-top: 1px solid var(--pa-rule);
+  padding-top: var(--pa-s-3);
+}
+.kg-demo__row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--pa-s-3); min-height: var(--pa-tap);
+  padding-block: var(--pa-s-2);
+}
+.kg-demo__row > div { min-width: 0; }
+.kg-demo__row .pa-btn { flex: 0 0 auto; white-space: nowrap; }
+.kg-demo__l { font-size: var(--pa-size-body); }
+.kg-demo__h { font-size: var(--pa-size-meta); color: var(--pa-ink-2); line-height: 1.5; margin: 0.1rem 0 0; }
+
+.kg-share { padding: var(--pa-s-4); }
+.kg-share__card {
+  border: 1px solid var(--pa-rule-strong);
+  background: var(--pa-cell);
+  padding: var(--pa-s-4);
+  text-align: center;
+}
+.kg-share__t { font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); margin: 0; }
+.kg-share__d { font-size: var(--pa-size-meta); color: var(--pa-ink-2); margin: 0.2rem 0 var(--pa-s-3); }
+.kg-share__grid { display: inline-grid; gap: 2px; background: var(--pa-ink); padding: 1px; }
+.kg-share__grid i { width: 12px; height: 12px; background: var(--pa-cell); display: block; }
+.kg-share__grid i.b { background: var(--pa-cyan-16); }
+.kg-share__rule { height: 2px; background: var(--pa-red); margin: var(--pa-s-2) auto var(--pa-s-3); }
+.kg-share__m { margin: var(--pa-s-3) 0 0; font-size: var(--pa-size-body); font-variant-numeric: tabular-nums; }
+/* The card is the result; this one line is the disclosure that what leaves
+   the phone is text, not the picture. Printing the whole payload underneath
+   said the same thing twice and made the card decoration above its own copy.
+   (Not rasterised on purpose: drawing Bangla conjuncts into a canvas is the
+   rendering risk this programme has already flagged for Android WebViews.) */
+.kg-share__x {
+  margin: var(--pa-s-3) 0 0;
+  text-align: center;
+  font-size: var(--pa-size-meta);
+  color: var(--pa-ink-2);
+  line-height: 1.5;
+}
+.kg-share__acts { display: grid; gap: var(--pa-s-2); margin-top: var(--pa-s-3); }
+.kg-copied { font-size: var(--pa-size-meta); color: var(--pa-cyan); text-align: center; min-height: 1.2em; }
+
+/* ---- desktop: the spread ---------------------------------------------
+   The same four type steps, set larger by the tokens, with the ledger and
+   the day running as the lead column and the catalogue as the rail — the
+   arrangement a broadsheet page already has. */
+
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .kg { max-width: 68rem; padding-inline: var(--pa-s-6); }
+  .kg-head__name { font-size: calc(var(--pa-size-masthead) * 1.6); }
+  .kg-spread {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(17rem, 1fr);
+    gap: var(--pa-s-6);
+    align-items: start;
+  }
+  .kg-rail { border-left: 1px solid var(--pa-rule); padding-left: var(--pa-s-5); }
+  .kg-rail .kg-sec { margin-top: 0; }
+  .kg-day { min-height: 5.25rem; }
+  .kg-game { grid-template-columns: 4.5rem 1fr auto; padding: var(--pa-s-4) 0; }
+  .kg-thumb { width: 4.5rem; height: 4.5rem; }
+}
+</style>
+</head>
+<body>
+<!--
+  THESIS: প্রথম আলো's puzzle habit is a dated ledger, not a card grid; the
+  week of printed date squares IS the navigation, the streak and the
+  archive at once. Refuses the portal tile-grid with a badge bolted on.
+  OWN-WORLD: pa-tokens two-colour press — cool newsprint, ink hairlines,
+  cyan screens for days already inked, spot red for today and for what is
+  still owed. Noto Serif Bengali for editorial voice, Noto Sans for
+  machinery. Square corners, no shadows, no invented hue: portal violet
+  stays exactly where DESIGN.md's Borrowed Chrome Rule puts it — primary
+  button, focus ring, hover ground — and never on an editorial surface.
+  STORY: the reader sees the week they have kept, that today is unsolved,
+  and opens today's puzzle — or walks back a week to a day they missed.
+  FIRST VIEWPORT: nameplate over spot-red rule, dateline, streak count
+  against the seven-cell week strip, then today's column of hero games,
+  first row primary.
+  FORM: dated ledger, candidate 3 of the ordered structural list, surface
+  seed key 32bc8a5a.
+  FINISH: unreviewed and undocumented is unfinished; this build ends with
+  the finish review, the verdict, and DESIGN.md.
+-->
+
+<div class="kg">
+
+  <header class="kg-head">
+    <div class="kg-head__top">
+      <h1 class="kg-head__name">খেলাঘর</h1>
+      <button class="kg-chip" id="chip" aria-haspopup="dialog">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5"/><path d="M4.5 20c0-3.6 3.4-5.5 7.5-5.5s7.5 1.9 7.5 5.5"/></svg>
+        <span id="chip-label">পরিসংখ্যান</span>
+      </button>
+    </div>
+    <div class="kg-head__rule" aria-hidden="true"></div>
+    <div class="kg-head__date">
+      <span class="kg-head__pub">প্রথম আলো</span>
+      <span id="dateline">—</span>
+      <span class="kg-head__ed" id="edition">—</span>
+    </div>
+  </header>
+
+  <div class="kg-spread">
+    <main>
+
+      <section class="kg-ledger" aria-labelledby="ledger-h">
+        <h2 class="pa-sr" id="ledger-h">সমাধানের ধারা</h2>
+        <div class="kg-ledger__head">
+          <div class="kg-streak" id="streak">
+            <span class="kg-streak__n" id="streak-n">০</span>
+            <span class="kg-streak__l" id="streak-l">দিনের ধারা</span>
+          </div>
+          <div class="kg-weeknav">
+            <button class="pa-iconbtn" id="wk-prev" aria-label="আগের সপ্তাহ">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 5.5L8 12l6.5 6.5"/></svg>
+            </button>
+            <span class="kg-weeknav__label" id="wk-label">—</span>
+            <button class="pa-iconbtn" id="wk-next" aria-label="পরের সপ্তাহ">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 5.5L16 12l-6.5 6.5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="kg-week" id="week" role="group" aria-label="সপ্তাহের দিন"></div>
+        <p class="kg-ledger__note" id="ledger-note"></p>
+      </section>
+
+      <section class="kg-sec" aria-labelledby="day-h">
+        <div class="kg-sec__head">
+          <h2 class="kg-sec__h" id="day-h">আজকের খেলা</h2>
+          <span class="kg-sec__m" id="day-meta"></span>
+        </div>
+        <ul class="kg-games" id="games"></ul>
+      </section>
+
+      <p class="kg-next" id="next-line"></p>
+
+    </main>
+
+    <aside class="kg-rail">
+      <section class="kg-sec" aria-labelledby="cat-h">
+        <div class="kg-sec__head">
+          <h2 class="kg-sec__h" id="cat-h">সব খেলা</h2>
+          <span class="kg-sec__m" id="cat-meta"></span>
+        </div>
+        <div id="catalogue"></div>
+      </section>
+    </aside>
+  </div>
+
+  <footer class="kg-foot">
+    <span>প্রথম আলো · খেলাঘর</span>
+    <span id="build-note">ক্লায়েন্ট প্রিভিউ</span>
+  </footer>
+
+</div>
+
+<!-- stats -->
+<div class="pa-sheet" id="sheet-stats" hidden>
+  <div class="pa-sheet__scrim" data-close></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="পরিসংখ্যান" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">পরিসংখ্যান</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="kg-stats" id="stats-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- share -->
+<div class="pa-sheet" id="sheet-share" hidden>
+  <div class="pa-sheet__scrim" data-close></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="ফল ভাগ করুন" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">ফল ভাগ করুন</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="kg-share" id="share-body"></div>
+    </div>
+  </div>
+</div>
+
+<script src="../shared/bn-text.js"></script>
+<script src="hub.js"></script>
+</body>
+</html>
