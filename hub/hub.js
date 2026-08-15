@@ -21,8 +21,8 @@
     months: ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন', 'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'],
     today: 'আজকের খেলা',
     dayGames: 'ের খেলা',
-    streakLabel: 'দিনের ধারা',
-    streakNone: 'ধারা শুরু করুন',
+    streakLabel: 'দিনের স্ট্রিক',
+    streakNone: 'স্ট্রিক শুরু করুন',
     play: 'খেলুন',
     resume: 'চালিয়ে যান',
     solved: 'সমাধান হয়েছে',
@@ -403,11 +403,11 @@
 
     var note = el('ledger-note');
     if (s.atRisk) {
-      note.innerHTML = 'আজকের ধাঁধা এখনো বাকি। <b>একটি সমাধান করলেই ধারা ' + toBn(s.n + 1) + ' দিন।</b>';
+      note.innerHTML = 'আজকের ধাঁধা এখনো বাকি। <b>একটি সমাধান করলেই স্ট্রিক ' + toBn(s.n + 1) + ' দিন।</b>';
     } else if (s.n && kept(TODAY_ISO)) {
-      note.innerHTML = 'আজকের ধারা রাখা হয়েছে। সর্বোচ্চ ধারা ' + toBn(maxStreak()) + ' দিন।';
+      note.innerHTML = 'আজকের স্ট্রিক রাখা হয়েছে। সর্বোচ্চ স্ট্রিক ' + toBn(maxStreak()) + ' দিন।';
     } else {
-      note.innerHTML = 'আজ একটি ধাঁধা সমাধান করলেই ধারা শুরু।';
+      note.innerHTML = 'আজ একটি ধাঁধা সমাধান করলেই স্ট্রিক শুরু।';
     }
   }
 
@@ -610,8 +610,8 @@
     out += '<div class="kg-stats__g">'
       + '<h4 class="kg-stats__t">সব খেলা মিলিয়ে</h4>'
       + '<dl class="kg-nums">'
-      +   '<div><dt>বর্তমান ধারা</dt><dd>' + toBn(s.n) + '</dd></div>'
-      +   '<div><dt>সর্বোচ্চ ধারা</dt><dd>' + toBn(maxStreak()) + '</dd></div>'
+      +   '<div><dt>বর্তমান স্ট্রিক</dt><dd>' + toBn(s.n) + '</dd></div>'
+      +   '<div><dt>সর্বোচ্চ স্ট্রিক</dt><dd>' + toBn(maxStreak()) + '</dd></div>'
       +   '<div><dt>এই সপ্তাহে</dt><dd>' + toBn(weekKeptCount()) + '</dd></div>'
       +   '<div><dt>মোট সমাধান</dt><dd>' + toBn(totalSolved()) + '</dd></div>'
       + '</dl>'
@@ -625,7 +625,7 @@
         + '<dl class="kg-nums">'
         +   '<div><dt>খেলা হয়েছে</dt><dd>' + toBn(g.played) + '</dd></div>'
         +   '<div><dt>সমাধান</dt><dd>' + toBn(g.solved) + '</dd></div>'
-        +   '<div><dt>ধারা</dt><dd>' + toBn(g.run) + '</dd></div>'
+        +   '<div><dt>স্ট্রিক</dt><dd>' + toBn(g.run) + '</dd></div>'
         +   '<div><dt>দ্রুততম</dt><dd>' + (g.best ? mmss(g.best) : '—') + '</dd></div>'
         + '</dl></div>';
     });
@@ -716,14 +716,14 @@
     var run = streak().n;
     var line = 'প্রথম আলো · খেলাঘর\n' + h.name + ' · ' + shortDate(d) + '\n'
       + 'সময় ' + mmss(st.secs || 0) + (best && best !== st.secs ? ' · সেরা ' + mmss(best) : '')
-      + (run ? '\nধারা ' + toBn(run) + ' দিন' : '');
+      + (run ? '\nস্ট্রিক ' + toBn(run) + ' দিন' : '');
 
     host.innerHTML = '<div class="kg-share__card">'
       + '<p class="kg-share__t">' + h.name + '</p>'
       + '<div class="kg-share__rule"></div>'
       + '<p class="kg-share__d">' + longDate(d) + '</p>'
       + '<div class="kg-share__grid" style="grid-template-columns:repeat(' + cols + ',12px)">' + grid + '</div>'
-      + '<p class="kg-share__m">সময় ' + mmss(st.secs || 0) + (run ? ' · ধারা ' + toBn(run) + ' দিন' : '') + '</p>'
+      + '<p class="kg-share__m">সময় ' + mmss(st.secs || 0) + (run ? ' · স্ট্রিক ' + toBn(run) + ' দিন' : '') + '</p>'
       + '</div>'
       + '<p class="kg-share__x">ফলাফল লেখা হিসেবে পাঠানো হবে</p>'
       + '<div class="kg-share__acts">'
