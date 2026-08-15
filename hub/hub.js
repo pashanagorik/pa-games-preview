@@ -422,7 +422,13 @@
     play: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5l12 7.5-12 7.5z"/></svg>',
     resume: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 7v5l3.5 2"/><circle cx="12" cy="12" r="8.5"/></svg>',
     chev: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 5.5L16 12l-6.5 6.5"/></svg>',
-    share: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5V4m0 0L8 8m4-4l4 4"/><path d="M5 13v5.5a1.5 1.5 0 001.5 1.5h11a1.5 1.5 0 001.5-1.5V13"/></svg>'
+    share: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5V4m0 0L8 8m4-4l4 4"/><path d="M5 13v5.5a1.5 1.5 0 001.5 1.5h11a1.5 1.5 0 001.5-1.5V13"/></svg>',
+    /* Square shackle-and-body, no rounded corners: a lock drawn the way the
+       rest of the ledger draws its blocks. The row lock rides the state line
+       next to আসছে; the index lock replaces the mark on all 35 entries, so it
+       carries no width of its own and takes the cell's. */
+    lock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.75 10.5h14.5v9.75H4.75z"/><path d="M8 10.5V7.75a4 4 0 018 0v2.75"/></svg>',
+    lockMark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.75 10.5h14.5v9.75H4.75z"/><path d="M8 10.5V7.75a4 4 0 018 0v2.75"/></svg>'
   };
 
   function renderDay() {
@@ -431,7 +437,7 @@
     el('day-h').textContent = isToday ? T.today : (shortDate(d) + T.dayGames);
     el('day-meta').innerHTML = isToday
       ? T.daysFull[d.getDay()]
-      : '<button type="button" id="back-today">আজকে ফিরুন</button>';
+      : '<button type="button" id="back-today">আজকের খেলায় ফিরুন</button>';
     if (!isToday) {
       el('back-today').onclick = function () {
         selected = TODAY_ISO; weekOf = weekStart(TODAY); renderWeek(); renderDay();
@@ -507,7 +513,7 @@
       + '<span class="kg-game__body">'
       +   '<span class="kg-game__t">' + h.name + '</span>'
       +   '<span class="kg-game__d">' + h.note + '</span>'
-      +   '<span class="kg-game__s">' + (why || (T.soon + ' · ' + (h.when || ''))) + '</span>'
+      +   '<span class="kg-game__s">' + ICON.lock + (why || (T.soon + ' · ' + (h.when || ''))) + '</span>'
       + '</span>'
       + '<span class="kg-game__end"></span>'
       + '</div>';
@@ -536,7 +542,7 @@
         + '<ul class="kg-idx">'
         + g.items.map(function (n) {
             return '<li><span>' + n + '</span><span class="kg-idx__lead"></span>'
-              + '<span class="kg-idx__mark" aria-hidden="true"></span>'
+              + '<span class="kg-idx__mark">' + ICON.lockMark + '</span>'
               + '<span class="pa-sr">' + T.soon + '</span></li>';
           }).join('')
         + '</ul></div>';
@@ -627,7 +633,7 @@
     var on = demoActive();
     out += '<div class="kg-demo">'
       + '<div class="kg-demo__row">'
-      +   '<div><div class="kg-demo__l">ডেমো ইতিহাস</div>'
+      +   '<div><div class="kg-demo__l">ডেমো রেকর্ড</div>'
       +   '<p class="kg-demo__h">' + (on
             ? 'আগের দিনগুলোর সমাধান নমুনা হিসেবে দেখানো হচ্ছে। আজকের দিন সবসময় আসল।'
             : 'শুধু আসল খেলার হিসাব দেখানো হচ্ছে।') + '</p></div>'

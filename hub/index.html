@@ -220,6 +220,10 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
 .kg-game.is-soon { color: var(--pa-ink-2); }
 .kg-game.is-soon .kg-game__t { color: var(--pa-ink-2); }
 .kg-game.is-soon .kg-game__s { color: var(--pa-ink-2); font-weight: 400; }
+/* The lock is the one piece of the unbuilt row that keeps full colour: cyan
+   is the system's blocked mark, and it is what tells the reader at a glance
+   that the row is shut rather than merely quiet. */
+.kg-game.is-soon .kg-game__s svg { color: var(--pa-cyan); flex: none; }
 
 /* Thumbnails are printed puzzle content: square corners, 1px ink ground,
    blocks and progress only — never a letter. */
@@ -284,12 +288,15 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
    left the largest region of the page with no ink in it.
    Full strength, not a screen: cyan 16% on paper is 1.1:1, and this mark is
    the only sighted carrier of "আসছে" on thirty-five rows. Full-strength cyan
-   is 4.87:1, and full strength is what the press reserves for marks. */
+   is 4.87:1, and full strength is what the press reserves for marks.
+   The mark is a lock, not a square: a shut row reads as shut without the
+   reader having to learn the legend first. */
 .kg-idx__mark {
-  width: 0.4375rem; height: 0.4375rem;
-  background: var(--pa-cyan);
+  width: 0.75rem; height: 0.75rem;
+  color: var(--pa-cyan);
   align-self: center;
 }
+.kg-idx__mark svg { display: block; width: 100%; height: 100%; }
 
 .kg-foot {
   margin-top: var(--pa-s-6);
