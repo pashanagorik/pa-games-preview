@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>শব্দফুল — প্রথম আলো</title>
+<meta name="description" content="প্রথম আলোর দৈনিক শব্দফুল। সাতটি অক্ষর, মাঝের অক্ষরটি প্রতিটি শব্দে — যত শব্দ পারেন বানান।">
+<meta name="theme-color" content="#F4F3EF">
+<link rel="stylesheet" href="../../shared/pa-fonts.css">
+<link rel="stylesheet" href="../../shared/pa-tokens.css">
+<link rel="stylesheet" href="../../shared/pa-ui.css">
+<style>
+/* =====================================================================
+   শব্দফুল — game surface.
+
+   Inherits the two-colour press whole. Two things here are new to the
+   system and both are recorded in SHOBDOPHUL-SPEC.md:
+
+   1. HEXAGONS. The Square Board Rule forbids radius on printed puzzle
+      content; its intent is "printed rules, not tiles". A hard-vertexed
+      hexagon on an ink ground satisfies that intent — there is no radius
+      anywhere here, and every cell is separated from its neighbour by the
+      same ink the crossword grid is printed on.
+
+   2. A PETAL IS A CONSONANT, not an akshara. The kars and the hasant live
+      on a rail beneath the flower and no puzzle constrains them, which is
+      what makes a seven-letter Bangla flower yield words at all. The rail
+      is শব্দভেদ's type case with the letters removed: same cyan wash, same
+      dotted-circle placeholder, same key metrics.
+   ===================================================================== */
+
+.wf {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;      /* the smallest viewport: a docked rail must never be
+                          cropped by a returning browser toolbar */
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#app[data-view='front'] .wf-board { display: none; }
+#app[data-view='board'] .wf-front { display: none; }
+
+/* Progress vocabulary, shared with the front page and archive rows — the
+   same dots both siblings use. */
+.wf-dot {
+  flex: none;
+  width: 0.5rem; height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--pa-rule);
+  background: transparent;
+}
+.wf-dot.is-started { background: var(--pa-cyan-45); border-color: var(--pa-cyan-45); }
+.wf-dot.is-solved { background: var(--pa-cyan); border-color: var(--pa-cyan); }
+
+/* ---- the flower, drawn once, used at three sizes ----------------------
+   The hive is a square box; the seven hexes are placed in it as
+   percentages, so the whole flower scales by setting one width. Board,
+   front-page thumbnail and how-to figure are the same construction. */
+
+.wf-hive { position: relative; width: 100%; aspect-ratio: 1; }
+/* A pointy-top regular hexagon: flat sides left and right, vertices top and
+   bottom. That orientation is what puts six petals around one centre in the
+   familiar flower — two above, one either side, two below. The clip path and
+   the aspect ratio have to agree with the packing in game.js POS, or the
+   cells overlap instead of sharing edges. */
+.wf-hex {
+  position: absolute;
+  width: 33%;
+  aspect-ratio: 0.8660;          /* w/h of a regular hexagon, this orientation */
+  padding: 0;
+  border: 0;
+  background: var(--pa-rule-strong);
+  /* The ink ring IS the gap: each cell sits on the same black the crossword
+     grid is printed on, and the face is inset from it. No radius, hard
+     vertices — the Square Board Rule's intent, in six sides. */
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  cursor: pointer;
+}
+.wf-hex__face {
+  position: absolute;
+  inset: 2px;
+  display: grid;
+  place-items: center;
+  background: var(--pa-cell);
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  font-family: var(--pa-sans);
+  font-weight: 500;
+  line-height: 1;
+  transition: background-color 110ms var(--pa-ease);
+}
+/* The centre is mandatory in every word, so it is drawn as the live square
+   the crossword draws: red 16% under an inset spot-red rule. Red is *now*,
+   and the centre letter is always now. */
+.wf-hex.is-centre .wf-hex__face { background: var(--pa-red-16); }
+.wf-hex.is-centre::after {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: var(--pa-red);
+  /* an inset rule, drawn as a ring: the fill shows through the middle */
+  -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
+  mask-composite: exclude;
+  padding: 2px;
+  pointer-events: none;
+}
+.wf-hex:active .wf-hex__face { background: var(--pa-cyan-30); }
+.wf-hex.is-centre:active .wf-hex__face { background: var(--pa-red-40); }
+
+/* A tapped petal strikes deep and settles — the transient-frame use of the
+   press screens, sanctioned on the শব্দ সন্ধান build. No board state ever
+   rests at 30% or 45%. */
+.wf-hex.is-hit .wf-hex__face { animation: wf-tap 260ms var(--pa-ease); }
+@keyframes wf-tap {
+  0%   { background: var(--pa-cyan-45); }
+  100% { background: var(--pa-cell); }
+}
+.wf-hex.is-centre.is-hit .wf-hex__face { animation: wf-tap-c 260ms var(--pa-ease); }
+@keyframes wf-tap-c {
+  0%   { background: var(--pa-red-40); }
+  100% { background: var(--pa-red-16); }
+}
+
+/* The solve sweep: the page takes the spot red once and releases it, from
+   the centre outward — the flower's own version of the gesture both
+   siblings make. A rule, never a fill, so it claims nothing about the
+   letter underneath. */
+.wf-hex.is-solved::before {
+  content: '';
+  position: absolute;
+  inset: 2px;
+  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
+  background: var(--pa-red);
+  opacity: 0;
+  animation: wf-sweep 560ms var(--pa-ease) both;
+  animation-delay: var(--d, 0ms);
+  pointer-events: none;
+}
+@keyframes wf-sweep { 0%, 100% { opacity: 0; } 45% { opacity: 0.28; } }
+
+/* ---- front page ------------------------------------------------------
+   The top of a printed puzzle page. Structure is line for line the one
+   both siblings use: kicker, print date at masthead scale, the puzzle's
+   own identity beneath, thumbnail beside its facts, one primary action,
+   standing items under a hairline. */
+
+.wf-front { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; width: min(34rem, 100%); margin-inline: auto; }
+.wf-front__body {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto; overscroll-behavior: contain;
+  padding: var(--pa-s-5) var(--pa-s-4) calc(var(--pa-s-5) + env(safe-area-inset-bottom, 0px));
+}
+
+.wf-kicker { margin: 0 0 var(--pa-s-1); font-size: var(--pa-size-meta); font-weight: 600; letter-spacing: 0.09em; color: var(--pa-red); }
+.wf-kicker.is-stale { color: var(--pa-ink-3); }
+.wf-date { margin: 0 0 var(--pa-s-2); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead); line-height: 1.15; letter-spacing: -0.015em; }
+
+/* The identity line: this puzzle's seven letters, centre first in spot red.
+   A word search names its theme here; a flower has no theme, and its seven
+   letters ARE the puzzle. Printing them spoils nothing — it is what a
+   newspaper does with a puzzle's givens. */
+.wf-letters { display: flex; align-items: baseline; gap: 0.45rem; margin: 0 0 var(--pa-s-4); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); line-height: 1.2; color: var(--pa-ink-2); }
+.wf-letters b { color: var(--pa-red-deep); font-weight: 700; }
+.wf-letters i { font-style: normal; color: var(--pa-rule); }
+
+.wf-lead__row { display: flex; gap: var(--pa-s-4); align-items: flex-start; margin-bottom: var(--pa-s-4); }
+
+/* Thumbnail: the rosette, no letters. The centre inks once the reader has
+   started; the six outer petals ink one per sixth of the words found. A
+   conjunct at this size is noise pretending to be information, and the
+   silhouette is unmistakably this game and no other. */
+.wf-mini { flex: none; width: 8.75rem; }
+.wf-mini .wf-hex { pointer-events: none; }
+.wf-mini .wf-hex__face { inset: 1px; background: var(--pa-cell); }
+.wf-mini .wf-hex.is-on .wf-hex__face { background: var(--pa-cyan-45); }
+.wf-mini .wf-hex.is-centre .wf-hex__face { background: var(--pa-cell); }
+.wf-mini .wf-hex.is-centre.is-on .wf-hex__face { background: var(--pa-cyan-45); }
+.wf-mini .wf-hex.is-centre::after { display: none; }
+
+.wf-facts { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--pa-s-1); min-width: 0; padding-block-start: 2px; }
+.wf-facts__m { font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.wf-facts__s { display: flex; align-items: baseline; gap: 0.35rem; font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); line-height: 1.2; font-variant-numeric: tabular-nums; }
+
+.wf-cta { width: 100%; }
+
+.wf-rows { margin-block-start: var(--pa-s-5); border-block-start: 1px solid var(--pa-rule); }
+.wf-row { display: flex; align-items: center; gap: var(--pa-s-2); width: 100%; min-height: 3.25rem; padding: var(--pa-s-2) var(--pa-s-1); text-align: start; border-block-end: 1px solid var(--pa-rule); transition: background-color 140ms var(--pa-ease); }
+.wf-row:hover { background: var(--pa-chrome-tint); }
+.wf-row__t { font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); }
+.wf-row__end { margin-inline-start: auto; display: flex; align-items: center; gap: var(--pa-s-2); color: var(--pa-ink-3); }
+.wf-row__m { font-size: var(--pa-size-meta); }
+
+.wf-foot { margin: var(--pa-s-6) 0 0; text-align: center; font-family: var(--pa-serif); font-size: var(--pa-size-meta); letter-spacing: 0.07em; color: var(--pa-ink-3); }
+
+/* ---- archive --------------------------------------------------------- */
+
+.wf-aside__h { display: flex; align-items: baseline; gap: var(--pa-s-2); margin: 0; padding-block-end: var(--pa-s-2); border-block-end: 2px solid var(--pa-red); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); }
+.wf-aside__n { margin-inline-start: auto; font-family: var(--pa-sans); font-weight: 400; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.wf-aside { display: none; }
+
+.wf-arclist { list-style: none; margin: 0; padding: var(--pa-s-1) 0 var(--pa-s-4); }
+.wf-arcrow { display: flex; align-items: center; gap: var(--pa-s-2); width: 100%; min-height: var(--pa-tap); padding: var(--pa-s-2) var(--pa-s-4); text-align: start; transition: background-color 140ms var(--pa-ease); }
+.wf-arcrow:hover { background: var(--pa-cyan-08); }
+.wf-arcrow[aria-current='true'] { background: var(--pa-red-08); }
+.wf-arcrow:disabled { opacity: 0.45; cursor: default; }
+.wf-arcrow:disabled:hover { background: none; }
+.wf-arcrow__date { flex: none; font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-body); }
+.wf-arcrow__badge { flex: none; padding: 0.05rem 0.35rem; border-radius: var(--pa-r-sm); background: var(--pa-red); color: #fff; font-size: var(--pa-size-meta); font-weight: 600; line-height: 1.6; }
+.wf-arcrow__badge.is-latest { background: var(--pa-cyan); }
+/* The row's hint is the puzzle's letters, which is what makes one day
+   distinguishable from another in a list of thirty. */
+.wf-arcrow__ltr { margin-inline-start: auto; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--pa-serif); font-size: var(--pa-size-meta); color: var(--pa-ink-2); letter-spacing: 0.08em; }
+.wf-arcrow__ltr b { color: var(--pa-red-deep); }
+.wf-arcrow__state { flex: none; display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.wf-aside .wf-arclist { padding-block: 0; }
+.wf-aside .wf-arcrow { padding-inline: var(--pa-s-1); border-block-end: 1px solid var(--pa-rule); }
+
+/* ---- the reading band ------------------------------------------------
+   The Map and the Reader Rule. A conjunct at petal scale is a map marker;
+   this is the surface that is meant to be read, at roughly twice the size,
+   with the caret that shows composition in progress. It never collapses —
+   a band that appeared and vanished would reflow the flower mid-word. */
+.wf-band {
+  flex: none;
+  margin: 0;
+  min-height: 3rem;
+  display: flex; align-items: center; justify-content: center; gap: 0.05em;
+  padding: 0 var(--pa-s-3);
+  font-family: var(--pa-serif);
+  font-size: calc(var(--pa-size-masthead) * 1.05);
+  line-height: 1.25;
+  color: var(--pa-ink-3);
+  background: var(--pa-paper);
+  border-bottom: 1px solid var(--pa-rule);
+  white-space: nowrap; overflow: hidden;
+}
+.wf-band__hint { font-family: var(--pa-sans); font-size: var(--pa-size-body); color: var(--pa-ink-3); }
+.wf-band.is-on { color: var(--pa-ink); font-weight: 700; }
+/* Holding the word it just took, in the settled ink, before it clears —
+   clearing instantly reads as the word having been thrown away. */
+.wf-band.is-set { color: var(--pa-cyan); font-weight: 700; }
+/* A refusal takes Deep Red and a proof-reader's slash. Never an icon. */
+.wf-band.is-bad { color: var(--pa-red-deep); font-weight: 700; }
+.wf-band__w { position: relative; }
+.wf-band.is-bad .wf-band__w::after {
+  content: '';
+  position: absolute; inset-inline: -0.15em; top: 50%;
+  height: 2px; background: var(--pa-red);
+  transform-origin: left center;
+  animation: wf-slash 200ms var(--pa-ease) both;
+}
+@keyframes wf-slash { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* The caret is a rule under the cell being composed, in the colour of now. */
+.wf-band__caret { display: inline-block; width: 0.55em; border-bottom: 3px solid var(--pa-red); animation: wf-blink 1s steps(2) infinite; }
+@keyframes wf-blink { 50% { opacity: 0; } }
+
+/* The reason a word was refused. One line, meta size, replaced not stacked. */
+.wf-why { flex: none; min-height: 1.35rem; margin: 0; display: flex; align-items: center; justify-content: center; font-size: var(--pa-size-meta); color: var(--pa-ink-2); background: var(--pa-paper); }
+.wf-why.is-bad { color: var(--pa-red-deep); }
+
+/* ---- board zones -----------------------------------------------------
+   Five zones on a 360×640 phone, and exactly one of them absorbs: the
+   flower. The Chosen Absorber Rule — everything else declares flex:none,
+   because the browser's default shrink order has nothing to do with design
+   priority and would compress the reading band first. */
+.wf-main {
+  --wf-max: 22rem;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--pa-s-3);
+}
+.wf-main .wf-hive { width: min(100%, var(--wf-side, 20rem)); }
+.wf-main .wf-hex__face { font-size: calc(var(--wf-side, 20rem) * 0.085); }
+
+/* ---- the mark rail ---------------------------------------------------
+   শব্দভেদ's type case with the letters taken out. Marks are not letters, so
+   they keep the cyan wash and the dotted-circle placeholder they have
+   there; the reader who has typed one crossword square already knows this
+   surface. It does not collapse: at ~6rem there is nothing to reclaim, so
+   The One Switch Rule has nothing to switch. */
+.wf-rail {
+  flex: none;
+  background: var(--pa-paper-lift);
+  border-top: 1px solid var(--pa-rule);
+  padding: var(--pa-s-2) var(--pa-s-2) calc(var(--pa-s-2) + env(safe-area-inset-bottom, 0px));
+}
+.wf-rail__row { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; }
+.wf-rail__row + .wf-rail__row { margin-top: 4px; }
+.wf-key {
+  min-height: var(--pa-tap);
+  display: grid; place-items: center;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-cyan-08);
+  color: var(--pa-cyan);
+  font-family: var(--pa-sans);
+  font-size: var(--pa-size-title);
+  line-height: 1;
+  transition: background-color 90ms var(--pa-ease);
+}
+.wf-key:active { background: var(--pa-cyan-45); }
+.wf-key--act { background: var(--pa-cell); color: var(--pa-ink); box-shadow: inset 0 0 0 1px var(--pa-rule); }
+.wf-key--act:active { background: var(--pa-cyan-30); }
+.wf-key--go { background: var(--pa-chrome); color: #fff; box-shadow: none; }
+.wf-key--go:active { background: var(--pa-chrome-strong); }
+.wf-key--go:disabled { background: var(--pa-rule); color: var(--pa-paper-lift); }
+
+/* ---- the slot list ---------------------------------------------------
+   The day's words as ruled blanks carrying their length. A closed set the
+   reader cannot see is a cruelty; a set drawn as blanks is the crossword's
+   clue list applied to a flower. */
+.wf-listzone { flex: none; background: var(--pa-paper-lift); border-top: 1px solid var(--pa-rule); }
+.wf-listhead {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--pa-s-3);
+  padding: var(--pa-s-2) var(--pa-s-4);
+  border-bottom: 1px solid var(--pa-rule);
+  font-size: var(--pa-size-meta); letter-spacing: 0.07em; color: var(--pa-ink-3);
+}
+.wf-listhead__n { margin-inline-start: auto; font-variant-numeric: tabular-nums; color: var(--pa-ink-2); }
+/* A control sitting inside an editorial section head is type on the paper's
+   own head, not chrome — so it takes ink at weight 600 with an offset
+   underline and hovers to Red Deep, never portal violet. The Borrowed
+   Chrome Rule's stated limit, applied. */
+.wf-hint {
+  font-family: var(--pa-sans);
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  color: var(--pa-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0.15rem 0.1rem;
+}
+.wf-hint:hover { color: var(--pa-red-deep); }
+.wf-hint:disabled { color: var(--pa-ink-3); text-decoration: none; cursor: default; }
+.wf-hint__n { font-variant-numeric: tabular-nums; }
+.wf-hint__n:not(:empty)::before { content: ' '; }
+.wf-listhead__n.is-tick { animation: wf-tick 520ms var(--pa-ease); }
+@keyframes wf-tick { 0%, 35% { color: var(--pa-cyan); } 100% { color: var(--pa-ink-2); } }
+
+.wf-slots {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  gap: var(--pa-s-2) var(--pa-s-3);
+  margin: 0;
+  padding: var(--pa-s-3) var(--pa-s-4) calc(var(--pa-s-3) + env(safe-area-inset-bottom, 0px));
+  list-style: none;
+  max-height: 26svh;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+.wf-slot {
+  position: relative;
+  justify-self: start;
+  display: flex; align-items: baseline; gap: 2px;
+  padding-bottom: 3px;
+  font-family: var(--pa-serif); font-size: var(--pa-size-body); line-height: var(--pa-leading-tight);
+}
+/* One rule per letter-unit: the blank states the word's length without a
+   numeral doing it. */
+.wf-slot i { display: block; width: 0.62em; height: 0; border-bottom: 1px solid var(--pa-ink-2); }
+.wf-slot.is-found { color: var(--pa-ink-3); }
+.wf-slot.is-found b { font-weight: 400; }
+.wf-slot.is-found::after {
+  content: '';
+  position: absolute; inset-inline: -0.1em; top: 48%;
+  height: 2px; background: var(--pa-cyan-45);
+  transform-origin: left center;
+}
+.wf-slot.is-hit::after { animation: wf-rule 300ms var(--pa-ease) both; }
+@keyframes wf-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* The hinted first letter is set in full cyan, exactly as শব্দভেদ sets a
+   revealed letter — that is how the reader knows it was given, not solved. */
+.wf-slot em { font-style: normal; color: var(--pa-cyan); }
+/* The longest word of the day, marked before it is found. The spot-red rule
+   is the whole ceremony: no score, no badge. */
+.wf-slot.is-long { border-bottom: 2px solid var(--pa-red); }
+
+/* অতিরিক্ত — real words the flower makes that the day does not require.
+   They are the reason nobody is ever refused a real word. */
+.wf-bonus { display: none; padding: 0 var(--pa-s-4) var(--pa-s-3); }
+.wf-bonus.is-on { display: block; }
+.wf-bonus__h { font-size: var(--pa-size-meta); letter-spacing: 0.07em; color: var(--pa-ink-3); margin-bottom: var(--pa-s-1); }
+.wf-bonus__l { display: flex; flex-wrap: wrap; gap: var(--pa-s-1) var(--pa-s-3); font-family: var(--pa-serif); font-size: var(--pa-size-body); color: var(--pa-ink-2); }
+
+/* ---- sheets ---------------------------------------------------------- */
+
+.wf-sheetbody { padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-5); }
+.wf-htp { margin: 0; padding: 0; list-style: none; counter-reset: htp; }
+.wf-htp > li { counter-increment: htp; margin-bottom: var(--pa-s-5); }
+.wf-htp__h { display: flex; align-items: baseline; gap: var(--pa-s-2); margin: 0 0 var(--pa-s-1); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); }
+.wf-htp__h::before { content: counter(htp); color: var(--pa-red); font-variant-numeric: tabular-nums; }
+.wf-htp__p { margin: 0; color: var(--pa-ink-2); }
+.wf-figs { display: flex; align-items: center; gap: var(--pa-s-3); margin-top: var(--pa-s-3); flex-wrap: wrap; }
+.wf-fig { display: flex; flex-direction: column; align-items: center; gap: var(--pa-s-1); }
+/* Composition shown as real keys resolving into one letter — the same
+   figure শব্দভেদ's how-to uses, because it is the same interaction. */
+.wf-chip {
+  display: grid; place-items: center;
+  min-width: 2.75rem; height: 2.75rem; padding: 0 0.4rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-cyan-08); color: var(--pa-cyan);
+  font-size: 1.25rem; line-height: 1;
+}
+.wf-chip--l { background: var(--pa-cell); color: var(--pa-ink); box-shadow: inset 0 0 0 1px var(--pa-rule); }
+.wf-chip--r { background: none; color: var(--pa-ink-3); box-shadow: none; font-size: var(--pa-size-body); }
+.wf-fig__l { font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.wf-hivefig { width: 9rem; }
+.wf-hivefig .wf-hex { pointer-events: none; }
+.wf-hivefig .wf-hex__face { font-size: var(--pa-size-title); }
+
+/* ---- completion card -------------------------------------------------- */
+
+.wf-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; }
+.wf-win__mark { margin: 0 0 var(--pa-s-1); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead); }
+.wf-win__sub { margin: 0 0 var(--pa-s-4); color: var(--pa-ink-2); }
+.wf-win__nums { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: var(--pa-s-3); border-block: 1px solid var(--pa-rule); }
+.wf-win__num { padding: var(--pa-s-3) var(--pa-s-1); }
+.wf-win__num + .wf-win__num { border-inline-start: 1px solid var(--pa-rule); }
+.wf-win__v { display: block; font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); font-variant-numeric: tabular-nums; }
+.wf-win__k { display: block; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.wf-win__note { margin: 0 0 var(--pa-s-4); font-size: var(--pa-size-meta); color: var(--pa-ink-3); min-height: 1.2em; }
+.wf-win__acts { display: flex; flex-direction: column; gap: var(--pa-s-2); }
+.wf-win__ghosts { display: flex; gap: var(--pa-s-2); }
+.wf-win__ghosts .pa-btn { flex: 1; }
+
+/* ---- tablet ----------------------------------------------------------- */
+@media (min-width: 48rem) {
+  .wf-rail { padding-inline: max(var(--pa-s-2), calc((100% - 34rem) / 2)); }
+  .wf-listzone > * { width: min(34rem, 100%); margin-inline: auto; }
+  .wf-main { --wf-max: 26rem; }
+}
+
+/* ---- spread ----------------------------------------------------------
+   The type ramp, the flower's ceiling and the input model scale together
+   or the page reads as a shrunken phone. The slot list is promoted from a
+   docked strip to a permanent rail — the arrangement শব্দভেদ gives its clue
+   lists — and the mark rail stays, because a reader without a Bangla input
+   method still needs it. */
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .wf-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+    grid-template-rows: auto auto auto 1fr auto;
+    width: min(100rem, 100%);
+    margin-inline: auto;
+    border-inline: 1px solid var(--pa-rule);
+  }
+  .wf-board > .pa-masthead { grid-column: 1 / -1; }
+  .wf-band { grid-column: 1; grid-row: 2; }
+  .wf-why  { grid-column: 1; grid-row: 3; }
+  .wf-main { --wf-max: 30rem; grid-column: 1; grid-row: 4; padding: var(--pa-s-5); }
+  .wf-rail { grid-column: 1; grid-row: 5; background: none; border-top: 1px solid var(--pa-rule); }
+  .wf-rail__row { max-width: 34rem; margin-inline: auto; }
+
+  .wf-listzone {
+    grid-column: 2; grid-row: 2 / -1;
+    display: flex; flex-direction: column; min-height: 0;
+    background: none; border-top: 0;
+    border-inline-start: 1px solid var(--pa-rule);
+  }
+  .wf-listzone > * { width: auto; margin-inline: 0; }
+  .wf-slots {
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: var(--pa-s-2);
+    padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-5);
+    max-height: none; min-height: 0;
+    overflow-y: auto;
+  }
+
+  .wf-front { width: min(76rem, 100%); }
+  .wf-front__body { padding: var(--pa-s-6) var(--pa-s-5); }
+  .wf-spread { display: grid; grid-template-columns: minmax(0, 34rem) minmax(18rem, 24rem); justify-content: center; gap: var(--pa-s-6); align-items: start; }
+  .wf-aside { display: flex; flex-direction: column; min-height: 12rem; }
+  .wf-mini { width: 15rem; }
+  .wf-lead__row { gap: var(--pa-s-5); }
+  .wf-cta { width: 15rem; }
+  #fp-archive { display: none; }
+}
+
+@media (min-width: 60rem) and (min-height: 46rem) {
+  .wf-aside { max-height: calc(100svh - 22rem); }
+  .wf-aside .wf-arclist { min-height: 0; overflow-y: auto; }
+}
+
+@media (min-width: 90rem) and (min-height: 48rem) {
+  .wf-main { --wf-max: 36rem; }
+  .wf-board { grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem); }
+}
+</style>
+</head>
+<body>
+<!--
+  THESIS: seven letters printed on a page and the standing invitation to see
+  how many words are in them. The reader is not being tested; they are
+  passing ten minutes with tea.
+
+  OWN-WORLD: the two-colour press. Red is *now* — the centre letter, the
+  caret, the refusal. Cyan is settled — a word taken, a letter given.
+
+  STORY: a reader opens it, sees today's date and today's seven letters,
+  taps in, taps a petal and a kar and another petal, reads the word growing
+  at size above the flower, submits, and watches a blank on the list fill in
+  and rule itself off.
+
+  FORM: front page → board, two views in one document, switched by data-view
+  on the shell. The clock holds at zero until the reader enters the board.
+-->
+<div class="wf" id="app" data-view="front">
+
+<!-- =====================================================================
+     FRONT PAGE
+     ===================================================================== -->
+<section class="wf-front pa-scroll">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="exit" aria-label="সব গেম">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">শব্দফুল</h1>
+      <span class="pa-masthead__tail">
+        <button class="pa-iconbtn" id="top-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114.1 2.2c-.9.7-1.7 1.1-1.7 2.1"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <button class="pa-masthead__date" id="dateline" aria-haspopup="dialog" aria-label="অন্য ধাঁধা বেছে নিন">
+        <span id="date"></span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="wf-front__body pa-scroll">
+    <div class="wf-spread">
+      <section class="wf-lead">
+        <p class="wf-kicker" id="fp-kicker">আজকের ধাঁধা</p>
+        <h2 class="wf-date" id="fp-date">—</h2>
+        <p class="wf-letters" id="fp-letters"></p>
+
+        <div class="wf-lead__row">
+          <div class="wf-mini wf-hive" id="fp-mini" aria-hidden="true"></div>
+          <div class="wf-facts">
+            <span class="wf-facts__m" id="fp-size">৭ অক্ষর · ২৪ শব্দ</span>
+            <span class="wf-facts__s"><i class="wf-dot" id="fp-dot"></i><span id="fp-state">লোড হচ্ছে…</span></span>
+          </div>
+        </div>
+
+        <button class="pa-btn pa-btn--primary wf-cta" id="fp-cta">শুরু করুন</button>
+      </section>
+
+      <aside class="wf-aside">
+        <h2 class="wf-aside__h">সব ধাঁধা<span class="wf-aside__n" id="fp-aside-count"></span></h2>
+        <div class="wf-arclist pa-scroll" id="fp-archlist"></div>
+      </aside>
+    </div>
+
+    <nav class="wf-rows">
+      <button class="wf-row" id="fp-archive" aria-haspopup="dialog">
+        <span class="wf-row__t">সব ধাঁধা</span>
+        <span class="wf-row__end">
+          <span class="wf-row__m" id="fp-archive-meta"></span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+      <button class="wf-row" id="fp-howto" aria-haspopup="dialog">
+        <span class="wf-row__t">কীভাবে খেলবেন</span>
+        <span class="wf-row__end">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+    </nav>
+
+    <p class="wf-foot">প্রথম আলো</p>
+  </div>
+</section>
+
+<!-- =====================================================================
+     BOARD
+     ===================================================================== -->
+<section class="wf-board wf" aria-label="শব্দফুল বোর্ড">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="back" aria-label="নামপাতা">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">শব্দফুল</h1>
+      <span class="pa-masthead__tail">
+        <span class="pa-masthead__timer" id="timer" role="timer" aria-label="সময়">০:০০</span>
+        <button class="pa-iconbtn" id="shuffle" aria-label="পাপড়ি এলোমেলো করুন">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h4l8 10h4"/><path d="M4 17h4l3-3.6"/><path d="M14.6 8.6L16 7h4"/><path d="M18 4l2 3-2 3"/><path d="M18 14l2 3-2 3"/></svg>
+        </button>
+        <button class="pa-iconbtn" id="board-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 113.5 2.3c-.6.3-1 .9-1 1.6v.3"/><path d="M12 17h.01"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <span class="pa-masthead__date" id="board-date"></span>
+    </div>
+  </header>
+
+  <p class="wf-band" id="band" aria-live="polite"></p>
+  <p class="wf-why" id="why" aria-live="polite"></p>
+
+  <div class="wf-main" id="board-main">
+    <div class="wf-hive" id="hive" role="group" aria-label="অক্ষরের ফুল"></div>
+  </div>
+
+  <div class="wf-rail">
+    <div class="wf-rail__row" id="rail-1"></div>
+    <div class="wf-rail__row" id="rail-2"></div>
+  </div>
+
+  <div class="wf-listzone">
+    <div class="wf-listhead">
+      <span>পাওয়া গেছে</span>
+      <button class="wf-hint" id="hint">ইঙ্গিত<span class="wf-hint__n" id="hint-n"></span></button>
+      <span class="wf-listhead__n" id="count">০ / ০</span>
+    </div>
+    <ul class="wf-slots pa-scroll" id="slots"></ul>
+    <div class="wf-bonus" id="bonus">
+      <p class="wf-bonus__h">অতিরিক্ত</p>
+      <p class="wf-bonus__l" id="bonus-list"></p>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SHEETS
+     ===================================================================== -->
+<div class="pa-sheet" id="sheet-arch" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সব ধাঁধা" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">সব ধাঁধা</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="wf-arclist" id="arch-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-howto" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="কীভাবে খেলবেন" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">কীভাবে খেলবেন</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll wf-sheetbody">
+      <ol class="wf-htp">
+        <li>
+          <h4 class="wf-htp__h">মাঝের অক্ষর প্রতিটি শব্দে</h4>
+          <p class="wf-htp__p">সাতটি অক্ষর দিয়ে শব্দ বানান। মাঝের লাল ঘরের অক্ষরটি প্রতিটি শব্দে থাকতেই হবে। একই অক্ষর যতবার খুশি ব্যবহার করা যায়।</p>
+          <div class="wf-figs"><div class="wf-hivefig wf-hive" id="howto-hive" aria-hidden="true"></div></div>
+        </li>
+        <li>
+          <h4 class="wf-htp__h">কার ও হসন্ত নিচের সারিতে</h4>
+          <p class="wf-htp__p">ফুলে শুধু ব্যঞ্জন থাকে। কার, হসন্ত আর চন্দ্রবিন্দু নিচের নীল সারিতে — সব ধাঁধায় সবগুলো পাওয়া যায়। অক্ষরে চাপ দিয়ে তার পরে কার দিলে এক অক্ষর হয়।</p>
+          <div class="wf-figs">
+            <span class="wf-fig"><span class="wf-chip wf-chip--l">ধ</span></span>
+            <span class="wf-fig"><span class="wf-chip">◌ো</span></span>
+            <span class="wf-fig"><span class="wf-chip wf-chip--r">→</span></span>
+            <span class="wf-fig"><span class="wf-chip wf-chip--l">ধো</span></span>
+          </div>
+          <div class="wf-figs">
+            <span class="wf-fig"><span class="wf-chip wf-chip--l">ন</span></span>
+            <span class="wf-fig"><span class="wf-chip">◌্</span></span>
+            <span class="wf-fig"><span class="wf-chip wf-chip--l">দ</span></span>
+            <span class="wf-fig"><span class="wf-chip wf-chip--r">→</span></span>
+            <span class="wf-fig"><span class="wf-chip wf-chip--l">ন্দ</span></span>
+          </div>
+        </li>
+        <li>
+          <h4 class="wf-htp__h">তিন অক্ষরের কম নয়</h4>
+          <p class="wf-htp__p">প্রতিটি শব্দ অন্তত তিন অক্ষরের। নিচের তালিকায় দাগ দেখে বোঝা যাবে কোন শব্দ কত অক্ষরের — লাল দাগের নিচেরটি দিনের সবচেয়ে লম্বা শব্দ।</p>
+        </li>
+        <li>
+          <h4 class="wf-htp__h">তালিকার সবগুলো পেলে শেষ</h4>
+          <p class="wf-htp__p">তালিকার বাইরের সত্যিকারের শব্দও নেওয়া হবে — সেগুলো <b>অতিরিক্ত</b> হিসেবে জমা হয়, কিন্তু শেষ করার জন্য লাগে না। আটকে গেলে <b>ইঙ্গিত</b> নিন; কতবার নিলেন তা শেষের কার্ডে লেখা থাকবে।</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-win" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সম্পূর্ণ" tabindex="-1">
+    <div class="wf-win">
+      <p class="wf-win__mark">চমৎকার!</p>
+      <p class="wf-win__sub" id="win-sub"></p>
+      <div class="wf-win__nums">
+        <span class="wf-win__num"><b class="wf-win__v" id="win-time">০:০০</b><span class="wf-win__k">সময়</span></span>
+        <span class="wf-win__num"><b class="wf-win__v" id="win-best">০:০০</b><span class="wf-win__k">সেরা</span></span>
+        <span class="wf-win__num"><b class="wf-win__v" id="win-hints">০</b><span class="wf-win__k">সহায়তা</span></span>
+      </div>
+      <p class="wf-win__note" id="win-note"></p>
+      <div class="wf-win__acts">
+        <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
+        <span class="wf-win__ghosts">
+          <button class="pa-btn pa-btn--ghost" id="win-board">ফিরে দেখুন</button>
+          <button class="pa-btn pa-btn--ghost" id="win-front">প্রথম পাতা</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script src="../../shared/bn-text.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,859 @@
+/*
+ * শব্দফুল — Bangla word flower.
+ *
+ * A petal holds a CONSONANT, not an akshara. That is the whole design, and it
+ * was settled by measurement, not taste: over the 713-word শব্দ সন্ধান corpus,
+ * the best seven-akshara flower yields 7 findable words and the best
+ * seven-consonant flower yields 24. Kars, hasant and the three signs live on
+ * a rail beneath the flower and no puzzle constrains them.
+ *
+ * Composition goes through shared/bn-text.js unchanged — the same two-tap rule
+ * শব্দভেদ's type case uses, so a reader who has filled one crossword square
+ * already knows how to type here.
+ *
+ * The word list is two lists. The targets are human-reviewed and gate the win;
+ * the bonus tier is machine-screened and accepted but never required, so a
+ * real Bangla word the flower can make is never refused. A word search that
+ * omits a word costs nothing; a word flower that refuses one is broken.
+ */
+(function () {
+  'use strict';
+
+  var B = window.BnText;
+
+  var MONTHS = ['জানুয়ারি', 'ফেব্রুয়ারি', 'মার্চ', 'এপ্রিল', 'মে', 'জুন',
+    'জুলাই', 'আগস্ট', 'সেপ্টেম্বর', 'অক্টোবর', 'নভেম্বর', 'ডিসেম্বর'];
+  var DAYS = ['রবিবার', 'সোমবার', 'মঙ্গলবার', 'বুধবার', 'বৃহস্পতিবার', 'শুক্রবার', 'শনিবার'];
+
+  /* Every user-visible string the module writes. Static copy stays in the
+     markup; this is the half that changes with state. */
+  var T = {
+    today: 'আজকের ধাঁধা',
+    recent: 'সাম্প্রতিক ধাঁধা',
+    start: 'শুরু করুন',
+    resume: 'চালিয়ে যান',
+    review: 'আবার দেখুন',
+    fresh: 'নতুন',
+    solved: 'সম্পূর্ণ',
+    progress: ' শব্দ পাওয়া গেছে',
+    of: ' / ',
+    letters: ' অক্ষর',
+    words: ' শব্দ',
+    packCount: 'টি ধাঁধা',
+    todayBadge: 'আজ',
+    latestBadge: 'সর্বশেষ',
+    newBest: 'নতুন সেরা সময়',
+    firstSolve: 'প্রথমবার সমাধান',
+    unaided: 'কোনো সহায়তা ছাড়াই',
+    prompt: 'অক্ষরে চাপ দিন',
+    /* A refusal that does not say why is the failure the two-list design
+       exists to prevent. Four reasons, one line, replaced not stacked. */
+    badShort: 'তিন অক্ষরের কম',
+    badCentre: 'মাঝের অক্ষরটি নেই',
+    badPetal: 'ফুলের বাইরের অক্ষর',
+    badDupe: 'আগেই পাওয়া গেছে',
+    badList: 'শব্দটি চেনা গেল না',
+    bonusTook: 'অতিরিক্ত শব্দ',
+    hintNone: 'সব শব্দ পাওয়া গেছে',
+    winWords: 'টি শব্দ, ',
+    winLetters: 'টি অক্ষর'
+  };
+
+  /* The mark rail: everything a petal is not. Ten kars, the hasant, the three
+     signs, then delete and submit. Two rows of eight — fourteen columns at
+     360dp gives 21.8px keys, under the 24px floor, which is the same
+     arithmetic that split শব্দভেদ's mark keys. */
+  var KARS_1 = ['া', 'ি', 'ী', 'ু', 'ূ', 'ৃ', 'ে', 'ৈ'];
+  var KARS_2 = ['ো', 'ৌ', '্', 'ং', 'ঁ', 'ঃ'];
+
+  var STORE = 'pa:wf-bn:';
+  var BEST = 'pa:wf-bn:best:';
+
+  var PACK = null;
+  var P = null;          // active puzzle
+  var petals = [];       // the six outer letters, in display order
+  var found = {};        // target word -> true
+  var bonus = {};        // bonus word -> true
+  var hinted = {};       // target word -> true (first akshara revealed)
+  var cells = [];        // committed aksharas of the word being built
+  var buf = '';          // the akshara currently under composition
+
+  var clock = { secs: 0, running: false, iv: null };
+  var quiet = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var byTouch = false;
+  var bandHold = null;
+
+  function $(id) { return document.getElementById(id); }
+  function nfc(s) { return String(s == null ? '' : s).normalize ? String(s).normalize('NFC') : String(s); }
+
+  /* ---- the flower ------------------------------------------------------- */
+
+  /* Seven hexes: centre first, then the ring clockwise from the top-left.
+     Percentages of a square box, so the whole flower scales by setting one
+     width — board, front-page thumbnail and how-to figure are the same
+     construction at three sizes.
+
+     Derived, not eyeballed. For a pointy-top regular hexagon of width W the
+     height is W/0.866, neighbours sit at (±W, 0) and (±W/2, ±0.75·H), and the
+     cells then share edges exactly — which is what lets the ink ring on each
+     cell read as one printed rule between two of them rather than two rules
+     with a gap. W = 33, H = 38.10, centre at (50, 50); left/top are the
+     centre coordinates less half the box. */
+  var W = 33, H = 33 / 0.8660;
+  function at(cx, cy) {
+    return { l: (cx - W / 2).toFixed(2) + '%', t: (cy - H / 2).toFixed(2) + '%' };
+  }
+  /* The ring runs CLOCKWISE from the top-left, which is not decoration: the
+     thumbnail inks one petal per sixth of the words found, and it can only do
+     that by walking the DOM in the order the eye walks the flower. */
+  var POS = [
+    Object.assign({ c: 1 }, at(50, 50)),
+    at(50 - W / 2, 50 - 0.75 * H), at(50 + W / 2, 50 - 0.75 * H),
+    at(50 + W, 50),
+    at(50 + W / 2, 50 + 0.75 * H), at(50 - W / 2, 50 + 0.75 * H),
+    at(50 - W, 50)
+  ];
+
+  function hiveHTML(centre, ring, interactive) {
+    var html = '', i;
+    for (i = 0; i < POS.length; i++) {
+      var p = POS[i];
+      var ch = p.c ? centre : (ring[i - 1] || '');
+      html += '<' + (interactive ? 'button type="button"' : 'span')
+        + ' class="wf-hex' + (p.c ? ' is-centre' : '') + '"'
+        + ' data-i="' + i + '" data-ch="' + ch + '"'
+        + ' style="left:' + p.l + ';top:' + p.t + '"'
+        + (interactive ? ' aria-label="' + ch + (p.c ? ', মাঝের অক্ষর' : '') + '"' : ' aria-hidden="true"')
+        + '><span class="wf-hex__face">' + ch + '</span>'
+        + '</' + (interactive ? 'button' : 'span') + '>';
+    }
+    return html;
+  }
+
+  /* A word's demand on the flower: its distinct base letters. Marks are free,
+     so they never appear here — which is exactly why ব্দ demands ব and দ, both
+     of which must be petals. */
+  function basesOf(word) {
+    var out = [], s = nfc(word), i, ch;
+    for (i = 0; i < s.length; i++) {
+      ch = s.charAt(i);
+      if (B.isKar(ch) || B.isSign(ch) || ch === B.VIRAMA || ch === B.NUKTA) continue;
+      if (out.indexOf(ch) < 0) out.push(ch);
+    }
+    return out;
+  }
+
+  /* ---- storage ---------------------------------------------------------- */
+
+  /* Progress is keyed by puzzle id, and an id can outlive the words stored
+     against it — re-running the pack builder puts different words on the same
+     date. Anything not in THIS puzzle's lists is discarded on the way in, so a
+     stale find can never be counted, drawn, or written back. */
+  function loadState(id, words) {
+    var empty = { w: {}, b: {}, h: {}, t: 0 };
+    try {
+      var raw = localStorage.getItem(STORE + id);
+      if (!raw) return empty;
+      var v = JSON.parse(raw), i;
+      var valid = {};
+      for (i = 0; i < words.length; i++) valid[words[i]] = true;
+      var st = { w: {}, b: {}, h: {}, t: v.t || 0 };
+      var list = v.w || [];
+      for (i = 0; i < list.length; i++) if (valid[list[i]]) st.w[list[i]] = true;
+      list = v.h || [];
+      for (i = 0; i < list.length; i++) if (valid[list[i]]) st.h[list[i]] = true;
+      list = v.b || [];
+      for (i = 0; i < list.length; i++) st.b[list[i]] = true;
+      return st;
+    } catch (e) { return empty; }
+  }
+
+  function saveState() {
+    if (!P) return;
+    try {
+      localStorage.setItem(STORE + P.id, JSON.stringify({
+        w: P.words.filter(function (w) { return found[w]; }),
+        b: Object.keys(bonus),
+        h: P.words.filter(function (w) { return hinted[w]; }),
+        t: clock.secs
+      }));
+    } catch (e) {}
+  }
+
+  function bestOf(id) {
+    var v = parseInt(localStorage.getItem(BEST + id) || '0', 10);
+    return v > 0 ? v : 0;
+  }
+
+  function countFound(id, words) {
+    var s = loadState(id, words), n = 0;
+    for (var i = 0; i < words.length; i++) if (s.w[words[i]]) n++;
+    return n;
+  }
+
+  /* Count THIS puzzle's words, never the size of the found map — the map can
+     hold a key the puzzle does not contain. */
+  function foundCount() {
+    var n = 0;
+    for (var i = 0; i < P.words.length; i++) if (found[P.words[i]]) n++;
+    return n;
+  }
+  function hintCount() {
+    var n = 0;
+    for (var i = 0; i < P.words.length; i++) if (hinted[P.words[i]]) n++;
+    return n;
+  }
+  function isComplete() { return P && foundCount() >= P.words.length; }
+
+  /* ---- clock ------------------------------------------------------------ */
+
+  function fmt(secs) {
+    var m = Math.floor(secs / 60), s = secs % 60;
+    return B.toBn(m) + ':' + B.toBn(s < 10 ? '0' + s : String(s));
+  }
+
+  function paintClock() {
+    var el = $('timer');
+    el.textContent = fmt(clock.secs);
+    el.classList.toggle('is-done', isComplete());
+  }
+
+  function clockStart() {
+    if (clock.running || isComplete()) return;
+    clock.running = true;
+    clock.iv = setInterval(function () {
+      clock.secs++;
+      paintClock();
+      if (clock.secs % 10 === 0) saveState();
+    }, 1000);
+  }
+
+  function clockStop() {
+    clock.running = false;
+    if (clock.iv) { clearInterval(clock.iv); clock.iv = null; }
+  }
+
+  /* ---- dates ------------------------------------------------------------ */
+
+  function dateFromId(id) {
+    var m = /(\d{4})-(\d{2})-(\d{2})$/.exec(id);
+    return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null;
+  }
+  function longDate(d) { return d ? DAYS[d.getDay()] + ', ' + B.toBn(d.getDate()) + ' ' + MONTHS[d.getMonth()] + ' ' + B.toBn(d.getFullYear()) : ''; }
+  function printDate(d) { return d ? B.toBn(d.getDate()) + ' ' + MONTHS[d.getMonth()] + ' ' + B.toBn(d.getFullYear()) : ''; }
+  function shortDate(d) { return d ? B.toBn(d.getDate()) + ' ' + MONTHS[d.getMonth()] : ''; }
+
+  function todayKey() {
+    var d = new Date();
+    function p(n) { return n < 10 ? '0' + n : String(n); }
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+  function isDue(pz) { return pz.id.slice(-10) <= todayKey(); }
+
+  function pickForToday() {
+    var key = todayKey(), i, due = null;
+    for (i = 0; i < PACK.puzzles.length; i++) {
+      if (PACK.puzzles[i].id.slice(-10) === key) return { pz: PACK.puzzles[i], isToday: true };
+      if (PACK.puzzles[i].id.slice(-10) <= key) due = PACK.puzzles[i];
+    }
+    return { pz: due || PACK.puzzles[0], isToday: false };
+  }
+
+  function nextUnfinished() {
+    for (var i = PACK.puzzles.length - 1; i >= 0; i--) {
+      var pz = PACK.puzzles[i];
+      if (!isDue(pz) || pz.id === P.id) continue;
+      if (countFound(pz.id, pz.words) < pz.words.length) return pz;
+    }
+    return null;
+  }
+
+  /* ---- composition ------------------------------------------------------ */
+
+  function word() { return cells.join('') + buf; }
+  function wordLen() { return cells.length + (buf ? 1 : 0); }
+
+  function typeChar(ch) {
+    if (isComplete()) return;
+    var isMark = B.isKar(ch) || B.isSign(ch) || ch === B.VIRAMA || ch === B.NUKTA;
+    /* A mark with nothing to sit on is not input, it is a stray tap. Silently
+       ignored rather than refused: the reader has not made a word yet, so
+       there is nothing to tell them about. */
+    if (isMark && !buf) return;
+    var r = B.compose(buf, ch);
+    if (r.commit) { cells.push(r.cell); buf = r.next; }
+    else buf = r.cell;
+    paintBand();
+    clearWhy();
+  }
+
+  function del() {
+    if (!buf && !cells.length) return;
+    if (buf) {
+      buf = B.backspace(buf);
+      if (!buf && cells.length) buf = cells.pop();
+    } else {
+      buf = B.backspace(cells.pop());
+    }
+    paintBand();
+    clearWhy();
+  }
+
+  function clearWord() { cells = []; buf = ''; paintBand(); }
+
+  /* ---- painting --------------------------------------------------------- */
+
+  function paintBand() {
+    var el = $('band'), w = word();
+    el.classList.remove('is-set', 'is-bad');
+    if (!w) {
+      el.innerHTML = '<span class="wf-band__hint">' + T.prompt + '</span>';
+      el.classList.remove('is-on');
+    } else {
+      el.innerHTML = '<span class="wf-band__w">' + w + '</span><i class="wf-band__caret"></i>';
+      el.classList.add('is-on');
+    }
+    $('go').disabled = wordLen() < (PACK.minLen || 3);
+  }
+
+  function say(reason, bad) {
+    var el = $('why');
+    el.textContent = reason || '';
+    el.classList.toggle('is-bad', !!bad);
+  }
+  function clearWhy() { say('', false); }
+
+  /* One rule per letter-unit: a blank states its own length without a numeral
+     doing it. A hinted first letter is set in full cyan — the same way শব্দভেদ
+     sets a revealed letter, so a given stays visibly given. */
+  function slotHTML(w) {
+    var seg = B.segment(w), i, html = '';
+    if (found[w]) return '<b>' + w + '</b>';
+    if (hinted[w]) html += '<em>' + seg[0] + '</em>';
+    for (i = hinted[w] ? 1 : 0; i < seg.length; i++) html += '<i></i>';
+    return html;
+  }
+
+  function renderSlots() {
+    var html = '', i, w;
+    for (i = 0; i < P.words.length; i++) {
+      w = P.words[i];
+      html += '<li class="wf-slot' + (found[w] ? ' is-found' : '')
+        + (w === P.longest ? ' is-long' : '') + '" data-w="' + w + '">'
+        + slotHTML(w) + '</li>';
+    }
+    $('slots').innerHTML = html;
+    $('count').textContent = B.toBn(foundCount()) + T.of + B.toBn(P.words.length);
+    renderBonus();
+    paintHint();
+  }
+
+  function renderBonus() {
+    var list = Object.keys(bonus);
+    $('bonus').classList.toggle('is-on', list.length > 0);
+    $('bonus-list').innerHTML = list.map(function (w) { return '<span>' + w + '</span>'; }).join('');
+  }
+
+  function paintHint() {
+    var n = hintCount();
+    $('hint-n').textContent = n ? B.toBn(n) : '';
+    $('hint').disabled = isComplete() || nextHintable() === null;
+  }
+
+  function renderHive() {
+    $('hive').innerHTML = hiveHTML(P.centre, petals, true);
+  }
+
+  /* ---- the front page --------------------------------------------------- */
+
+  function lettersHTML(centre, ring) {
+    return '<b>' + centre + '</b><i>·</i>' + ring.join(' ');
+  }
+
+  function renderFront() {
+    var d = dateFromId(P.id);
+    var pick = pickForToday();
+    var isToday = pick.isToday && pick.pz.id === P.id;
+
+    $('fp-kicker').textContent = isToday ? T.today : T.recent;
+    $('fp-kicker').classList.toggle('is-stale', !isToday);
+    $('fp-date').textContent = printDate(d);
+    $('fp-letters').innerHTML = lettersHTML(P.centre, P.petals);
+    $('board-date').textContent = printDate(d);
+    $('date').textContent = longDate(new Date());
+    /* Derived from the pack, never hardcoded. */
+    $('fp-size').textContent = B.toBn(P.petals.length + 1) + T.letters + ' · ' + B.toBn(P.words.length) + T.words;
+    $('fp-archive-meta').textContent = B.toBn(PACK.puzzles.length) + T.packCount;
+    $('fp-aside-count').textContent = B.toBn(PACK.puzzles.length) + T.packCount;
+    renderArchive();
+
+    var n = foundCount(), total = P.words.length;
+    $('fp-dot').className = 'wf-dot' + (n === total ? ' is-solved' : (n > 0 ? ' is-started' : ''));
+    $('fp-state').textContent = n === 0 ? T.fresh
+      : (n === total ? T.solved + ' · ' + fmt(clock.secs)
+        : B.toBn(n) + T.of + B.toBn(total) + T.progress);
+    $('fp-cta').textContent = n === 0 ? T.start : (n === total ? T.review : T.resume);
+
+    renderMini(n, total);
+  }
+
+  /* The rosette, no letters. The centre inks once the reader has started; the
+     six outer petals ink one per sixth of the words found. A conjunct at this
+     size is noise pretending to be information, and the silhouette is
+     unmistakably this game and no other. */
+  function renderMini(n, total) {
+    var el = $('fp-mini');
+    el.innerHTML = hiveHTML('', ['', '', '', '', '', ''], false);
+    var lit = total ? Math.round(6 * n / total) : 0;
+    var kids = el.children, i;
+    if (n > 0) kids[0].classList.add('is-on');
+    for (i = 1; i <= 6; i++) kids[i].classList.toggle('is-on', i <= lit);
+  }
+
+  function renderArchive() {
+    var key = todayKey(), hasToday = false, latestDue = null, i;
+    for (i = 0; i < PACK.puzzles.length; i++) {
+      if (PACK.puzzles[i].id.slice(-10) === key) hasToday = true;
+      if (isDue(PACK.puzzles[i])) latestDue = PACK.puzzles[i].id;
+    }
+
+    /* Newest first: a reader opening the list wants today at the top, not a
+       month ago. Same order both siblings use. */
+    var html = '';
+    for (i = PACK.puzzles.length - 1; i >= 0; i--) {
+      var pz = PACK.puzzles[i];
+      var due = isDue(pz);
+      var n = countFound(pz.id, pz.words);
+      var total = pz.words.length;
+      var dotCls = n === total ? ' is-solved' : (n > 0 ? ' is-started' : '');
+      var label = n === total ? T.solved : (n > 0 ? B.toBn(n) + T.of + B.toBn(total) : T.fresh);
+      var badge = pz.id.slice(-10) === key
+        ? '<span class="wf-arcrow__badge">' + T.todayBadge + '</span>'
+        : (!hasToday && pz.id === latestDue ? '<span class="wf-arcrow__badge is-latest">' + T.latestBadge + '</span>' : '');
+
+      html += '<button type="button" class="wf-arcrow" data-id="' + pz.id + '"'
+        + (pz.id === P.id ? ' aria-current="true"' : '') + (due ? '' : ' disabled') + '>'
+        + '<span class="wf-arcrow__date">' + shortDate(dateFromId(pz.id)) + '</span>' + badge
+        + '<span class="wf-arcrow__ltr">' + lettersHTML(pz.centre, pz.petals) + '</span>'
+        + '<span class="wf-arcrow__state"><i class="wf-dot' + dotCls + '" aria-hidden="true"></i>' + label + '</span>'
+        + '</button>';
+    }
+    $('arch-list').innerHTML = html;
+    $('fp-archlist').innerHTML = html;
+  }
+
+  /* ---- feedback --------------------------------------------------------- */
+
+  function buzz(pattern) {
+    if (quiet || !byTouch) return;
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (e) {}
+  }
+
+  /* Restart an animation class and take it off again. animationend is not
+     guaranteed — a backgrounded tab leaves the class stuck, and a spent
+     fill-mode animation would then outrank the class rules underneath it. */
+  function replay(el, cls, ms) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.offsetWidth;
+    el.classList.add(cls);
+    setTimeout(function () { el.classList.remove(cls); }, ms);
+  }
+
+  function flashHex(ch) {
+    var nodes = $('hive').children, i;
+    for (i = 0; i < nodes.length; i++) {
+      if (nodes[i].getAttribute('data-ch') === ch) { replay(nodes[i], 'is-hit', 300); return; }
+    }
+  }
+
+  function took(w, isBonus) {
+    var band = $('band');
+    band.innerHTML = '<span class="wf-band__w">' + w + '</span>';
+    band.classList.remove('is-on', 'is-bad');
+    band.classList.add('is-set');
+    clearTimeout(bandHold);
+    bandHold = setTimeout(function () { paintBand(); }, 900);
+
+    say(isBonus ? T.bonusTook : '', false);
+    if (!isBonus) {
+      var slot = $('slots').querySelector('[data-w="' + w + '"]');
+      replay(slot, 'is-hit', 380);
+      replay($('count'), 'is-tick', 600);
+    }
+    buzz(12);
+  }
+
+  function refuse(reason) {
+    var band = $('band');
+    band.classList.remove('is-set', 'is-on');
+    band.classList.add('is-bad');
+    say(reason, true);
+    buzz(24);
+    clearTimeout(bandHold);
+    bandHold = setTimeout(function () { clearWord(); }, 700);
+  }
+
+  /* The flower takes the spot red once and releases it, outward from the
+     centre — this game's version of the gesture both siblings make when their
+     board comes out. A rule, never a fill. */
+  function solveSweep() {
+    var nodes = $('hive').children, i;
+    for (i = 0; i < nodes.length; i++) {
+      nodes[i].style.setProperty('--d', (i === 0 ? 0 : 90 + i * 40) + 'ms');
+      replay(nodes[i], 'is-solved', 700 + i * 40);
+    }
+    buzz([16, 70, 16]);
+  }
+
+  /* ---- submitting ------------------------------------------------------- */
+
+  function findIn(list, w) {
+    for (var i = 0; i < list.length; i++) if (B.equals(list[i], w)) return list[i];
+    return null;
+  }
+
+  function submit() {
+    if (isComplete()) return;
+    var w = nfc(word());
+    if (!w) return;
+
+    if (wordLen() < (PACK.minLen || 3)) { refuse(T.badShort); return; }
+
+    var bs = basesOf(w);
+    if (bs.indexOf(P.centre) < 0) { refuse(T.badCentre); return; }
+
+    var flower = [P.centre].concat(P.petals), i;
+    for (i = 0; i < bs.length; i++) {
+      if (flower.indexOf(bs[i]) < 0) { refuse(T.badPetal); return; }
+    }
+
+    var hit = findIn(P.words, w);
+    if (hit && found[hit]) { refuse(T.badDupe); return; }
+    var extra = hit ? null : findIn(P.bonus || [], w);
+    if (extra && bonus[extra]) { refuse(T.badDupe); return; }
+
+    if (hit) {
+      found[hit] = true;
+      saveState();
+      cells = []; buf = '';
+      renderSlots();
+      took(hit, false);
+      if (isComplete()) win();
+      return;
+    }
+    if (extra) {
+      bonus[extra] = true;
+      saveState();
+      cells = []; buf = '';
+      renderBonus();
+      took(extra, true);
+      return;
+    }
+    refuse(T.badList);
+  }
+
+  /* ---- hints ------------------------------------------------------------
+     The shape, never the word: length is already on the slot, so a hint adds
+     the first letter-unit and nothing else. Unlimited, but every one is
+     counted and printed on the completion card — the accounting শব্দভেদ
+     already uses. */
+
+  function nextHintable() {
+    var i, w, unhinted = null;
+    for (i = 0; i < P.words.length; i++) {
+      w = P.words[i];
+      if (found[w] || hinted[w]) continue;
+      /* Longest-first: the words a reader is actually stuck on are the long
+         ones, and hinting the three-letter filler would spend an assist on
+         nothing. */
+      if (!unhinted || B.segment(w).length > B.segment(unhinted).length) unhinted = w;
+    }
+    return unhinted;
+  }
+
+  function hint() {
+    var w = nextHintable();
+    if (!w) { say(T.hintNone, false); return; }
+    hinted[w] = true;
+    saveState();
+    renderSlots();
+    var slot = $('slots').querySelector('[data-w="' + w + '"]');
+    if (slot && slot.scrollIntoView) slot.scrollIntoView({ block: 'nearest' });
+  }
+
+  /* ---- views ------------------------------------------------------------ */
+
+  function goFront() {
+    clockStop();
+    saveState();
+    renderFront();
+    $('app').setAttribute('data-view', 'front');
+  }
+
+  function goBoard() {
+    renderHive();
+    renderSlots();
+    clearWord();
+    clearWhy();
+    paintClock();
+    $('app').setAttribute('data-view', 'board');
+    sizeHive();
+    clockStart();
+  }
+
+  function openSheet(sheet) {
+    sheet.hidden = false;
+    void sheet.offsetWidth;
+    sheet.classList.add('is-open');
+    var panel = sheet.querySelector('.pa-sheet__panel');
+    if (panel) panel.focus();
+  }
+
+  function closeSheet(sheet) {
+    sheet.classList.remove('is-open');
+    setTimeout(function () { sheet.hidden = true; }, 260);
+  }
+
+  function win() {
+    clockStop();
+    saveState();
+
+    var prev = bestOf(P.id);
+    var isBest = !prev || clock.secs < prev;
+    if (isBest) { try { localStorage.setItem(BEST + P.id, String(clock.secs)); } catch (e) {} }
+
+    emit('game:complete', { id: P.id, words: P.words.length, hints: hintCount(), secs: clock.secs });
+
+    $('win-sub').textContent = B.toBn(P.words.length) + T.winWords + B.toBn(P.petals.length + 1) + T.winLetters;
+    $('win-time').textContent = fmt(clock.secs);
+    $('win-best').textContent = fmt(isBest ? clock.secs : prev);
+    $('win-hints').textContent = B.toBn(hintCount());
+    $('win-note').textContent = !prev ? T.firstSolve : (isBest ? T.newBest : (hintCount() === 0 ? T.unaided : ''));
+    paintClock();
+    paintHint();
+
+    /* The board gets its moment before the card covers it. */
+    solveSweep();
+    setTimeout(function () { openSheet($('sheet-win')); }, 1100);
+  }
+
+  function emit(type, data) {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: type, game: 'shobdophul', data: data || {} }, '*');
+      }
+    } catch (e) {}
+  }
+
+  /* The flower shares the viewport with a mark rail and a word list, so it is
+     bounded by height at least as often as by width. Measure, then hand the
+     size to CSS — a vw-only guess overflows on a short screen. */
+  function sizeHive() {
+    var wrap = $('board-main');
+    if (!wrap || !wrap.clientWidth) return;
+    var cs = window.getComputedStyle(wrap);
+    var w = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    var h = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    var maxRem = parseFloat(cs.getPropertyValue('--wf-max')) || 22;
+    var root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    var side = Math.max(180, Math.min(w, h, maxRem * root));
+    $('hive').style.setProperty('--wf-side', side + 'px');
+    $('board-main').style.setProperty('--wf-side', side + 'px');
+  }
+
+  /* ---- the mark rail ---------------------------------------------------- */
+
+  function renderRail() {
+    function keys(list) {
+      return list.map(function (k) {
+        return '<button type="button" class="wf-key" data-mark="' + k + '" aria-label="' + k + '">◌' + k + '</button>';
+      }).join('');
+    }
+    $('rail-1').innerHTML = keys(KARS_1);
+    $('rail-2').innerHTML = keys(KARS_2)
+      + '<button type="button" class="wf-key wf-key--act" id="del" aria-label="মুছুন">'
+      + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6H9l-5 6 5 6h11z"/><path d="M15 10l-4 4M11 10l4 4"/></svg></button>'
+      + '<button type="button" class="wf-key wf-key--go" id="go" aria-label="জমা দিন" disabled>'
+      + '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></button>';
+  }
+
+  /* ---- binding ---------------------------------------------------------- */
+
+  function bindBoard() {
+    $('hive').addEventListener('pointerdown', function (e) { byTouch = e.pointerType === 'touch'; });
+    $('hive').addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('.wf-hex') : null;
+      if (!btn) return;
+      var ch = btn.getAttribute('data-ch');
+      if (!ch) return;
+      typeChar(ch);
+      replay(btn, 'is-hit', 300);
+      buzz(4);
+    });
+
+    document.querySelector('.wf-rail').addEventListener('pointerdown', function (e) { byTouch = e.pointerType === 'touch'; });
+    document.querySelector('.wf-rail').addEventListener('click', function (e) {
+      var btn = e.target.closest ? e.target.closest('.wf-key') : null;
+      if (!btn) return;
+      if (btn.id === 'del') { del(); buzz(4); return; }
+      if (btn.id === 'go') { submit(); return; }
+      var mark = btn.getAttribute('data-mark');
+      if (mark) { typeChar(mark); buzz(4); }
+    });
+
+    $('hint').onclick = hint;
+
+    /* The Input Follows the Device Rule: on a spread there is a real keyboard,
+       and a reader with a Bangla input method should be able to use it. Any
+       Bangla character is accepted here — including one the flower does not
+       hold, because refusing it at submit with a stated reason is more honest
+       than swallowing the keystroke and looking broken. */
+    document.addEventListener('keydown', function (e) {
+      if ($('app').getAttribute('data-view') !== 'board') return;
+      if (document.querySelector('.pa-sheet.is-open')) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === 'Backspace') { e.preventDefault(); del(); return; }
+      if (e.key === 'Enter') { e.preventDefault(); submit(); return; }
+      if (e.key && e.key.length === 1) {
+        var c = e.key.charCodeAt(0);
+        if (c >= 0x0980 && c <= 0x09FF) { e.preventDefault(); byTouch = false; typeChar(e.key); flashHex(e.key); }
+      }
+    });
+  }
+
+  function bind() {
+    $('exit').onclick = function () {
+      emit('game:exit');
+      if (history.length > 1) history.back(); else location.href = '../../hub/index.html';
+    };
+    /* Back goes up one level, not out: the board returns to the front page,
+       and only the front page leaves for the portal. */
+    $('back').onclick = goFront;
+    $('fp-cta').onclick = goBoard;
+    $('fp-howto').onclick = openHowto;
+    $('board-howto').onclick = openHowto;
+    $('top-howto').onclick = openHowto;
+
+    $('shuffle').onclick = function () {
+      /* The six outer petals reorder; the centre never moves, because the
+         centre is the rule and not a letter you are hunting for. */
+      for (var i = petals.length - 1; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = petals[i]; petals[i] = petals[j]; petals[j] = t;
+      }
+      renderHive();
+      sizeHive();
+      buzz(8);
+    };
+
+    function showArchive() { renderArchive(); openSheet($('sheet-arch')); }
+    $('fp-archive').onclick = showArchive;
+    $('dateline').onclick = showArchive;
+
+    function pickFromList(e) {
+      var row = e.target.closest('.wf-arcrow');
+      if (!row || row.disabled) return;
+      var id = row.getAttribute('data-id');
+      for (var i = 0; i < PACK.puzzles.length; i++) {
+        if (PACK.puzzles[i].id === id) { closeSheet($('sheet-arch')); openPuzzle(PACK.puzzles[i], false); break; }
+      }
+    }
+    $('arch-list').addEventListener('click', pickFromList);
+    $('fp-archlist').addEventListener('click', pickFromList);
+
+    $('win-next').onclick = function () {
+      closeSheet($('sheet-win'));
+      var pz = nextUnfinished();
+      if (pz) openPuzzle(pz, true); else showArchive();
+    };
+    $('win-board').onclick = function () { closeSheet($('sheet-win')); };
+    $('win-front').onclick = function () { closeSheet($('sheet-win')); goFront(); };
+
+    Array.prototype.forEach.call(document.querySelectorAll('[data-close]'), function (b) {
+      b.onclick = function () { closeSheet(b.closest('.pa-sheet')); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.pa-sheet__scrim'), function (s) {
+      s.onclick = function () { closeSheet(s.closest('.pa-sheet')); };
+    });
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      var open = document.querySelector('.pa-sheet.is-open');
+      if (open) { closeSheet(open); return; }
+      if (word()) { clearWord(); clearWhy(); return; }
+      if ($('app').getAttribute('data-view') === 'board') goFront();
+    });
+
+    /* Time accrued while the tab is in the background is not solving time. */
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) { clockStop(); saveState(); }
+      else if ($('app').getAttribute('data-view') === 'board') clockStart();
+    });
+
+    window.addEventListener('resize', sizeHive);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', sizeHive);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(sizeHive);
+  }
+
+  function openHowto() {
+    /* The figure shows this puzzle's own flower, not a generic one — the
+       how-to and the board are then visibly the same object. */
+    $('howto-hive').innerHTML = hiveHTML(P.centre, P.petals, false);
+    openSheet($('sheet-howto'));
+  }
+
+  /* ---- boot ------------------------------------------------------------- */
+
+  function loadPuzzle(pz) {
+    clockStop();
+    P = {
+      id: pz.id,
+      centre: nfc(pz.centre),
+      petals: (pz.petals || []).map(nfc),
+      words: (pz.words || []).map(nfc),
+      bonus: (pz.bonus || []).map(nfc),
+      longest: nfc(pz.longest || '')
+    };
+    petals = P.petals.slice();
+    var st = loadState(P.id, P.words);
+    found = st.w; bonus = st.b; hinted = st.h;
+    clock.secs = st.t;
+    cells = []; buf = '';
+    return true;
+  }
+
+  function openPuzzle(pz, enter) {
+    if (!loadPuzzle(pz)) return;
+    if (enter) goBoard(); else goFront();
+  }
+
+  function init() {
+    fetch('puzzles/index.json')
+      .then(function (r) { return r.json(); })
+      .then(function (pack) {
+        PACK = pack;
+        if (!PACK.puzzles || !PACK.puzzles.length) throw new Error('empty pack');
+        renderRail();
+        /* A #p= link is a request for THAT board, so it skips the front page.
+           The same contract both siblings answer, so খেলাঘর addresses a dated
+           issue in any hero game with one link shape. An id we cannot serve
+           falls through to the daily rather than to an error. */
+        var hash = (location.hash.match(/p=([\w-]+)/) || [])[1], wanted = null, i;
+        for (i = 0; i < PACK.puzzles.length; i++) {
+          if (PACK.puzzles[i].id === hash && isDue(PACK.puzzles[i])) { wanted = PACK.puzzles[i]; break; }
+        }
+        loadPuzzle(wanted || pickForToday().pz);
+        bind();
+        bindBoard();
+        if (wanted) goBoard(); else goFront();
+      })
+      .catch(function (err) {
+        console.error(err);
+        $('fp-letters').textContent = 'ধাঁধা লোড করা গেল না';
+      });
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+}());

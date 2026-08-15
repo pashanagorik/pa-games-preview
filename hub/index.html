@@ -236,7 +236,12 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
 .kg-thumb rect.f { fill: var(--pa-red-16); }
 .kg-thumb rect.bg { fill: var(--pa-cell); }
 .kg-thumb.is-soon rect.bg { fill: var(--pa-paper); }
-.kg-thumb .g { stroke: var(--pa-rule); stroke-width: 1; }
+/* fill:none matters for the flower: a <polygon> with no fill rule defaults to
+   solid black, so a hairline hex cell would print as an ink blob. */
+.kg-thumb .g { stroke: var(--pa-rule); stroke-width: 1; fill: none; }
+/* A petal the reader has earned. Cyan is this game's settled ink — red is
+   *now*, and a word already found is not now. */
+.kg-thumb .fp { fill: var(--pa-cyan-45); }
 .kg-thumb .fr { stroke: var(--pa-ink); stroke-width: 2; fill: none; }
 /* Ink-faint is a drawing weight here, not text: an unbuilt game's schematic
    must sit behind the two that are playable. */
@@ -356,6 +361,10 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
 .kg-share__grid { display: inline-grid; gap: 2px; background: var(--pa-ink); padding: 1px; }
 .kg-share__grid i { width: 12px; height: 12px; background: var(--pa-cell); display: block; }
 .kg-share__grid i.b { background: var(--pa-cyan-16); }
+/* শব্দফুল has no grid to print; its share card carries the rosette instead,
+   at the same optical weight the 8×8 has. */
+.kg-share__flower { display: inline-block; width: 7.5rem; }
+.kg-share__flower .kg-thumb { width: 100%; height: auto; display: block; }
 .kg-share__rule { height: 2px; background: var(--pa-red); margin: var(--pa-s-2) auto var(--pa-s-3); }
 .kg-share__m { margin: var(--pa-s-3) 0 0; font-size: var(--pa-size-body); font-variant-numeric: tabular-nums; }
 /* The card is the result; this one line is the disclosure that what leaves

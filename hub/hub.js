@@ -1,8 +1,8 @@
 /*
  * hub.js — খেলাঘর, the dated ledger.
  *
- * The hub owns no puzzle state. It reads the two hero games' own
- * localStorage records (`pa-xw:<id>`, `pa:ws-bn:<id>`) and their published
+ * The hub owns no puzzle state. It reads the built hero games' own
+ * localStorage records (`pa-xw:`, `pa:ws-bn:`, `pa:wf-bn:`) and their published
  * puzzle indexes, so a solve inside a game moves the streak here without
  * anything being written twice. The only key this file writes is its own
  * demo flag — the games' records are read-only from the hub.
@@ -36,10 +36,12 @@
   var XW_BEST  = 'pa-xw-best:';
   var WS_STORE = 'pa:ws-bn:';
   var WS_BEST  = 'pa:ws-bn:best:';
+  var WF_STORE = 'pa:wf-bn:';
+  var WF_BEST  = 'pa:wf-bn:best:';
   var DEMO_KEY = 'pa-hub:demo';
 
   /* ---- the five heroes -------------------------------------------------
-     Two are built. The other three carry the contracted build week rather
+     Three are built. The other two carry the contracted build week rather
      than a date we cannot keep. */
 
   var HEROES = [
@@ -48,7 +50,8 @@
     { key: 'ws', name: 'শব্দ সন্ধান', href: '../games/word-search-bn/index.html', live: true,
       note: '৮×৮ · ১২টি শব্দ' },
     { key: 'sd', name: 'সুডোকু', live: false, when: 'সপ্তাহ ১', note: 'বাংলা সংখ্যায় ১–৯' },
-    { key: 'wf', name: 'শব্দফুল', live: false, when: 'সপ্তাহ ২', note: 'অক্ষরের চাক থেকে শব্দ' },
+    { key: 'wf', name: 'শব্দফুল', href: '../games/word-flower-bn/index.html', live: true,
+      note: 'সাত অক্ষর · ২৪টি শব্দ' },
     { key: 'qz', name: 'কুইজ', live: false, when: 'সপ্তাহ ৩', note: 'দিনে ১০টি প্রশ্ন' }
   ];
 
@@ -100,7 +103,16 @@
 
   var XW = { puzzles: [], byDate: {} };   // crossword index
   var WS = { puzzles: [], byDate: {} };   // word-search index
+  var WF = { puzzles: [], byDate: {} };   // word-flower index
   var GRIDS = {};                          // crossword id -> grid array
+
+  /* One row per built game, and the ONLY place a game's wiring is written
+     down. This started as `key === 'xw' ? XW : WS` repeated at a dozen sites,
+     which was fine for exactly two games and became a bug surface the moment
+     there was a third: every one of those ternaries silently answered "the
+     word search" for শব্দফুল. Adding the fifth hero should now be one row here
+     plus a status reader, not a re-audit of the file. */
+  var GAMES = {};   // filled in below, once the status readers exist
   var selected = TODAY_ISO;
   var weekOf = weekStart(TODAY);
 
@@ -151,9 +163,37 @@
     return n ? { state: 'started', done: n, total: total } : { state: 'new', total: total };
   }
 
+  /* শব্দফুল counts only its TARGET words. The bonus words a reader picks up are
+     accepted by the game and stored, but they are not part of the day's set,
+     so counting them here would report ২৬/২৪ on the ledger. */
+  function wfStatus(id) {
+    if (!id) return { state: 'none' };
+    var p = WF.byDate[id.slice(3)];
+    if (!p) return { state: 'none' };
+    var st = readJSON(WF_STORE + id);
+    var total = p.words.length;
+    if (!st) return { state: 'new', total: total };
+    var valid = {}, i;
+    for (i = 0; i < p.words.length; i++) valid[p.words[i]] = true;
+    var list = st.w || [], n = 0;
+    for (i = 0; i < list.length; i++) if (valid[list[i]]) n++;
+    if (n >= total) return { state: 'solved', secs: (st.t || 0), total: total };
+    return n ? { state: 'started', done: n, total: total } : { state: 'new', total: total };
+  }
+
   function bestOf(prefix, id) {
     try { return parseInt(localStorage.getItem(prefix + id) || '0', 10) || 0; } catch (e) { return 0; }
   }
+
+  GAMES = {
+    xw: { idx: XW, store: XW_STORE, best: XW_BEST, status: xwStatus, demoSecs: 260, demoSeed: 0, needsTwo: true,
+          thumb: function (id, st) { return xwThumb(id, st); } },
+    ws: { idx: WS, store: WS_STORE, best: WS_BEST, status: wsStatus, demoSecs: 150, demoSeed: 5,
+          thumb: function (id, st) { return wsThumb(st); } },
+    wf: { idx: WF, store: WF_STORE, best: WF_BEST, status: wfStatus, demoSecs: 200, demoSeed: 9,
+          thumb: function (id, st) { return wfThumb(id, st); } }
+  };
+  var BUILT = ['xw', 'ws', 'wf'];
 
   /* ---- what happened on a given day -------------------------------------
      A day is "kept" when at least one of that day's puzzles is solved. Demo
@@ -180,20 +220,22 @@
   function demoSolve(key, dateISO) {
     var w = demoWeight(dateISO);
     if (!w) return null;
-    if (key === 'ws' && !WS.byDate[dateISO]) return null;
-    if (key === 'xw' && (w < 2 || !XW.byDate[dateISO])) return null;
+    var g = GAMES[key];
+    if (!g || !g.idx.byDate[dateISO]) return null;
+    if (g.needsTwo && w < 2) return null;
     var d = parseISO(dateISO);
-    var seed = d.getDate() * 37 + d.getMonth() * 11 + (key === 'xw' ? 0 : 5);
-    return { state: 'solved', secs: (key === 'xw' ? 260 : 150) + (seed % 190), demo: true };
+    var seed = d.getDate() * 37 + d.getMonth() * 11 + g.demoSeed;
+    return { state: 'solved', secs: g.demoSecs + (seed % 190), demo: true };
   }
 
   /* The one place a game's state for a date is decided: the game's own record
      first, the sample history only where the reader has played nothing. */
   function statusFor(key, dateISO) {
-    var map = key === 'xw' ? XW : WS;
-    var p = map.byDate[dateISO];
+    var g = GAMES[key];
+    if (!g) return { state: 'none' };
+    var p = g.idx.byDate[dateISO];
     if (!p) return { state: 'none' };
-    var st = key === 'xw' ? xwStatus(p.id) : wsStatus(p.id);
+    var st = g.status(p.id);
     if (st.state === 'new' || st.state === 'none') {
       var d = demoSolve(key, dateISO);
       if (d) return d;
@@ -208,7 +250,12 @@
     try {
       for (var i = 0; i < localStorage.length; i++) {
         var k = localStorage.key(i);
-        if (k && (k.indexOf(XW_STORE) === 0 || (k.indexOf(WS_STORE) === 0 && k.indexOf(WS_BEST) !== 0))) {
+        /* A best-time key is written by the game on a solve, so it is real
+           play; a `:best:` key alone without a progress key is not, and it
+           shares the progress prefix — hence the explicit exclusion. */
+        if (k && (k.indexOf(XW_STORE) === 0
+          || (k.indexOf(WS_STORE) === 0 && k.indexOf(WS_BEST) !== 0)
+          || (k.indexOf(WF_STORE) === 0 && k.indexOf(WF_BEST) !== 0))) {
           _hasReal = true; break;
         }
       }
@@ -226,7 +273,7 @@
 
   function dayRecord(dateISO) {
     var out = { solved: 0, started: 0, demo: false };
-    ['xw', 'ws'].forEach(function (key) {
+    BUILT.forEach(function (key) {
       var s = statusFor(key, dateISO);
       if (s.state === 'solved') { out.solved++; if (s.demo) out.demo = true; }
       else if (s.state === 'started') out.started++;
@@ -312,6 +359,40 @@
     return svg(gridLines(8) + strike + '<rect class="fr" x="1" y="1" width="62" height="62"/>');
   }
 
+  function hexPts(cx, cy, r) {
+    var pts = [], a, i;
+    for (i = 0; i < 6; i++) {
+      a = Math.PI / 180 * (60 * i - 30);
+      pts.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
+    }
+    return pts.join(' ');
+  }
+
+  /* শব্দফুল has no blocked cells, so — as the hub's thumbnail rule provides —
+     it draws its own progress vocabulary instead: the rosette, with the centre
+     inked once the reader has started and one outer petal inked per sixth of
+     the day's words found. Never a letter. */
+  function wfThumb(id, status) {
+    var out = '', k, ang, done = 0, total = 0;
+    if (status) {
+      if (status.state === 'solved') { done = 1; total = 1; }
+      else if (status.state === 'started') { done = status.done || 0; total = status.total || 1; }
+    }
+    var lit = total ? Math.round(6 * done / total) : 0;
+    var started = status && (status.state === 'started' || status.state === 'solved');
+    /* Hairline cells under a 2px ink frame — the thumbnail rule both siblings
+       follow. Seven hexes at the frame's own stroke weight read as a black
+       blob at 3.5rem, which is why the cells take the grid hairline and only
+       the frame takes ink. */
+    out += '<polygon class="g' + (started ? ' fp' : '') + '" points="' + hexPts(32, 32, 9) + '"/>';
+    for (k = 0; k < 6; k++) {
+      ang = Math.PI / 180 * (60 * k - 90);
+      out += '<polygon class="g' + (k < lit ? ' fp' : '') + '" points="'
+          + hexPts(32 + 16 * Math.cos(ang), 32 + 16 * Math.sin(ang), 9) + '"/>';
+    }
+    return svg(out + '<rect class="fr" x="1" y="1" width="62" height="62"/>');
+  }
+
   function soonThumb(key) {
     if (key === 'sd') {
       return svg(gridLines(9)
@@ -321,16 +402,11 @@
     }
     if (key === 'wf') {
       var hex = function (cx, cy, r) {
-        var pts = [], a;
-        for (var i = 0; i < 6; i++) {
-          a = Math.PI / 180 * (60 * i - 30);
-          pts.push((cx + r * Math.cos(a)).toFixed(1) + ',' + (cy + r * Math.sin(a)).toFixed(1));
-        }
-        return '<polygon class="fr" points="' + pts.join(' ') + '" fill="none"/>';
+        return '<polygon class="fr" points="' + hexPts(cx, cy, r) + '" fill="none"/>';
       };
       var out = hex(32, 32, 10), k, ang;
       for (k = 0; k < 6; k++) {
-        ang = Math.PI / 180 * (60 * k);
+        ang = Math.PI / 180 * (60 * k - 90);
         out += hex(32 + 18 * Math.cos(ang), 32 + 18 * Math.sin(ang), 10);
       }
       return svg(out, 'is-soon');
@@ -451,15 +527,20 @@
       var li = document.createElement('li');
       if (!h.live) { li.innerHTML = soonRow(h); host.appendChild(li); return; }
 
-      var map = h.key === 'xw' ? XW : WS;
+      var map = GAMES[h.key].idx;
       var found = issueFor(map, selected);
       if (!found) { li.innerHTML = soonRow(h, 'এই তারিখে কোনো সংখ্যা নেই'); host.appendChild(li); return; }
 
       var p = found.p;
       var st = statusFor(h.key, p.date);
-      var best = bestOf(h.key === 'xw' ? XW_BEST : WS_BEST, p.id);
+      var best = bestOf(GAMES[h.key].best, p.id);
 
-      var deck = h.key === 'ws' && p.theme ? p.theme + ' · ' + toBn(p.words.length) + 'টি শব্দ' : h.note;
+      /* The deck says what makes THIS issue different from yesterday's: the
+         word search has a theme, and the flower's seven letters are its whole
+         identity — the same line its own front page and archive rows print. */
+      var deck = h.key === 'ws' && p.theme ? p.theme + ' · ' + toBn(p.words.length) + 'টি শব্দ'
+        : h.key === 'wf' && p.centre ? p.centre + ' · ' + p.petals.join(' ')
+        : h.note;
       if (!found.exact) deck = shortDate(parseISO(p.date)) + 'ের সংখ্যা · ' + deck;
 
       var line, prog = '';
@@ -477,7 +558,7 @@
         line = stateLine('is-new', ICON.play, T.play);
       }
 
-      var thumb = h.key === 'xw' ? xwThumb(p.id, st) : wsThumb(st);
+      var thumb = GAMES[h.key].thumb(p.id, st);
       var end = ICON.chev;
 
       var a = document.createElement('a');
@@ -564,9 +645,9 @@
   }
 
   function gameStats(key) {
-    var map = key === 'xw' ? XW : WS;
-    var store = key === 'xw' ? XW_STORE : WS_STORE;
-    var bestPre = key === 'xw' ? XW_BEST : WS_BEST;
+    var g = GAMES[key];
+    var map = g.idx;
+    var bestPre = g.best;
     var played = 0, solved = 0, best = 0, run = 0, maxRun = 0, lastKept = null;
 
     map.puzzles.forEach(function (p) {
@@ -657,7 +738,7 @@
         var kill = [];
         for (var i = 0; i < localStorage.length; i++) {
           var k = localStorage.key(i);
-          if (k && (k.indexOf('pa-xw') === 0 || k.indexOf('pa:ws-bn') === 0)) kill.push(k);
+          if (k && (k.indexOf('pa-xw') === 0 || k.indexOf('pa:ws-bn') === 0 || k.indexOf('pa:wf-bn') === 0)) kill.push(k);
         }
         kill.forEach(function (k) { localStorage.removeItem(k); });
       } catch (e) {}
@@ -677,8 +758,9 @@
 
   function totalSolved() {
     var n = 0;
-    XW.puzzles.forEach(function (p) { if (statusFor('xw', p.date).state === 'solved') n++; });
-    WS.puzzles.forEach(function (p) { if (statusFor('ws', p.date).state === 'solved') n++; });
+    BUILT.forEach(function (key) {
+      GAMES[key].idx.puzzles.forEach(function (p) { if (statusFor(key, p.date).state === 'solved') n++; });
+    });
     return n;
   }
 
@@ -708,9 +790,18 @@
        nothing and breaks the two-ink discipline. */
     if (h.key === 'xw' && GRIDS[p.id]) {
       GRIDS[p.id].forEach(function (c) { grid += '<i class="' + (c === null ? 'b' : '') + '"></i>'; });
+    } else if (h.key === 'wf') {
+      /* A flower has no grid to recognise; its silhouette IS the rosette, and
+         an 8×8 of empty squares on its share card would claim it was the word
+         search. Drawn at the card's own width rather than as cells. */
+      grid = '';
+      cols = 1;
     } else {
       for (var i = 0; i < 64; i++) grid += '<i></i>';
     }
+    var figure = h.key === 'wf'
+      ? '<div class="kg-share__flower">' + wfThumb(p.id, st) + '</div>'
+      : '<div class="kg-share__grid" style="grid-template-columns:repeat(' + cols + ',12px)">' + grid + '</div>';
 
     /* A streak of zero is not a result worth carrying out of the product. */
     var run = streak().n;
@@ -722,7 +813,7 @@
       + '<p class="kg-share__t">' + h.name + '</p>'
       + '<div class="kg-share__rule"></div>'
       + '<p class="kg-share__d">' + longDate(d) + '</p>'
-      + '<div class="kg-share__grid" style="grid-template-columns:repeat(' + cols + ',12px)">' + grid + '</div>'
+      + figure
       + '<p class="kg-share__m">সময় ' + mmss(st.secs || 0) + (run ? ' · স্ট্রিক ' + toBn(run) + ' দিন' : '') + '</p>'
       + '</div>'
       + '<p class="kg-share__x">ফলাফল লেখা হিসেবে পাঠানো হবে</p>'
@@ -785,6 +876,11 @@
         WS.puzzles = (j.puzzles || []).slice();
         WS.byDate = indexBy(WS.puzzles);
         WS.puzzles.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      }).catch(function () {}),
+      getJSON('../games/word-flower-bn/puzzles/index.json').then(function (j) {
+        WF.puzzles = (j.puzzles || []).slice();
+        WF.byDate = indexBy(WF.puzzles);
+        WF.puzzles.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
       }).catch(function () {})
     ];
 
