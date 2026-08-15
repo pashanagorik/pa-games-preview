@@ -16,7 +16,7 @@
    Inherits the three-colour press whole, and is the build that admitted its
    third ink: green, meaning settled, plus The Reversed-Out Rule for the
    mandated centre. Both are recorded in DESIGN.md. Two further things here
-   are new to the system and both are recorded in SHOBDOPHUL-SPEC.md:
+   are new to the system and both are recorded in WORDFLOWER-SPEC.md:
 
    1. HEXAGONS. The Square Board Rule forbids radius on printed puzzle
       content; its intent is "printed rules, not tiles". A hard-vertexed
@@ -256,9 +256,19 @@
 /* Holding the word it just took, in the settled ink, before it clears —
    clearing instantly reads as the word having been thrown away. */
 .wf-band.is-set { color: var(--pa-green); font-weight: 700; }
+/* The stamp. The band already turned green and it was not enough on its own,
+   because green-versus-black at a glance is a colour change and not an EVENT.
+   A press impression is the event: it strikes and releases, scaled by how long
+   the word was, and --pop is set from the akshara count in game.js. */
+.wf-band.is-set .wf-band__w { animation: wf-stamp 280ms var(--pa-ease); }
+@keyframes wf-stamp {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(var(--pop, 1.06)); }
+  100% { transform: scale(1); }
+}
 /* A refusal takes Deep Red and a proof-reader's slash. Never an icon. */
 .wf-band.is-bad { color: var(--pa-red-deep); font-weight: 700; }
-.wf-band__w { position: relative; }
+.wf-band__w { position: relative; display: inline-block; transform-origin: center bottom; }
 .wf-band.is-bad .wf-band__w::after {
   content: '';
   position: absolute; inset-inline: -0.15em; top: 50%;
@@ -384,8 +394,65 @@
 .wf-hint:disabled { color: var(--pa-ink-3); text-decoration: none; cursor: default; }
 .wf-hint__n { font-variant-numeric: tabular-nums; }
 .wf-hint__n:not(:empty)::before { content: ' '; }
+/* The running count is where a reader confirms the NUMBER, as against the
+   word — so it takes the settled ink and a press impression, not colour
+   alone. It is the one element on this surface that is always in view. */
+.wf-listhead__n { display: inline-block; transform-origin: center; }
 .wf-listhead__n.is-tick { animation: wf-tick 520ms var(--pa-ease); }
-@keyframes wf-tick { 0%, 35% { color: var(--pa-green); } 100% { color: var(--pa-ink-2); } }
+@keyframes wf-tick {
+  0%   { color: var(--pa-green); transform: scale(1); }
+  35%  { color: var(--pa-green); transform: scale(1.18); }
+  100% { color: var(--pa-ink-2); transform: scale(1); }
+}
+
+/* The panel is the scroll container: taken words at the head, blanks beneath.
+   The cap was on .wf-slots and had to move here the moment there were two
+   lists — a cap on the second of two siblings scrolls the wrong half.
+
+   Its height is pinned at the cap from the first frame, because twelve rows of
+   blanks already exceed 26svh before anything is found. That is what makes the
+   taken list safe to introduce: it cannot grow the zone, so it cannot squeeze
+   the flower. sizeHive() is still called when it first appears — the lesson of
+   the last overflow bug was the missing call, not the element that grew. */
+.wf-panel {
+  max-height: 26svh;
+  overflow-y: auto; overscroll-behavior: contain;
+}
+
+/* ---- the taken list --------------------------------------------------
+   A found word LEAVES the blanks. A blank carries its length; once the word
+   is found the length is known, so the cells are dead weight and the word is
+   set as plain type instead — the same setting the অতিরিক্ত sheet uses, so a
+   found word looks like a found word in both places.
+
+   Newest first. The reader's own report was that a word found at the bottom
+   of a scrolled list read as no answer at all: the band went green above the
+   flower and the list that proves it was below the fold. The head of this
+   list is where the flight lands, and the panel scrolls to it. */
+.wf-taken {
+  display: flex; flex-wrap: wrap;
+  gap: var(--pa-s-2) var(--pa-s-4);
+  margin: 0;
+  padding: var(--pa-s-3) var(--pa-s-4);
+  list-style: none;
+  border-bottom: 1px solid var(--pa-rule);
+  font-family: var(--pa-serif);
+  font-size: var(--pa-size-body);
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--pa-green);
+}
+/* Hidden outright until the first find, with no label and no empty box. Its
+   APPEARANCE is the first confirmation; an empty labelled container is
+   exactly the thing that read as "nothing happened". */
+.wf-taken[hidden] { display: none; }
+/* The landing. Type settling onto the page, not a pop — a scale over 1 would
+   be a bubble, and this system does not have bubbles. */
+.wf-taken .is-land { animation: wf-land 260ms var(--pa-ease) both; }
+@keyframes wf-land {
+  from { opacity: 0; transform: translateY(-4px) scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
 
 .wf-slots {
   --wf-cell: 1.55em;
@@ -394,9 +461,11 @@
   margin: 0;
   padding: var(--pa-s-3) var(--pa-s-4) calc(var(--pa-s-3) + env(safe-area-inset-bottom, 0px));
   list-style: none;
-  max-height: 26svh;
-  overflow-y: auto; overscroll-behavior: contain;
 }
+/* The blanks empty out as the puzzle is solved, so the list ends at nothing
+   rather than at twenty-four struck rows. No padding on an empty grid, or the
+   hairline above it floats over a band of dead space. */
+.wf-slots:empty { padding: 0; }
 /* ---- a slot is a row of cells ----------------------------------------
    One cell per akshara, at a FIXED width, whether the word is found or not.
 
@@ -431,33 +500,63 @@
   font-style: normal;
   transition: background-color 140ms var(--pa-ease);
 }
-/* A found word is settled, so its cells take the settled tint — the same
-   thing শব্দ সন্ধান does to a found square, for the same reason. This is why
-   the slot no longer needs a strike rule through it: the fill already says
-   the word is done, and a strike on top would be the second thing saying it. */
-.wf-slot.is-found i {
-  background: var(--pa-green-30);
-  box-shadow: inset 0 0 0 1px var(--pa-green-45);
-  color: var(--pa-ink-2);
-}
+/* There is no found state on a blank any more, and no settle animation on one
+   either. A found word leaves this list for the taken list at the head of the
+   panel, and the ceremony went with it — the cells striking green in place is
+   what the reader could not see, because it happened wherever the word
+   happened to sit in a list too tall to fit. */
 /* A hinted first letter is GIVEN, not solved, so it stays cyan at full
    strength on unprinted stock — never green, which would claim the reader
    settled it. The Green Means Settled Rule's stated exception. */
 .wf-slot em { color: var(--pa-cyan); }
-/* The word lands: its cells strike at the deep screen and settle down to the
-   resting tint, left to right. The transient-frame use of the press screens,
-   as sanctioned on the শব্দ সন্ধান build — no cell rests at 45%. */
-.wf-slot.is-hit i { animation: wf-set 420ms var(--pa-ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
-@keyframes wf-set {
-  0%   { background: var(--pa-green-45); transform: scale(1.08); }
-  60%  { background: var(--pa-green-45); transform: scale(1); }
-  100% { background: var(--pa-green-30); transform: scale(1); }
+/* The day's longest word was marked here with a 2px spot-red rule, inherited
+   from the pangram the pack does not contain. It is GONE (2026-08-15). It was
+   the last survivor of a mechanic that had already been cut on measurement,
+   and it never explained itself: a rule under one entry in a list of blanks
+   reads as a state, and the reader has no way to learn which state. Its only
+   documentation was one line in a how-to that described it upside down. The
+   list is now twenty-four equal entries, which is what a closed set is. */
+
+/* ---- the flight and the ink spray ------------------------------------
+   Sanctioned extensions, both recorded in DESIGN.md. The flight answers the
+   only defect that mattered here: the band confirmed the word where the eye
+   already was, and the list that recorded it was somewhere else. Carrying the
+   word from one to the other is what teaches the reader where the record is
+   kept, which is why the payoff fires at the DESTINATION and not at takeoff.
+
+   Fixed layer, inert, and under the sheets at z-index 40 — a word in flight
+   must never land on top of the completion card. */
+.wf-fly {
+  position: fixed; inset: 0;
+  z-index: 30;
+  pointer-events: none;
+  overflow: hidden;
 }
-/* The longest word of the day, marked before it is found. The spot-red rule
-   is the whole ceremony: no score, no badge. It sits under the row of cells
-   rather than through them, so it reads as a mark on the entry and not as a
-   state of any one letter. */
-.wf-slot.is-long { padding-bottom: 3px; border-bottom: 2px solid var(--pa-red); }
+.wf-fly__w {
+  position: absolute;
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  color: var(--pa-green);
+  white-space: nowrap;
+  line-height: 1.25;
+  transform-origin: left top;
+  will-change: transform, opacity;
+}
+/* The ink spray. Hard-edged marks in the settled ink — no radius, no blur, no
+   glow, no gradient, because newsprint has none of those and a glow here would
+   be the first soft-edged object in the whole system. Squares, not circles:
+   a circle at 3px is a dot, and a dot on this page already means progress. */
+.wf-spark {
+  position: absolute;
+  width: 3px; height: 3px;
+  background: var(--pa-green);
+  will-change: transform, opacity;
+}
+/* Every mark is green. There was a two-tone spray for the day's longest word,
+   paid in the red it had been marked with; the mark is gone, so the payoff
+   went with it. A single word a day spraying an ink no other word sprays,
+   with nothing on the board to say why, is differential feedback the reader
+   cannot read — which is worse than none. Length already escalates the count. */
 
 /* অতিরিক্ত — real words the flower makes that the day does not require.
    They are the reason nobody is ever refused a real word, and after the
@@ -485,6 +584,18 @@
    as a mark rather than a fill. */
 .wf-bonus__n { font-family: var(--pa-sans); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--pa-green); }
 .wf-bonus:disabled .wf-bonus__n { color: var(--pa-ink-3); }
+/* An অতিরিক্ত word is ACKNOWLEDGED, never rewarded. There are a median 5,365
+   of them findable in a day, and a word that flies across the screen five
+   thousand times is not a reward, it is a tax. The count is the whole answer:
+   it strikes once and settles, and the flight and the spray stay behind for
+   the twenty-four words that actually gate the puzzle. */
+.wf-bonus__n.is-tick { animation: wf-btick 420ms var(--pa-ease); }
+@keyframes wf-btick {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+.wf-bonus__n { display: inline-block; }
 .wf-bonus__c { margin-inline-start: auto; flex: none; color: var(--pa-ink-3); }
 /* Inside the sheet, where there is room to scroll, the words themselves. */
 .wf-bonus__note { margin: 0 0 var(--pa-s-4); font-size: var(--pa-size-meta); color: var(--pa-ink-2); line-height: var(--pa-leading-body); }
@@ -496,7 +607,12 @@
 .wf-htp { margin: 0; padding: 0; list-style: none; counter-reset: htp; }
 .wf-htp > li { counter-increment: htp; margin-bottom: var(--pa-s-5); }
 .wf-htp__h { display: flex; align-items: baseline; gap: var(--pa-s-2); margin: 0 0 var(--pa-s-1); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); }
-.wf-htp__h::before { content: counter(htp); color: var(--pa-red); font-variant-numeric: tabular-nums; }
+/* `bengali` is a predefined numeric counter style, not something this file
+   invents — a bare counter() renders 1 2 3 4, which is the one place the
+   how-to sheet stopped speaking Bangla. Every other numeral in the game goes
+   through B.toBn(); a CSS counter cannot, so it takes the style instead.
+   Unsupported engines fall back to decimal, which is where it started. */
+.wf-htp__h::before { content: counter(htp, bengali); color: var(--pa-red); font-variant-numeric: tabular-nums; }
 .wf-htp__p { margin: 0; color: var(--pa-ink-2); }
 .wf-figs { display: flex; align-items: center; gap: var(--pa-s-3); margin-top: var(--pa-s-3); flex-wrap: wrap; }
 .wf-fig { display: flex; flex-direction: column; align-items: center; gap: var(--pa-s-1); }
@@ -567,14 +683,17 @@
     border-inline-start: 1px solid var(--pa-rule);
   }
   .wf-listzone > * { width: auto; margin-inline: 0; }
+  /* The rail does not overflow, so the scroll cap is released — but the
+     construction is otherwise identical to the phone's. A game that reorders
+     its list on one screen and not on the other is two games. */
+  .wf-panel { max-height: none; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
   .wf-slots {
     grid-template-columns: 1fr;
     align-content: start;
     gap: var(--pa-s-2);
     padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-5);
-    max-height: none; min-height: 0;
-    overflow-y: auto;
   }
+  .wf-taken { padding: var(--pa-s-3) var(--pa-s-4); }
 
   .wf-front { width: min(var(--pa-page), 100%); }
   .wf-front__body { padding: var(--pa-s-6) var(--pa-s-5); }
@@ -733,7 +852,15 @@
       <span class="wf-listhead__n" id="count">০ / ০</span>
       <button class="wf-hint" id="hint">ইঙ্গিত<span class="wf-hint__n" id="hint-n"></span></button>
     </div>
-    <ul class="wf-slots pa-scroll" id="slots"></ul>
+    <!-- One scroll container holding both halves of the list, because a found
+         word LEAVES the blanks and lands at the head of the taken list — see
+         DESIGN.md, "A Found Entry Leaves the Hunt List". The cap and the
+         overflow live here now; they used to live on .wf-slots, which could
+         not work once there were two lists to scroll together. -->
+    <div class="wf-panel pa-scroll" id="panel">
+      <ul class="wf-taken" id="taken" hidden></ul>
+      <ul class="wf-slots" id="slots"></ul>
+    </div>
     <!-- অতিরিক্ত is a ROW, not a list. It reports a count and opens a sheet.
          It held the words inline, which meant the play column grew every time
          a reader found one — and the flower, the one zone that absorbs, was
@@ -818,7 +945,7 @@
         </li>
         <li>
           <h4 class="wf-htp__h">তিন অক্ষরের কম নয়</h4>
-          <p class="wf-htp__p">প্রতিটি শব্দ অন্তত তিন অক্ষরের। নিচের তালিকায় দাগ দেখে বোঝা যাবে কোন শব্দ কত অক্ষরের — লাল দাগের নিচেরটি দিনের সবচেয়ে লম্বা শব্দ।</p>
+          <p class="wf-htp__p">প্রতিটি শব্দ অন্তত তিন অক্ষরের। নিচের তালিকায় দাগ দেখে বোঝা যাবে কোন শব্দ কত অক্ষরের। যে শব্দগুলো পেয়ে যাবেন সেগুলো তালিকার ওপরে জমা হবে।</p>
         </li>
         <li>
           <h4 class="wf-htp__h">তালিকার সবগুলো পেলে শেষ</h4>
@@ -851,6 +978,12 @@
     </div>
   </div>
 </div>
+
+<!-- The flight layer. A word that has been taken travels from the reading band
+     to the head of the taken list, and the ink spray fires where it lands.
+     Fixed and inert: it must not be able to take a tap, and it must not be
+     announced a second time — the band is already aria-live. -->
+<div class="wf-fly" id="fly" aria-hidden="true"></div>
 
 </div>
 <script src="../../shared/bn-text.js"></script>

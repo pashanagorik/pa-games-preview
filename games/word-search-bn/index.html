@@ -475,7 +475,12 @@
   margin: 0 0 var(--pa-s-1);
   font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
 }
-.ws-htp__h::before { content: counter(htp); color: var(--pa-red); font-variant-numeric: tabular-nums; }
+/* `bengali` is a predefined numeric counter style, not something this file
+   invents — a bare counter() renders 1 2 3 4, which is the one place the
+   how-to sheet stopped speaking Bangla. Every other numeral in the game goes
+   through B.toBn(); a CSS counter cannot, so it takes the style instead.
+   Unsupported engines fall back to decimal, which is where it started. */
+.ws-htp__h::before { content: counter(htp, bengali); color: var(--pa-red); font-variant-numeric: tabular-nums; }
 .ws-htp__p { margin: 0; color: var(--pa-ink-2); }
 /* Board states are shown as real cells, never as icons or swatches. */
 .ws-figs { display: flex; gap: var(--pa-s-3); margin-top: var(--pa-s-3); }

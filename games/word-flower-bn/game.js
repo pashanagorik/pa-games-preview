@@ -79,13 +79,23 @@
   var P = null;          // active puzzle
   var petals = [];       // the six outer letters, in display order
   var found = {};        // target word -> true
+  var order = [];        // target words IN FIND ORDER — the taken list reads this
   var bonus = {};        // bonus word -> true
   var hinted = {};       // target word -> true (first akshara revealed)
   var cells = [];        // committed aksharas of the word being built
   var buf = '';          // the akshara currently under composition
 
   var clock = { secs: 0, running: false, iv: null };
-  var quiet = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  /* Read LIVE, not once at boot. The token layer flattens CSS animation on its
+     own, but the flight, the ink spray and the FLIP are driven from here and a
+     value sampled at load is wrong for any reader who changes the OS setting
+     while the tab is open — which is exactly when they most want it obeyed. */
+  var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var quiet = !!(mq && mq.matches);
+  if (mq) {
+    if (mq.addEventListener) mq.addEventListener('change', function (e) { quiet = e.matches; });
+    else if (mq.addListener) mq.addListener(function (e) { quiet = e.matches; });
+  }
   var byTouch = false;
   var bandHold = null;
 
@@ -155,17 +165,25 @@
      against it — re-running the pack builder puts different words on the same
      date. Anything not in THIS puzzle's lists is discarded on the way in, so a
      stale find can never be counted, drawn, or written back. */
+  /* `w` is now written in FIND ORDER rather than puzzle order, because the
+     taken list is newest-first and puzzle order cannot reconstruct that. A save
+     written by the old build reads back cleanly — it is a valid array of this
+     puzzle's words, so it simply restores in puzzle order, which is the best
+     answer available for a session whose real order was never recorded. */
   function loadState(id, words) {
-    var empty = { w: {}, b: {}, h: {}, t: 0 };
+    var empty = { w: {}, o: [], b: {}, h: {}, t: 0 };
     try {
       var raw = localStorage.getItem(STORE + id);
       if (!raw) return empty;
       var v = JSON.parse(raw), i;
       var valid = {};
       for (i = 0; i < words.length; i++) valid[words[i]] = true;
-      var st = { w: {}, b: {}, h: {}, t: v.t || 0 };
+      var st = { w: {}, o: [], b: {}, h: {}, t: v.t || 0 };
       var list = v.w || [];
-      for (i = 0; i < list.length; i++) if (valid[list[i]]) st.w[list[i]] = true;
+      for (i = 0; i < list.length; i++) {
+        /* A duplicate in a corrupt save must not become two chips. */
+        if (valid[list[i]] && !st.w[list[i]]) { st.w[list[i]] = true; st.o.push(list[i]); }
+      }
       list = v.h || [];
       for (i = 0; i < list.length; i++) if (valid[list[i]]) st.h[list[i]] = true;
       list = v.b || [];
@@ -178,7 +196,7 @@
     if (!P) return;
     try {
       localStorage.setItem(STORE + P.id, JSON.stringify({
-        w: P.words.filter(function (w) { return found[w]; }),
+        w: order.slice(),
         b: Object.keys(bonus),
         h: P.words.filter(function (w) { return hinted[w]; }),
         t: clock.secs
@@ -342,34 +360,56 @@
 
   /* One rule per letter-unit: a blank states its own length without a numeral
      doing it. A hinted first letter is set in full cyan — the same way শব্দভেদ
-     sets a revealed letter, so a given stays visibly given. */
-  /* One cell per akshara, ALWAYS — the same count and the same width whether
-     the word is found, hinted or blank. The slot used to swap its blanks for
-     a plain <b>word</b> once found, and since the word was never the same
-     width as the blanks it replaced, taking a word nudged the whole
-     two-column grid. Same boxes in every state is the fix.
+     sets a revealed letter, so a given stays visibly given.
 
-     --i carries the cell's index so the settle animation can run left to
-     right across the word instead of all at once. */
+     Every cell is the same fixed width, so the two-column grid of blanks never
+     jogs. That rule was learned when the slot swapped its blanks for a plain
+     word of a different width the moment it was found; the fix was equal boxes
+     in every state, and it still stands for every blank on this list.
+
+     There is no found state here any more. A blank carries a length, and once
+     the word is found the length is known — so the entry leaves this list
+     entirely and is set as plain type at the head of the taken list. See
+     DESIGN.md, "A Found Entry Leaves the Hunt List". */
   function slotHTML(w) {
     var seg = B.segment(w), i, html = '';
     for (i = 0; i < seg.length; i++) {
-      if (found[w]) html += '<i style="--i:' + i + '">' + seg[i] + '</i>';
-      else if (hinted[w] && i === 0) html += '<em>' + seg[0] + '</em>';
+      if (hinted[w] && i === 0) html += '<em>' + seg[0] + '</em>';
       else html += '<i></i>';
     }
     return html;
   }
 
-  function renderSlots() {
+  /* Newest first. A reader's own report is what settled this: a word found near
+     the bottom of a scrolled list read as no answer at all — the band went
+     green above the flower and the record of it was below the fold. The head of
+     this list is where the flight lands and where the panel is scrolled to, so
+     the confirmation is never somewhere the reader has to go looking. */
+  function renderTaken() {
+    var el = $('taken'), html = '', i, w;
+    for (i = order.length - 1; i >= 0; i--) {
+      w = order[i];
+      html += '<li data-w="' + w + '">' + w + '</li>';
+    }
+    el.innerHTML = html;
+    /* No empty state, no label, no box. Its APPEARANCE is the first
+       confirmation the reader gets that this list is where words go. */
+    el.hidden = order.length === 0;
+  }
+
+  function renderBlanks() {
     var html = '', i, w;
     for (i = 0; i < P.words.length; i++) {
       w = P.words[i];
-      html += '<li class="wf-slot' + (found[w] ? ' is-found' : '')
-        + (w === P.longest ? ' is-long' : '') + '" data-w="' + w + '">'
-        + slotHTML(w) + '</li>';
+      if (found[w]) continue;
+      html += '<li class="wf-slot" data-w="' + w + '">' + slotHTML(w) + '</li>';
     }
     $('slots').innerHTML = html;
+  }
+
+  function renderSlots() {
+    renderTaken();
+    renderBlanks();
     $('count').textContent = B.toBn(foundCount()) + T.of + B.toBn(P.words.length);
     renderBonus();
     paintHint();
@@ -498,24 +538,185 @@
     }
   }
 
+  /* The petals used, struck back in the order they were typed — contracted in
+     WORDFLOWER-SPEC.md and never built until now. It is the flower agreeing
+     with the reader: you said this, and these are the letters you said it
+     with. Marks are skipped, because a kar is not a petal. */
+  function flashWord(w) {
+    if (quiet) return;
+    var s = nfc(w), n = 0, i, ch;
+    for (i = 0; i < s.length; i++) {
+      ch = s.charAt(i);
+      if (B.isKar(ch) || B.isSign(ch) || ch === B.VIRAMA || ch === B.NUKTA) continue;
+      (function (c, k) { setTimeout(function () { flashHex(c); }, k * 30); })(ch, n++);
+    }
+  }
+
+  /* The ONE axis the design escalates on, and the only one it is allowed.
+     Streaks and combos were asked for and refused: the spec bans points and
+     ranks, and a combo meter is scoring smuggled in as motion. Length is
+     legitimate because it is a real property of what the reader just did, and
+     because it explains itself — a longer word visibly sprays more.
+
+     There was a fourth, larger tier for the day's longest word, in two inks.
+     It went with the red rule that marked that word, and for the same reason:
+     with nothing on the board to announce it, one word a day paying out
+     differently is a difference the reader cannot account for. The longest
+     word is now simply a long word, and lands in the 6+ tier when it is one. */
+  function tierFor(w) {
+    var n = B.segment(nfc(w)).length;
+    if (n >= 6) return { sparks: 12, buzz: 18, pop: 1.09 };
+    if (n >= 4) return { sparks: 8, buzz: 12, pop: 1.06 };
+    return { sparks: 6, buzz: 8, pop: 1.03 };
+  }
+
+  /* FLIP over both lists. One entry leaving the middle of a two-column grid
+     snaps everything after it; measuring first and playing the difference back
+     is what makes the blanks close the gap instead of jumping into it. The
+     word that was just taken is excluded — the flight is carrying that one. */
+  function rectsNow() {
+    var m = {}, nodes = document.querySelectorAll('#taken li, #slots li'), i, n;
+    for (i = 0; i < nodes.length; i++) {
+      n = nodes[i];
+      m[n.getAttribute('data-w')] = n.getBoundingClientRect();
+    }
+    return m;
+  }
+
+  function flip(before, skip) {
+    if (quiet) return;
+    var nodes = document.querySelectorAll('#taken li, #slots li'), i, n, w, a, b, dx, dy;
+    for (i = 0; i < nodes.length; i++) {
+      n = nodes[i];
+      w = n.getAttribute('data-w');
+      if (w === skip) continue;
+      a = before[w];
+      if (!a) continue;
+      b = n.getBoundingClientRect();
+      dx = a.left - b.left;
+      dy = a.top - b.top;
+      if (!dx && !dy) continue;
+      n.animate(
+        [{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }],
+        { duration: 260, easing: 'cubic-bezier(.2,.7,.3,1)' }
+      );
+    }
+  }
+
+  /* The ink spray. Hard-edged marks in the settled ink, fired at the point the
+     word LANDS — never at the band it left. A payoff at the destination is what
+     teaches the eye where the record is kept, and that was the whole defect.
+     Nothing here is round, blurred or glowing; see DESIGN.md, "The Ink Spray
+     Rule". Never fires for an অতিরিক্ত word. */
+  function spray(rect, tier) {
+    if (quiet || !tier.sparks) return;
+    var layer = $('fly'), n = tier.sparks, i;
+    var cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    for (i = 0; i < n; i++) {
+      var s = document.createElement('i');
+      s.className = 'wf-spark';
+      s.style.left = cx + 'px';
+      s.style.top = cy + 'px';
+      layer.appendChild(s);
+      var ang = (Math.PI * 2 * i) / n + (Math.random() - 0.5) * 0.5;
+      var d = 34 + Math.random() * 32;
+      (function (node, x, y) {
+        var a = node.animate([
+          { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+          { transform: 'translate(' + (x - 1.5) + 'px,' + (y - 1.5) + 'px) scale(0.55)', opacity: 0 }
+        ], { duration: 420, easing: 'cubic-bezier(.15,.6,.3,1)' });
+        /* animationend is not guaranteed — a backgrounded tab would leave the
+           layer full of marks. Same lesson as replay(): always a backstop. */
+        function kill() { if (node.parentNode) node.parentNode.removeChild(node); }
+        a.onfinish = kill;
+        setTimeout(kill, 700);
+      })(s, Math.cos(ang) * d, Math.sin(ang) * d);
+    }
+  }
+
+  /* The flight: the word carried from the band it was read in to the head of
+     the list that records it. Capped at three in the air — a fourth find inside
+     380ms means the reader is not watching them anyway, and the cap is cheaper
+     than a queue nobody sees. */
+  var flights = 0;
+
+  function fly(w, tier) {
+    var dst = $('taken').querySelector('[data-w="' + w + '"]');
+    if (!dst) return;
+    var src = $('band').querySelector('.wf-band__w');
+    if (quiet || !src || flights >= 3) { spray(dst.getBoundingClientRect(), tier); return; }
+
+    var a = src.getBoundingClientRect(), b = dst.getBoundingClientRect();
+    if (!a.height || !b.height) return;
+    var sf = parseFloat(window.getComputedStyle(src).fontSize) || 1;
+    var df = parseFloat(window.getComputedStyle(dst).fontSize) || 1;
+    var k = df / sf;
+
+    var el = document.createElement('span');
+    el.className = 'wf-fly__w';
+    el.textContent = w;
+    el.style.left = a.left + 'px';
+    el.style.top = a.top + 'px';
+    el.style.fontSize = sf + 'px';
+    $('fly').appendChild(el);
+
+    dst.style.opacity = '0';
+    flights++;
+
+    var spent = false;
+    function done() {
+      if (spent) return;
+      spent = true;
+      flights--;
+      if (el.parentNode) el.parentNode.removeChild(el);
+      /* The destination may have been re-rendered out from under this flight by
+         a second find. Painting a detached node is harmless; the live one is
+         already visible, so either way nothing is left invisible. */
+      dst.style.opacity = '';
+      replay(dst, 'is-land', 300);
+      spray(dst.getBoundingClientRect(), tier);
+    }
+
+    var anim = el.animate([
+      { transform: 'translate(0,0) scale(1)' },
+      { transform: 'translate(' + (b.left - a.left) + 'px,' + (b.top - a.top) + 'px) scale(' + k + ')' }
+    ], { duration: 380, easing: 'cubic-bezier(.4,0,.2,1)' });
+    anim.onfinish = done;
+    setTimeout(done, 700);
+  }
+
   function took(w, isBonus) {
     var band = $('band');
+    var tier = isBonus ? { sparks: 0, buzz: 8, pop: 1.03 } : tierFor(w);
+
     band.innerHTML = '<span class="wf-band__w">' + w + '</span>';
     band.classList.remove('is-on', 'is-bad');
+    band.style.setProperty('--pop', tier.pop);
     band.classList.add('is-set');
     clearTimeout(bandHold);
     bandHold = setTimeout(function () { paintBand(); }, 900);
 
     say(isBonus ? T.bonusTook : '', false);
-    if (!isBonus) {
-      var slot = $('slots').querySelector('[data-w="' + w + '"]');
-      /* Long enough for the whole word: 420ms of animation plus the per-cell
-         45ms stagger, which on the pack's longest word (six aksharas) runs to
-         645ms. Stripping the class early would cut the last cells mid-settle. */
-      replay(slot, 'is-hit', 700);
-      replay($('count'), 'is-tick', 600);
+    buzz(tier.buzz);
+
+    /* An অতিরিক্ত word is acknowledged, not rewarded — there are a median 5,365
+       of them findable in a day, and they fly to a list behind a sheet. The
+       count on the row is the whole answer. */
+    if (isBonus) { replay($('bonus-n'), 'is-tick', 500); return; }
+
+    replay($('count'), 'is-tick', 600);
+    flashWord(w);
+
+    /* The landing must be on screen or this rebuilds the bug it was written to
+       fix, so the panel returns to its head first. Only when the reader has
+       actually scrolled away — smooth-scrolling a panel already at zero would
+       delay every flight in the game to pay for the uncommon case. */
+    var panel = $('panel'), delay = 180;
+    if (panel.scrollTop > 0) {
+      if (quiet) panel.scrollTop = 0;
+      else { panel.scrollTo({ top: 0, behavior: 'smooth' }); delay = 440; }
     }
-    buzz(12);
+    setTimeout(function () { fly(w, tier); }, delay);
   }
 
   function refuse(reason, ask) {
@@ -581,9 +782,14 @@
 
     if (hit) {
       found[hit] = true;
+      order.push(hit);
       saveState();
       cells = []; buf = '';
+      /* Measured before the re-render, played back after: the blanks close the
+         gap the taken word left rather than snapping shut across it. */
+      var before = rectsNow();
       renderSlots();
+      flip(before, hit);
       took(hit, false);
       if (isComplete()) win();
       return;
@@ -981,12 +1187,15 @@
       centre: nfc(pz.centre),
       petals: (pz.petals || []).map(nfc),
       words: (pz.words || []).map(nfc),
-      bonus: (pz.bonus || []).map(nfc),
-      longest: nfc(pz.longest || '')
+      bonus: (pz.bonus || []).map(nfc)
+      /* `longest` is still written into the pack — the builder computes it and
+         the review CSV is ordered by it — but the game no longer reads it. The
+         mark it drove is gone, and nothing else in the board wants to know
+         which of twenty-four equal words happens to be the longest. */
     };
     petals = P.petals.slice();
     var st = loadState(P.id, P.words);
-    found = st.w; bonus = st.b; hinted = st.h;
+    found = st.w; order = st.o; bonus = st.b; hinted = st.h;
     clock.secs = st.t;
     cells = []; buf = '';
     loadAccept(P.id);
