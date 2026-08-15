@@ -129,7 +129,13 @@ body { background: var(--pa-paper); }
 .kg-day__tally i { width: 6px; height: 6px; background: var(--pa-ink); display: block; }
 .kg-day__tally i.is-part { background: none; box-shadow: inset 0 0 0 1px var(--pa-ink-2); }
 
-.kg-day.is-solved { background: var(--pa-cyan-08); }
+/* A solved day is settled, so it stops taking cyan — cyan is blocked, and a
+   day you finished is the opposite of shut. Green has no 8% step by design
+   (The No Green Sixteen Rule), and a whole calendar cell at 30% would out-shout
+   the today marker beside it. So the day is marked with the green ink as a
+   rule along its foot, which is what the system does when a screen is too
+   heavy and the mark still has to carry the meaning. */
+.kg-day.is-solved { box-shadow: inset 0 -3px 0 var(--pa-green); }
 .kg-day.is-future { background: var(--pa-paper); color: var(--pa-ink-2); cursor: default; }
 .kg-day.is-future .kg-day__n { color: var(--pa-rule); }
 .kg-day.is-empty .kg-day__n { color: var(--pa-ink-2); }
@@ -211,7 +217,7 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
    which is 5.2:1; full strength stays on rules, marks and display numerals,
    which is where the press puts it anyway. */
 .kg-game__s.is-new { color: var(--pa-red-deep); }
-.kg-game__s.is-run { color: var(--pa-cyan); }
+.kg-game__s.is-run { color: var(--pa-green); }
 .kg-game__s.is-done { color: var(--pa-ink-2); }
 .kg-game__s svg { color: currentColor; }
 .kg-game__end { display: flex; align-items: center; gap: var(--pa-s-2); color: var(--pa-ink-2); }
@@ -239,9 +245,10 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
 /* fill:none matters for the flower: a <polygon> with no fill rule defaults to
    solid black, so a hairline hex cell would print as an ink blob. */
 .kg-thumb .g { stroke: var(--pa-rule); stroke-width: 1; fill: none; }
-/* A petal the reader has earned. Cyan is this game's settled ink — red is
-   *now*, and a word already found is not now. */
-.kg-thumb .fp { fill: var(--pa-cyan-45); }
+/* A petal the reader has earned. Green is the system's settled ink — red is
+   *now*, and a word already found is not now; cyan is blocked, which it also
+   is not. */
+.kg-thumb .fp { fill: var(--pa-green-45); }
 .kg-thumb .fr { stroke: var(--pa-ink); stroke-width: 2; fill: none; }
 /* Ink-faint is a drawing weight here, not text: an unbuilt game's schematic
    must sit behind the two that are playable. */
@@ -249,7 +256,7 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
 
 /* the assist bar under a started game */
 .kg-prog { height: 2px; background: var(--pa-rule); margin-top: 0.35rem; }
-.kg-prog i { display: block; height: 100%; background: var(--pa-cyan); }
+.kg-prog i { display: block; height: 100%; background: var(--pa-green); }
 
 /* ---- next-edition line ------------------------------------------------ */
 
@@ -329,7 +336,7 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
   font-size: var(--pa-size-title); font-variant-numeric: tabular-nums;
 }
 .kg-bars { display: flex; align-items: flex-end; gap: 3px; height: 2.5rem; margin-top: var(--pa-s-3); }
-.kg-bars i { flex: 1; background: var(--pa-cyan-30); min-height: 2px; }
+.kg-bars i { flex: 1; background: var(--pa-green-30); min-height: 2px; }
 .kg-bars i.is-none { background: var(--pa-rule); }
 .kg-bars i.is-today { background: var(--pa-red); }
 .kg-bars__l { display: flex; justify-content: space-between; font-size: var(--pa-size-meta); color: var(--pa-ink-2); margin-top: var(--pa-s-1); }
@@ -380,7 +387,7 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
   line-height: 1.5;
 }
 .kg-share__acts { display: grid; gap: var(--pa-s-2); margin-top: var(--pa-s-3); }
-.kg-copied { font-size: var(--pa-size-meta); color: var(--pa-cyan); text-align: center; min-height: 1.2em; }
+.kg-copied { font-size: var(--pa-size-meta); color: var(--pa-green); text-align: center; min-height: 1.2em; }
 
 /* ---- desktop: the spread ---------------------------------------------
    The same four type steps, set larger by the tokens, with the ledger and
@@ -409,9 +416,9 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
   THESIS: প্রথম আলো's puzzle habit is a dated ledger, not a card grid; the
   week of printed date squares IS the navigation, the streak and the
   archive at once. Refuses the portal tile-grid with a badge bolted on.
-  OWN-WORLD: pa-tokens two-colour press — cool newsprint, ink hairlines,
-  cyan screens for days already inked, spot red for today and for what is
-  still owed. Noto Serif Bengali for editorial voice, Noto Sans for
+  OWN-WORLD: pa-tokens three-colour press — cool newsprint, ink hairlines,
+  green for days already inked and settled, spot red for today and for what
+  is still owed. Noto Serif Bengali for editorial voice, Noto Sans for
   machinery. Square corners, no shadows, no invented hue: portal violet
   stays exactly where DESIGN.md's Borrowed Chrome Rule puts it — primary
   button, focus ring, hover ground — and never on an editorial surface.

@@ -199,7 +199,7 @@ button { font: inherit; color: inherit; background: none; border: 0; margin: 0; 
 /* ---- scrollbars ------------------------------------------------------
    A default scrollbar is a grey plastic gutter from another design system,
    and on Windows and Android it is wide enough to be the loudest object on
-   a two-ink page. Every scrolling region in the system wears this instead:
+   a three-ink page. Every scrolling region in the system wears this instead:
    a hairline-coloured thumb on no track, inked darker on hover. Overlay
    scrollbars (macOS, iOS) ignore it and stay invisible, which is correct. */
 

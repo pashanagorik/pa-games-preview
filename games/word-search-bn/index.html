@@ -13,13 +13,19 @@
 /* =====================================================================
    শব্দ সন্ধান — game surface.
 
-   Inherits the two-colour press whole from pa-tokens.css. The board's two
-   states are the system's two inks used as DESIGN.md assigns them: red is
-   *now* (the run under the finger), cyan is *not yours to fill* (a word
-   already found and set into the page). A word search has no blocked
-   squares, so cyan 16% is free to carry the second half of its own meaning
-   without ever colliding with the first — sanctioned extension, resolved
-   2026-08-14, not a reassignment of the protected value.
+   Inherits the three-colour press whole from pa-tokens.css. The board's two
+   states are two of the system's three inks used as DESIGN.md assigns them:
+   red is *now* (the run under the finger), green is *settled* (a word found
+   and set into the page).
+
+   Until 2026-08-15 the settled state was cyan 16%, on the argument that a
+   word search has no blocked squares, so cyan was free to carry "not yours
+   to fill" reached from the other direction. Green was admitted to the
+   system on the শব্দফুল build and means precisely settled, so that borrow is
+   repaid here: cyan is blocked and nothing else, in every game, with no
+   condition the reader has to know about. The cost is that green has no 16%
+   step (The No Green Sixteen Rule), so found squares now rest at 30% and a
+   nearly-finished board reads heavier than it did.
    ===================================================================== */
 
 /* Height is taken from the SMALLEST viewport, not the dynamic one. iOS
@@ -52,8 +58,8 @@
    error: a puzzle under way is a pale screen, a finished one is solid. The
    crossword marks solved in spot red; this game does not, because red here
    is reserved for the live drag and the wrong answer. */
-.ws-dot.is-started { background: var(--pa-cyan-45); border-color: var(--pa-cyan-45); }
-.ws-dot.is-solved { background: var(--pa-cyan); border-color: var(--pa-cyan); }
+.ws-dot.is-started { background: transparent; border-color: var(--pa-green); }
+.ws-dot.is-solved { background: var(--pa-green); border-color: var(--pa-green); }
 
 /* ---- front page ------------------------------------------------------
    The top of a printed puzzle page, not a menu. Structure is শব্দভেদ's,
@@ -110,8 +116,8 @@
 
 /* Thumbnail of today's grid: blocks and the reader's own progress, no
    letters — a conjunct at a 15px square is noise pretending to be
-   information. Progress takes cyan 45%, not the board's 16%: at thumbnail
-   scale the palest step is not a signal. */
+   information. Progress takes green 45%, not the board's 30%: at thumbnail
+   scale the paler step is not a signal. */
 .ws-mini {
   flex: none;
   display: grid;
@@ -123,7 +129,7 @@
   background: var(--pa-rule-strong);
 }
 .ws-mini i { background: var(--pa-cell); }
-.ws-mini i.is-found { background: var(--pa-cyan-45); }
+.ws-mini i.is-found { background: var(--pa-green-45); }
 
 .ws-facts { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--pa-s-1); min-width: 0; padding-block-start: 2px; }
 .ws-facts__m { font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
@@ -239,7 +245,7 @@
 /* The band holds the word it just accepted, in the settled ink, before it
    goes back to naming the theme. Clearing instantly reads as the drag having
    been thrown away rather than taken. */
-.ws-reading.is-set { color: var(--pa-cyan); font-weight: 700; }
+.ws-reading.is-set { color: var(--pa-green); font-weight: 700; }
 
 /* --ws-max is the board's ceiling, read by the sizing routine rather than
    hardcoded. It grows with the screen so a desktop is not a phone centred in
@@ -257,7 +263,7 @@
 
 /* ---- ink flecks -------------------------------------------------------
    A press throws a little ink when it strikes. Small hard squares — no
-   glow, no halo, no rounding — in the cyan that just landed, so they read
+   glow, no halo, no rounding — in the green that just landed, so they read
    as spatter off the impression rather than as confetti borrowed from
    another product. They live outside the board's flow entirely, so nothing
    they do can move a cell. */
@@ -266,7 +272,7 @@
   position: absolute;
   width: 4px;
   height: 4px;
-  background: var(--pa-cyan);
+  background: var(--pa-green);
   opacity: 0;
   animation: ws-fleck 480ms var(--pa-ease) both;
   animation-delay: var(--d, 0ms);
@@ -301,7 +307,7 @@
   transition: background-color 110ms var(--pa-ease);
 }
 .ws-cell__ch { font-size: var(--ws-fs, 1em); pointer-events: none; }
-.ws-cell.is-found { background: var(--pa-cyan-16); }
+.ws-cell.is-found { background: var(--pa-green-30); }
 .ws-cell.is-sel { background: var(--pa-red-16); color: var(--pa-red-deep); }
 .ws-cell.is-miss { animation: ws-miss 320ms var(--pa-ease); }
 @keyframes ws-miss {
@@ -314,7 +320,7 @@
    travelled, at 30ms a square — a word of five sets in 150ms, which is long
    enough to read as a stroke and short enough never to delay the next drag.
 
-   It goes red → cyan, which is the whole state change stated in colour: the
+   It goes red → green, which is the whole state change stated in colour: the
    square stops being the thing you are doing and becomes part of the printed
    page. The full-strength rule that flashes with it is a rule, not a fill,
    so the One Full-Strength Rule holds. No third hue, no glow, no bounce —
@@ -330,26 +336,33 @@
 /* No red anywhere in this. Red is the colour of *now* and of *wrong*, and a
    square that has just been answered correctly is neither — flashing red on
    success read as a rejection for the fraction of a second it was on screen.
-   The square goes from unprinted stock straight to the settled cyan, which
-   is the ink actually landing. */
-/* The square strikes at a deep screen of the same ink and settles down the
-   ramp into the resting tint — 45% → 30% → 16%. It is one colour throughout,
-   which is why it can be emphatic without becoming a second signal: the eye
-   reads "more of that" rather than "something else".
+   The square goes from unprinted stock straight to the settled green, which
+   is the ink actually landing.
 
-   Screens above 16% were reserved for the keyboard. They are admitted here
-   as TRANSIENT FRAMES only — the square passes through them in 460ms and
-   comes to rest at 16%. No board state is ever painted 30% or 45%. */
-/* Every frame is cyan. The animation must NOT open on paper white: it runs
+   This was the settled CYAN until 2026-08-15. The reasoning then was that a
+   found cell is "not yours to fill" reached from the other side, so cyan
+   could carry it on a board with no blocked squares. Green exists now and
+   means exactly this, so the borrow is repaid: cyan is blocked everywhere,
+   with no per-game exception for the reader to work out. */
+/* The square strikes at the deep screen and settles into the resting tint —
+   45% → 30%. It is one colour throughout, which is why it can be emphatic
+   without becoming a second signal: the eye reads "more of that" rather than
+   "something else".
+
+   The ramp is two steps rather than the three it had in cyan, because green
+   has no 16% and never will — see The No Green Sixteen Rule. So the resting
+   state IS 30%, and the scale settle carries the last of the movement. A
+   found board is therefore a shade heavier than it used to be. */
+/* Every frame is green. The animation must NOT open on paper white: it runs
    with fill-mode `both` and a per-square delay, so a 0% of white would be
    painted backwards over each square for up to 150ms while it waits its
    turn — the squares would blink white after being answered, which is
    exactly the wrong-looking flash we removed the red for. */
 @keyframes ws-set {
-  0%   { transform: scale(1);    background: var(--pa-cyan-45); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
-  25%  { transform: scale(1.14); background: var(--pa-cyan-45); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
-  55%  { transform: scale(0.98); background: var(--pa-cyan-30); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
-  100% { transform: scale(1);    background: var(--pa-cyan-16); box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+  0%   { transform: scale(1);    background: var(--pa-green-45); box-shadow: inset 0 0 0 2px var(--pa-green); }
+  25%  { transform: scale(1.14); background: var(--pa-green-45); box-shadow: inset 0 0 0 2px var(--pa-green); }
+  55%  { transform: scale(0.98); background: var(--pa-green-45); box-shadow: inset 0 0 0 2px var(--pa-green); }
+  100% { transform: scale(1);    background: var(--pa-green-30); box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
 }
 
 /* The whole board takes the spot red once and releases it, wiping along the
@@ -361,11 +374,12 @@
 }
 /* A rule, not a fill: the sweep crosses filler squares too, and those are
    unprinted white — inking their background would say they were part of an
-   answer. A spot-red rule passing over says "the page is finished" without
-   claiming anything about the square underneath. */
+   answer. A rule passing over says "the page is finished" without claiming
+   anything about the square underneath. It is drawn in green, because a
+   finished page is the plainest case of settled there is. */
 @keyframes ws-solve {
   0%, 100% { box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
-  45%      { box-shadow: inset 0 0 0 2px var(--pa-cyan); }
+  45%      { box-shadow: inset 0 0 0 2px var(--pa-green); }
 }
 /* The squares that hold an answer brighten and settle as the sweep passes;
    filler squares take only the rule, so the wipe never claims an empty
@@ -375,8 +389,8 @@
   animation-delay: var(--d, 0ms);
 }
 @keyframes ws-solve-found {
-  0%, 100% { background: var(--pa-cyan-16); box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
-  45%      { background: var(--pa-cyan-45); box-shadow: inset 0 0 0 2px var(--pa-cyan); }
+  0%, 100% { background: var(--pa-green-30); box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+  45%      { background: var(--pa-green-45); box-shadow: inset 0 0 0 2px var(--pa-green); }
 }
 
 /* ---- word list -------------------------------------------------------
@@ -397,11 +411,11 @@
   color: var(--pa-ink-3);
 }
 .ws-listhead__n { font-variant-numeric: tabular-nums; color: var(--pa-ink-2); }
-/* The count takes full-strength cyan for a beat as it increments — the ink
+/* The count takes full-strength green for a beat as it increments — the ink
    of a settled answer, not the red of a live or wrong one. A numeral at full
    strength is ink, not a fill, so this stays inside the system. */
 .ws-listhead__n.is-tick { animation: ws-tick 520ms var(--pa-ease); }
-@keyframes ws-tick { 0%, 35% { color: var(--pa-cyan); } 100% { color: var(--pa-ink-2); } }
+@keyframes ws-tick { 0%, 35% { color: var(--pa-green); } 100% { color: var(--pa-ink-2); } }
 
 .ws-words {
   display: grid;
@@ -424,7 +438,7 @@
   line-height: var(--pa-leading-tight);
   transition: color 200ms var(--pa-ease);
 }
-/* Struck in cyan, not the crossword's strike red. This rule is permanent —
+/* Struck in green, not the crossword's strike red. This rule is permanent —
    it sits on every solved word for the rest of the session — so it was the
    loudest remaining place where a correct answer was drawn in the colour of
    *wrong*. Drawn as a rule rather than text-decoration so it can be struck
@@ -434,9 +448,12 @@
   content: '';
   position: absolute;
   inset-inline: -0.1em;
-  top: 52%;
+  /* 0.67em — the middle of the Bangla letter body, not of the line box. See
+     the same correction in শব্দফুল: a percentage centres on Latin metrics and
+     leaves the rule sitting on the baseline, which reads as an underline. */
+  top: calc(0.67em - 1px);
   height: 2px;
-  background: var(--pa-cyan-45);
+  background: var(--pa-green-45);
   transform-origin: left center;
 }
 .ws-word.is-hit::after { animation: ws-rule 300ms var(--pa-ease) both; }
@@ -471,7 +488,7 @@
   font-size: 1.25rem; line-height: 1;
 }
 .ws-fig__c.is-sel { background: var(--pa-red-16); color: var(--pa-red-deep); }
-.ws-fig__c.is-found { background: var(--pa-cyan-16); }
+.ws-fig__c.is-found { background: var(--pa-green-30); }
 .ws-fig__l { font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
 
 /* ---- completion card ------------------------------------------------- */
@@ -625,14 +642,14 @@
   ruled square and the list beneath — the reader is not being tested, they
   are passing ten minutes with tea.
 
-  OWN-WORLD: the two-colour press, inherited whole. The board's two states
-  are the two inks doing exactly what DESIGN.md assigns them: red is the run
-  under the finger, cyan is a word already set into the page.
+  OWN-WORLD: the three-colour press, inherited whole. The board's two states
+  are two of the three inks doing exactly what DESIGN.md assigns them: red is
+  the run under the finger, green is a word already set into the page.
 
   STORY: a reader opens it, sees today's date and today's theme on a front
   page, taps in, drags across eight squares, watches the run set itself in
   red and confirm at readable size above the grid, lets go, and the run goes
-  cyan while the word rules itself off the list.
+  green while the word rules itself off the list.
 
   FORM: front page → board, two views in one document, switched by data-view
   on the shell. The clock holds at zero until the reader enters the board —

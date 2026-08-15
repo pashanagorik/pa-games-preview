@@ -536,10 +536,17 @@
       var best = bestOf(GAMES[h.key].best, p.id);
 
       /* The deck says what makes THIS issue different from yesterday's: the
-         word search has a theme, and the flower's seven letters are its whole
-         identity — the same line its own front page and archive rows print. */
+         word search has a theme, and the flower has its longest word.
+
+         The flower's deck used to print its seven letters. That was dropped
+         everywhere on 2026-08-15 — a catalogue row that hands you the givens
+         is showing you the puzzle before you have opened it, and it read as
+         odd rather than informative. The day's longest word is the thing the
+         issue is actually built around and the one the front page already
+         marks with a spot-red rule, so the row now names the target instead
+         of leaking the tools. */
       var deck = h.key === 'ws' && p.theme ? p.theme + ' · ' + toBn(p.words.length) + 'টি শব্দ'
-        : h.key === 'wf' && p.centre ? p.centre + ' · ' + p.petals.join(' ')
+        : h.key === 'wf' ? toBn(p.words.length) + 'টি শব্দ · দীর্ঘতম ' + toBn(p.longest ? B.segment(p.longest).length : 0) + ' অক্ষর'
         : h.note;
       if (!found.exact) deck = shortDate(parseISO(p.date)) + 'ের সংখ্যা · ' + deck;
 

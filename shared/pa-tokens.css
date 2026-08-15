@@ -3,11 +3,23 @@
  * Established by the শব্দভেদ build; inherited by the other four heroes
  * and the 35 catalogue reskins.
  *
- * THE SYSTEM IS A TWO-COLOUR PRESS.
- * Prothom Alo's printed puzzle page is cyan tint + spot red on newsprint.
- * Every surface colour here is a screen of one of those two inks, or paper,
- * or ink-black. Nothing else is admitted. That constraint is what makes a
- * grid of 64 cells read as a newspaper rather than as a UI.
+ * THE SYSTEM IS A THREE-COLOUR PRESS.
+ * Prothom Alo's printed puzzle page is a cyan tint on newsprint — that much
+ * is measured off the scans in Screenshot/. The spot red is the paper's
+ * MASTHEAD ink, imported deliberately; it is not on the printed puzzle page,
+ * and this comment used to imply otherwise. Green was admitted third, on the
+ * শব্দফুল build (2026-08-15), by the same kind of deliberate import.
+ *
+ * Every surface colour here is paper, ink-black, or a screen of one of those
+ * three inks. Nothing else is admitted. That constraint is what makes a grid
+ * of 64 cells read as a newspaper rather than as a UI.
+ *
+ * EACH INK CARRIES EXACTLY ONE MEANING, and that is what makes three inks a
+ * system rather than a palette:
+ *
+ *   cyan   — NOT YOURS TO FILL. A blocked square, and nothing else.
+ *   red    — NOW. The square, word or letter you are acting on. Also wrong.
+ *   green  — SETTLED. Solved, found, correct, finished. Never in play.
  *
  * Portal chrome (violet) is inherited for interactive affordances only —
  * app bar controls, sheet tabs, primary buttons — so a game launched from
@@ -38,6 +50,22 @@
   --pa-red-40:       #F6A492;
   --pa-red:          #EE4023;  /* PA masthead red */
   --pa-red-deep:     #C22A12;
+
+  /* ---- green ink — SETTLED. Deliberately no 08 or 16 step ---------
+     Green screened to 16% is #D9E7E1. Cyan tint, the single most protected
+     value in the system, is #D7E7F2. Identical red and green channels, 15
+     steps of blue apart: at cell size on a phone they are one colour. A
+     documented "don't use green-16 on a board" rule would be enforced by
+     memory, and this system has already had one such rule broken. So the
+     step does not exist. The collision is unreachable because there is
+     nothing to reach for.
+
+     Consequence, accepted on the শব্দফুল build: a settled cell is green-30,
+     which is visibly heavier than the cyan-16 it replaces. A nearly-solved
+     board therefore looks substantially resolved, which is correct. */
+  --pa-green-30:     #B7D3C7;  /* settled cell — the lightest green admitted */
+  --pa-green-45:     #93BCAB;  /* settled, emphatic: rules, strikes, marks */
+  --pa-green:        #0F6B45;  /* full strength: text, glyphs, numerals only */
 
   /* ---- portal chrome (inherited, interactive affordances only) ----- */
   --pa-chrome:        #7C3AED;

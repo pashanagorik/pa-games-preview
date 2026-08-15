@@ -13,8 +13,10 @@
 /* =====================================================================
    শব্দফুল — game surface.
 
-   Inherits the two-colour press whole. Two things here are new to the
-   system and both are recorded in SHOBDOPHUL-SPEC.md:
+   Inherits the three-colour press whole, and is the build that admitted its
+   third ink: green, meaning settled, plus The Reversed-Out Rule for the
+   mandated centre. Both are recorded in DESIGN.md. Two further things here
+   are new to the system and both are recorded in SHOBDOPHUL-SPEC.md:
 
    1. HEXAGONS. The Square Board Rule forbids radius on printed puzzle
       content; its intent is "printed rules, not tiles". A hard-vertexed
@@ -50,8 +52,15 @@
   border: 1px solid var(--pa-rule);
   background: transparent;
 }
-.wf-dot.is-started { background: var(--pa-cyan-45); border-color: var(--pa-cyan-45); }
-.wf-dot.is-solved { background: var(--pa-cyan); border-color: var(--pa-cyan); }
+/* Solved is settled, so it takes green at full strength — a dot is a mark and
+   marks take the ink, per The One Full-Strength Rule. Started is NOT settled,
+   so it does not get a paler green: it takes the green ring with no fill,
+   which says "this one is under way" using shape rather than a second screen
+   of the same ink. Both were cyan before green existed; cyan on a progress
+   dot never meant blocked, which is precisely the overload the ink
+   assignment now forbids. */
+.wf-dot.is-started { background: transparent; border-color: var(--pa-green); }
+.wf-dot.is-solved { background: var(--pa-green); border-color: var(--pa-green); }
 
 /* ---- the flower, drawn once, used at three sizes ----------------------
    The hive is a square box; the seven hexes are placed in it as
@@ -89,26 +98,25 @@
   line-height: 1;
   transition: background-color 110ms var(--pa-ease);
 }
-/* The centre is mandatory in every word, so it is drawn as the live square
-   the crossword draws: red 16% under an inset spot-red rule. Red is *now*,
-   and the centre letter is always now. */
-.wf-hex.is-centre .wf-hex__face { background: var(--pa-red-16); }
-.wf-hex.is-centre::after {
-  content: '';
-  position: absolute;
-  inset: 2px;
-  clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  background: var(--pa-red);
-  /* an inset rule, drawn as a ring: the fill shows through the middle */
-  -webkit-mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000, #000) content-box, linear-gradient(#000, #000);
-  mask-composite: exclude;
-  padding: 2px;
-  pointer-events: none;
+/* The centre is MANDATED — every word must contain it — and The Reversed-Out
+   Rule (DESIGN.md) is what the system gives that state: ink-black face, the
+   letter knocked out in paper white, no ink colour at all.
+
+   It shipped as red 16% under an inset spot-red rule, inherited from
+   শব্দভেদ's active square. That was wrong twice over. Red means *now*, and
+   the centre is not now — it is always, which is a different thing and reads
+   as an alarm parked permanently in the middle of the flower. And the
+   three-ink assignment has no slot for "mandated": not blocked, not now, not
+   settled. Reversing out is what a newspaper does to a fixed cell, and it
+   cannot collide with an ink meaning because it spends no ink. */
+.wf-hex.is-centre .wf-hex__face {
+  background: var(--pa-ink);
+  color: var(--pa-cell);
 }
 .wf-hex:active .wf-hex__face { background: var(--pa-cyan-30); }
-.wf-hex.is-centre:active .wf-hex__face { background: var(--pa-red-40); }
+/* Reversed out, the press has to go the other way — a darker face on an
+   already-black cell is not a press. It lifts towards the ink-2 step. */
+.wf-hex.is-centre:active .wf-hex__face { background: var(--pa-ink-2); }
 
 /* A tapped petal strikes deep and settles — the transient-frame use of the
    press screens, sanctioned on the শব্দ সন্ধান build. No board state ever
@@ -120,20 +128,20 @@
 }
 .wf-hex.is-centre.is-hit .wf-hex__face { animation: wf-tap-c 260ms var(--pa-ease); }
 @keyframes wf-tap-c {
-  0%   { background: var(--pa-red-40); }
-  100% { background: var(--pa-red-16); }
+  0%   { background: var(--pa-ink-2); }
+  100% { background: var(--pa-ink); }
 }
 
-/* The solve sweep: the page takes the spot red once and releases it, from
-   the centre outward — the flower's own version of the gesture both
-   siblings make. A rule, never a fill, so it claims nothing about the
-   letter underneath. */
+/* The solve sweep, from the centre outward — the flower's own version of the
+   gesture both siblings make. A rule, never a fill, so it claims nothing
+   about the letter underneath. It swept red until green existed; a completed
+   puzzle is the definition of settled, and red is the one thing it is not. */
 .wf-hex.is-solved::before {
   content: '';
   position: absolute;
   inset: 2px;
   clip-path: polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%);
-  background: var(--pa-red);
+  background: var(--pa-green);
   opacity: 0;
   animation: wf-sweep 560ms var(--pa-ease) both;
   animation-delay: var(--d, 0ms);
@@ -158,13 +166,18 @@
 .wf-kicker.is-stale { color: var(--pa-ink-3); }
 .wf-date { margin: 0 0 var(--pa-s-2); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead); line-height: 1.15; letter-spacing: -0.015em; }
 
-/* The identity line: this puzzle's seven letters, centre first in spot red.
-   A word search names its theme here; a flower has no theme, and its seven
-   letters ARE the puzzle. Printing them spoils nothing — it is what a
-   newspaper does with a puzzle's givens. */
-.wf-letters { display: flex; align-items: baseline; gap: 0.45rem; margin: 0 0 var(--pa-s-4); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); line-height: 1.2; color: var(--pa-ink-2); }
-.wf-letters b { color: var(--pa-red-deep); font-weight: 700; }
-.wf-letters i { font-style: normal; color: var(--pa-rule); }
+/* The identity line is GONE (2026-08-15). It printed the puzzle's seven
+   letters on the front page, on every archive row and on the খেলাঘর row, on
+   the reasoning that a flower has no theme and its letters are its identity —
+   "printing them spoils nothing, it is what a newspaper does with a puzzle's
+   givens".
+
+   It does not spoil the puzzle, and it was still wrong. A front page one tap
+   from a board that shows the same seven letters at eight times the size is
+   not informing anyone; it is handing over the tools before the reader has
+   asked for them, and it read as odd rather than useful. The rosette
+   thumbnail stays, because progress is not a preview.
+   ------------------------------------------------------------------------ */
 
 .wf-lead__row { display: flex; gap: var(--pa-s-4); align-items: flex-start; margin-bottom: var(--pa-s-4); }
 
@@ -175,9 +188,9 @@
 .wf-mini { flex: none; width: 8.75rem; }
 .wf-mini .wf-hex { pointer-events: none; }
 .wf-mini .wf-hex__face { inset: 1px; background: var(--pa-cell); }
-.wf-mini .wf-hex.is-on .wf-hex__face { background: var(--pa-cyan-45); }
+.wf-mini .wf-hex.is-on .wf-hex__face { background: var(--pa-green-45); }
 .wf-mini .wf-hex.is-centre .wf-hex__face { background: var(--pa-cell); }
-.wf-mini .wf-hex.is-centre.is-on .wf-hex__face { background: var(--pa-cyan-45); }
+.wf-mini .wf-hex.is-centre.is-on .wf-hex__face { background: var(--pa-green-45); }
 .wf-mini .wf-hex.is-centre::after { display: none; }
 
 .wf-facts { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--pa-s-1); min-width: 0; padding-block-start: 2px; }
@@ -212,9 +225,10 @@
 .wf-arcrow__badge.is-latest { background: var(--pa-cyan); }
 /* The row's hint is the puzzle's letters, which is what makes one day
    distinguishable from another in a list of thirty. */
-.wf-arcrow__ltr { margin-inline-start: auto; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: var(--pa-serif); font-size: var(--pa-size-meta); color: var(--pa-ink-2); letter-spacing: 0.08em; }
-.wf-arcrow__ltr b { color: var(--pa-red-deep); }
-.wf-arcrow__state { flex: none; display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+
+/* Now the row's end-anchored element, since the letters that used to hold
+   that job are gone. */
+.wf-arcrow__state { margin-inline-start: auto; flex: none; display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
 .wf-aside .wf-arclist { padding-block: 0; }
 .wf-aside .wf-arcrow { padding-inline: var(--pa-s-1); border-block-end: 1px solid var(--pa-rule); }
 
@@ -241,7 +255,7 @@
 .wf-band.is-on { color: var(--pa-ink); font-weight: 700; }
 /* Holding the word it just took, in the settled ink, before it clears —
    clearing instantly reads as the word having been thrown away. */
-.wf-band.is-set { color: var(--pa-cyan); font-weight: 700; }
+.wf-band.is-set { color: var(--pa-green); font-weight: 700; }
 /* A refusal takes Deep Red and a proof-reader's slash. Never an icon. */
 .wf-band.is-bad { color: var(--pa-red-deep); font-weight: 700; }
 .wf-band__w { position: relative; }
@@ -258,8 +272,26 @@
 @keyframes wf-blink { 50% { opacity: 0; } }
 
 /* The reason a word was refused. One line, meta size, replaced not stacked. */
-.wf-why { flex: none; min-height: 1.35rem; margin: 0; display: flex; align-items: center; justify-content: center; font-size: var(--pa-size-meta); color: var(--pa-ink-2); background: var(--pa-paper); }
+.wf-why { flex: none; min-height: 1.35rem; margin: 0; display: flex; align-items: center; justify-content: center; gap: var(--pa-s-3); font-size: var(--pa-size-meta); color: var(--pa-ink-2); background: var(--pa-paper); }
 .wf-why.is-bad { color: var(--pa-red-deep); }
+/* Offered only when the refusal is "we do not have this word" — the reader
+   can then tell us we are wrong. Type on the paper's own line, not chrome:
+   ink at weight 600 with an offset underline, hovering to Red Deep, exactly
+   as the ইঙ্গিত control in the list head is set. It does NOT take the red of
+   the refusal beside it; the refusal is the bad news and this is the way out
+   of it, and two red things would read as one. */
+.wf-ask {
+  flex: none;
+  font-family: var(--pa-sans);
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  color: var(--pa-ink);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0.15rem 0.1rem;
+}
+.wf-ask:hover { color: var(--pa-red-deep); }
 
 /* ---- board zones -----------------------------------------------------
    Five zones on a 360×640 phone, and exactly one of them absorbs: the
@@ -273,6 +305,13 @@
   display: grid;
   place-items: center;
   padding: var(--pa-s-3);
+  /* The absorber must also CONTAIN. Without this, a flower measured against
+     a stale height does not merely look wrong — it paints outside this zone
+     and over the mark rail, because nothing clips it. That is what put
+     hexagons on top of the keyboard. The clip is the backstop: if the sizing
+     is ever wrong again, the failure is a cropped flower, which is visibly a
+     bug, rather than a board that silently overlaps its own controls. */
+  overflow: hidden;
 }
 .wf-main .wf-hive { width: min(100%, var(--wf-side, 20rem)); }
 .wf-main .wf-hex__face { font-size: calc(var(--wf-side, 20rem) * 0.085); }
@@ -320,7 +359,13 @@
   border-bottom: 1px solid var(--pa-rule);
   font-size: var(--pa-size-meta); letter-spacing: 0.07em; color: var(--pa-ink-3);
 }
-.wf-listhead__n { margin-inline-start: auto; font-variant-numeric: tabular-nums; color: var(--pa-ink-2); }
+/* Label and its own count sit together; the hint is pushed to the far end.
+   They were ordered label / hint / count, which put a control between a
+   label and the number it labels — and read as two tabs with a stray
+   fraction rather than as "পাওয়া গেছে ০/২৪, and here is a hint". */
+.wf-listhead__t { flex: none; }
+.wf-listhead__n { flex: none; font-variant-numeric: tabular-nums; color: var(--pa-ink-2); }
+.wf-listhead .wf-hint { margin-inline-start: auto; }
 /* A control sitting inside an editorial section head is type on the paper's
    own head, not chrome — so it takes ink at weight 600 with an offset
    underline and hovers to Red Deep, never portal violet. The Borrowed
@@ -340,9 +385,10 @@
 .wf-hint__n { font-variant-numeric: tabular-nums; }
 .wf-hint__n:not(:empty)::before { content: ' '; }
 .wf-listhead__n.is-tick { animation: wf-tick 520ms var(--pa-ease); }
-@keyframes wf-tick { 0%, 35% { color: var(--pa-cyan); } 100% { color: var(--pa-ink-2); } }
+@keyframes wf-tick { 0%, 35% { color: var(--pa-green); } 100% { color: var(--pa-ink-2); } }
 
 .wf-slots {
+  --wf-cell: 1.55em;
   display: grid; grid-template-columns: repeat(2, 1fr);
   gap: var(--pa-s-2) var(--pa-s-3);
   margin: 0;
@@ -351,39 +397,98 @@
   max-height: 26svh;
   overflow-y: auto; overscroll-behavior: contain;
 }
+/* ---- a slot is a row of cells ----------------------------------------
+   One cell per akshara, at a FIXED width, whether the word is found or not.
+
+   The slot used to be blank rules that were replaced by the word itself when
+   it was found. Two different boxes for two states of one thing: the rules
+   were 0.62em each, the word was however wide it happened to be, so a column
+   of slots jogged left and right as words were taken and the two-column grid
+   lost its alignment. That is the bug — not the rules' appearance.
+
+   A cell is 1.55em. The widest akshara in the whole pack is জো at 1.374em
+   (measured across all 226 distinct aksharas in the 720 target words), so
+   every cell holds its letter with room either side and nothing has to
+   shrink to fit. Six cells is the longest word the pack contains: 9.3em,
+   which clears both the phone's two-column grid and the desktop rail.
+
+   The width never changes, so the grid never moves. */
 .wf-slot {
   position: relative;
   justify-self: start;
-  display: flex; align-items: baseline; gap: 2px;
-  padding-bottom: 3px;
-  font-family: var(--pa-serif); font-size: var(--pa-size-body); line-height: var(--pa-leading-tight);
+  display: flex; gap: 1px;
+  font-family: var(--pa-serif); font-size: var(--pa-size-body); line-height: 1;
 }
-/* One rule per letter-unit: the blank states the word's length without a
-   numeral doing it. */
-.wf-slot i { display: block; width: 0.62em; height: 0; border-bottom: 1px solid var(--pa-ink-2); }
-.wf-slot.is-found { color: var(--pa-ink-3); }
-.wf-slot.is-found b { font-weight: 400; }
-.wf-slot.is-found::after {
-  content: '';
-  position: absolute; inset-inline: -0.1em; top: 48%;
-  height: 2px; background: var(--pa-cyan-45);
-  transform-origin: left center;
+/* The cell. A hairline box on unprinted stock — the crossword's square, at
+   clue-list scale. No radius, per the Square Board Rule. */
+.wf-slot i,
+.wf-slot em {
+  display: grid; place-items: center;
+  flex: none;
+  width: var(--wf-cell); height: var(--wf-cell);
+  background: var(--pa-cell);
+  box-shadow: inset 0 0 0 1px var(--pa-rule);
+  font-style: normal;
+  transition: background-color 140ms var(--pa-ease);
 }
-.wf-slot.is-hit::after { animation: wf-rule 300ms var(--pa-ease) both; }
-@keyframes wf-rule { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-/* The hinted first letter is set in full cyan, exactly as শব্দভেদ sets a
-   revealed letter — that is how the reader knows it was given, not solved. */
-.wf-slot em { font-style: normal; color: var(--pa-cyan); }
+/* A found word is settled, so its cells take the settled tint — the same
+   thing শব্দ সন্ধান does to a found square, for the same reason. This is why
+   the slot no longer needs a strike rule through it: the fill already says
+   the word is done, and a strike on top would be the second thing saying it. */
+.wf-slot.is-found i {
+  background: var(--pa-green-30);
+  box-shadow: inset 0 0 0 1px var(--pa-green-45);
+  color: var(--pa-ink-2);
+}
+/* A hinted first letter is GIVEN, not solved, so it stays cyan at full
+   strength on unprinted stock — never green, which would claim the reader
+   settled it. The Green Means Settled Rule's stated exception. */
+.wf-slot em { color: var(--pa-cyan); }
+/* The word lands: its cells strike at the deep screen and settle down to the
+   resting tint, left to right. The transient-frame use of the press screens,
+   as sanctioned on the শব্দ সন্ধান build — no cell rests at 45%. */
+.wf-slot.is-hit i { animation: wf-set 420ms var(--pa-ease) both; animation-delay: calc(var(--i, 0) * 45ms); }
+@keyframes wf-set {
+  0%   { background: var(--pa-green-45); transform: scale(1.08); }
+  60%  { background: var(--pa-green-45); transform: scale(1); }
+  100% { background: var(--pa-green-30); transform: scale(1); }
+}
 /* The longest word of the day, marked before it is found. The spot-red rule
-   is the whole ceremony: no score, no badge. */
-.wf-slot.is-long { border-bottom: 2px solid var(--pa-red); }
+   is the whole ceremony: no score, no badge. It sits under the row of cells
+   rather than through them, so it reads as a mark on the entry and not as a
+   state of any one letter. */
+.wf-slot.is-long { padding-bottom: 3px; border-bottom: 2px solid var(--pa-red); }
 
 /* অতিরিক্ত — real words the flower makes that the day does not require.
-   They are the reason nobody is ever refused a real word. */
-.wf-bonus { display: none; padding: 0 var(--pa-s-4) var(--pa-s-3); }
-.wf-bonus.is-on { display: block; }
-.wf-bonus__h { font-size: var(--pa-size-meta); letter-spacing: 0.07em; color: var(--pa-ink-3); margin-bottom: var(--pa-s-1); }
-.wf-bonus__l { display: flex; flex-wrap: wrap; gap: var(--pa-s-1) var(--pa-s-3); font-family: var(--pa-serif); font-size: var(--pa-size-body); color: var(--pa-ink-2); }
+   They are the reason nobody is ever refused a real word, and after the
+   accept-set there are a median 5,365 of them findable per day.
+
+   So this is a ROW that states a count and opens a sheet, never an inline
+   list. The row's height is the same whether the reader has found none or
+   four hundred, which is what actually keeps the flower from being squeezed
+   — a CSS cap on an inline list would only have moved the problem. */
+.wf-bonus {
+  display: flex; align-items: center; gap: var(--pa-s-2);
+  width: 100%;
+  min-height: var(--pa-tap);
+  padding: var(--pa-s-2) var(--pa-s-4);
+  border-top: 1px solid var(--pa-rule);
+  text-align: start;
+  transition: background-color 140ms var(--pa-ease);
+}
+.wf-bonus:hover { background: var(--pa-chrome-tint); }
+.wf-bonus:disabled { color: var(--pa-ink-3); cursor: default; }
+.wf-bonus:disabled .wf-bonus__c { opacity: 0; }
+.wf-bonus__h { font-size: var(--pa-size-meta); letter-spacing: 0.07em; color: var(--pa-ink-3); }
+/* The count is the only thing on this row that carries information, and what
+   it counts is settled words — so it takes the settled ink at full strength,
+   as a mark rather than a fill. */
+.wf-bonus__n { font-family: var(--pa-sans); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--pa-green); }
+.wf-bonus:disabled .wf-bonus__n { color: var(--pa-ink-3); }
+.wf-bonus__c { margin-inline-start: auto; flex: none; color: var(--pa-ink-3); }
+/* Inside the sheet, where there is room to scroll, the words themselves. */
+.wf-bonus__note { margin: 0 0 var(--pa-s-4); font-size: var(--pa-size-meta); color: var(--pa-ink-2); line-height: var(--pa-leading-body); }
+.wf-bonus__l { display: flex; flex-wrap: wrap; gap: var(--pa-s-2) var(--pa-s-4); margin: 0; font-family: var(--pa-serif); font-size: var(--pa-size-body); color: var(--pa-ink-2); }
 
 /* ---- sheets ---------------------------------------------------------- */
 
@@ -498,8 +603,11 @@
   how many words are in them. The reader is not being tested; they are
   passing ten minutes with tea.
 
-  OWN-WORLD: the two-colour press. Red is *now* — the centre letter, the
-  caret, the refusal. Cyan is settled — a word taken, a letter given.
+  OWN-WORLD: the three-colour press, whose third ink this game admitted.
+  Red is *now* — the caret, the refusal. Green is *settled* — a word taken,
+  a slot struck, the solve sweep. Cyan stays on the mark rail, where it is
+  keyboard and not board. The centre letter is none of the three: it is
+  mandated, so it reverses out in ink.
 
   STORY: a reader opens it, sees today's date and today's seven letters,
   taps in, taps a petal and a kar and another petal, reads the word growing
@@ -542,7 +650,6 @@
       <section class="wf-lead">
         <p class="wf-kicker" id="fp-kicker">আজকের ধাঁধা</p>
         <h2 class="wf-date" id="fp-date">—</h2>
-        <p class="wf-letters" id="fp-letters"></p>
 
         <div class="wf-lead__row">
           <div class="wf-mini wf-hive" id="fp-mini" aria-hidden="true"></div>
@@ -622,21 +729,45 @@
 
   <div class="wf-listzone">
     <div class="wf-listhead">
-      <span>পাওয়া গেছে</span>
-      <button class="wf-hint" id="hint">ইঙ্গিত<span class="wf-hint__n" id="hint-n"></span></button>
+      <span class="wf-listhead__t">পাওয়া গেছে</span>
       <span class="wf-listhead__n" id="count">০ / ০</span>
+      <button class="wf-hint" id="hint">ইঙ্গিত<span class="wf-hint__n" id="hint-n"></span></button>
     </div>
     <ul class="wf-slots pa-scroll" id="slots"></ul>
-    <div class="wf-bonus" id="bonus">
-      <p class="wf-bonus__h">অতিরিক্ত</p>
-      <p class="wf-bonus__l" id="bonus-list"></p>
-    </div>
+    <!-- অতিরিক্ত is a ROW, not a list. It reports a count and opens a sheet.
+         It held the words inline, which meant the play column grew every time
+         a reader found one — and the flower, the one zone that absorbs, was
+         squeezed until it overflowed onto the mark rail. That was already
+         visible at a single extra word; the accept-set makes thousands of
+         them findable, so an inline list is no longer arguable. A row is a
+         fixed height forever. -->
+    <button class="wf-bonus" id="bonus" aria-haspopup="dialog">
+      <span class="wf-bonus__h">অতিরিক্ত শব্দ</span>
+      <span class="wf-bonus__n" id="bonus-n">০</span>
+      <svg class="wf-bonus__c" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
   </div>
 </section>
 
 <!-- =====================================================================
      SHEETS
      ===================================================================== -->
+<div class="pa-sheet" id="sheet-bonus" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="অতিরিক্ত শব্দ" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">অতিরিক্ত শব্দ</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll wf-sheetbody">
+      <p class="wf-bonus__note">আজকের ধাঁধার তালিকার বাইরে যেসব শব্দ আপনি পেয়েছেন। এগুলো গণনায় ধরা হয় না।</p>
+      <p class="wf-bonus__l" id="bonus-list"></p>
+    </div>
+  </div>
+</div>
+
 <div class="pa-sheet" id="sheet-arch" hidden>
   <div class="pa-sheet__scrim"></div>
   <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সব ধাঁধা" tabindex="-1">

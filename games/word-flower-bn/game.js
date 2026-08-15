@@ -52,7 +52,13 @@
     badCentre: 'মাঝের অক্ষরটি নেই',
     badPetal: 'ফুলের বাইরের অক্ষর',
     badDupe: 'আগেই পাওয়া গেছে',
-    badList: 'শব্দটি চেনা গেল না',
+    /* Not "the word was not recognised", which puts the doubt on the reader.
+       The accept-set is a 2018 lemma list expanded through its own affix
+       rules; where it is short, that is a fact about our dictionary and the
+       message should say which of the two of you is missing something. */
+    badList: 'আমাদের শব্দকোষে নেই',
+    askThis: 'অনুরোধ করুন',
+    askSent: 'ধন্যবাদ — শব্দটি পাঠানো হয়েছে',
     bonusTook: 'অতিরিক্ত শব্দ',
     hintNone: 'সব শব্দ পাওয়া গেছে',
     winWords: 'টি শব্দ, ',
@@ -316,21 +322,42 @@
     $('go').disabled = wordLen() < (PACK.minLen || 3);
   }
 
-  function say(reason, bad) {
+  /* `ask` is the word to offer a request button for. Only the unknown-word
+     refusal passes one — the other three refusals are the reader's mistake,
+     not the dictionary's, and offering to file a report on ফুলের বাইরের অক্ষর
+     would be nonsense. */
+  function say(reason, bad, ask) {
     var el = $('why');
     el.textContent = reason || '';
     el.classList.toggle('is-bad', !!bad);
+    if (!ask) return;
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'wf-ask';
+    btn.textContent = T.askThis;
+    btn.onclick = function () { askFor(ask); };
+    el.appendChild(btn);
   }
   function clearWhy() { say('', false); }
 
   /* One rule per letter-unit: a blank states its own length without a numeral
      doing it. A hinted first letter is set in full cyan — the same way শব্দভেদ
      sets a revealed letter, so a given stays visibly given. */
+  /* One cell per akshara, ALWAYS — the same count and the same width whether
+     the word is found, hinted or blank. The slot used to swap its blanks for
+     a plain <b>word</b> once found, and since the word was never the same
+     width as the blanks it replaced, taking a word nudged the whole
+     two-column grid. Same boxes in every state is the fix.
+
+     --i carries the cell's index so the settle animation can run left to
+     right across the word instead of all at once. */
   function slotHTML(w) {
     var seg = B.segment(w), i, html = '';
-    if (found[w]) return '<b>' + w + '</b>';
-    if (hinted[w]) html += '<em>' + seg[0] + '</em>';
-    for (i = hinted[w] ? 1 : 0; i < seg.length; i++) html += '<i></i>';
+    for (i = 0; i < seg.length; i++) {
+      if (found[w]) html += '<i style="--i:' + i + '">' + seg[i] + '</i>';
+      else if (hinted[w] && i === 0) html += '<em>' + seg[0] + '</em>';
+      else html += '<i></i>';
+    }
     return html;
   }
 
@@ -348,10 +375,20 @@
     paintHint();
   }
 
+  /* The row states a count; the sheet holds the words. Newest first, because
+     the word a reader wants to see confirmed is the one they just found. */
   function renderBonus() {
     var list = Object.keys(bonus);
-    $('bonus').classList.toggle('is-on', list.length > 0);
-    $('bonus-list').innerHTML = list.map(function (w) { return '<span>' + w + '</span>'; }).join('');
+    $('bonus-n').textContent = B.toBn(list.length);
+    $('bonus').disabled = list.length === 0;
+    $('bonus-list').innerHTML = list.slice().reverse()
+      .map(function (w) { return '<span>' + w + '</span>'; }).join('');
+    /* The row is fixed height, so this can no longer change the play column —
+       but sizeHive() is called anyway, because the reason the flower once
+       overlapped the mark rail was a layout change that fired no resize
+       event and left the measurement stale. The lesson was the missing call,
+       not the specific element that grew. */
+    sizeHive();
   }
 
   function paintHint() {
@@ -366,10 +403,6 @@
 
   /* ---- the front page --------------------------------------------------- */
 
-  function lettersHTML(centre, ring) {
-    return '<b>' + centre + '</b><i>·</i>' + ring.join(' ');
-  }
-
   function renderFront() {
     var d = dateFromId(P.id);
     var pick = pickForToday();
@@ -378,7 +411,6 @@
     $('fp-kicker').textContent = isToday ? T.today : T.recent;
     $('fp-kicker').classList.toggle('is-stale', !isToday);
     $('fp-date').textContent = printDate(d);
-    $('fp-letters').innerHTML = lettersHTML(P.centre, P.petals);
     $('board-date').textContent = printDate(d);
     $('date').textContent = longDate(new Date());
     /* Derived from the pack, never hardcoded. */
@@ -434,7 +466,6 @@
       html += '<button type="button" class="wf-arcrow" data-id="' + pz.id + '"'
         + (pz.id === P.id ? ' aria-current="true"' : '') + (due ? '' : ' disabled') + '>'
         + '<span class="wf-arcrow__date">' + shortDate(dateFromId(pz.id)) + '</span>' + badge
-        + '<span class="wf-arcrow__ltr">' + lettersHTML(pz.centre, pz.petals) + '</span>'
         + '<span class="wf-arcrow__state"><i class="wf-dot' + dotCls + '" aria-hidden="true"></i>' + label + '</span>'
         + '</button>';
     }
@@ -478,17 +509,20 @@
     say(isBonus ? T.bonusTook : '', false);
     if (!isBonus) {
       var slot = $('slots').querySelector('[data-w="' + w + '"]');
-      replay(slot, 'is-hit', 380);
+      /* Long enough for the whole word: 420ms of animation plus the per-cell
+         45ms stagger, which on the pack's longest word (six aksharas) runs to
+         645ms. Stripping the class early would cut the last cells mid-settle. */
+      replay(slot, 'is-hit', 700);
       replay($('count'), 'is-tick', 600);
     }
     buzz(12);
   }
 
-  function refuse(reason) {
+  function refuse(reason, ask) {
     var band = $('band');
     band.classList.remove('is-set', 'is-on');
     band.classList.add('is-bad');
-    say(reason, true);
+    say(reason, true, ask);
     buzz(24);
     clearTimeout(bandHold);
     bandHold = setTimeout(function () { clearWord(); }, 700);
@@ -530,7 +564,19 @@
 
     var hit = findIn(P.words, w);
     if (hit && found[hit]) { refuse(T.badDupe); return; }
-    var extra = hit ? null : findIn(P.bonus || [], w);
+
+    /* Two accept tiers, checked in the order they become available. The
+       inline list is a linear scan of 160 and always present; the fetched
+       set is a hash lookup over as many as 17,000 and arrives a moment
+       later. Both are already NFC and so is `w`, so the set can be indexed
+       directly — normalising 17,000 words per keystroke to use the same
+       comparator the small list uses would be the obvious way to make this
+       feel slow. */
+    var extra = null;
+    if (!hit) {
+      extra = findIn(P.bonus || [], w);
+      if (!extra && accept && accept[w] === true) extra = w;
+    }
     if (extra && bonus[extra]) { refuse(T.badDupe); return; }
 
     if (hit) {
@@ -550,7 +596,12 @@
       took(extra, true);
       return;
     }
-    refuse(T.badList);
+    /* The word uses the right letters and the right centre and is still not
+       known. On the evidence so far that is more often our dictionary's
+       fault than the reader's, so the message says so and the word is kept
+       for the next pack build. */
+    logMiss(w);
+    refuse(T.badList, w);
   }
 
   /* ---- hints ------------------------------------------------------------
@@ -648,7 +699,17 @@
 
   /* The flower shares the viewport with a mark rail and a word list, so it is
      bounded by height at least as often as by width. Measure, then hand the
-     size to CSS — a vw-only guess overflows on a short screen. */
+     size to CSS — a vw-only guess overflows on a short screen.
+
+     There was a `Math.max(180, …)` floor here. A floor on the one zone that
+     is supposed to absorb is a contradiction: it says "shrink to fit" and
+     then refuses to shrink, so on a short screen the flower stayed 180px and
+     spilled over the mark rail. There is no floor now. A very short viewport
+     gets a small flower, which is correct and legible; what it must never
+     get is a flower drawn on top of its own keyboard.
+
+     Call this after ANY change to the other zones' heights, not just on
+     window resize — the layout can change with no resize event at all. */
   function sizeHive() {
     var wrap = $('board-main');
     if (!wrap || !wrap.clientWidth) return;
@@ -657,7 +718,7 @@
     var h = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     var maxRem = parseFloat(cs.getPropertyValue('--wf-max')) || 22;
     var root = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
-    var side = Math.max(180, Math.min(w, h, maxRem * root));
+    var side = Math.max(0, Math.min(w, h, maxRem * root));
     $('hive').style.setProperty('--wf-side', side + 'px');
     $('board-main').style.setProperty('--wf-side', side + 'px');
   }
@@ -734,6 +795,9 @@
     $('fp-howto').onclick = openHowto;
     $('board-howto').onclick = openHowto;
     $('top-howto').onclick = openHowto;
+    $('bonus').onclick = function () {
+      if (Object.keys(bonus).length) openSheet($('sheet-bonus'));
+    };
 
     $('shuffle').onclick = function () {
       /* The six outer petals reorder; the centre never moves, because the
@@ -805,6 +869,111 @@
 
   /* ---- boot ------------------------------------------------------------- */
 
+  /* ---- the accept-set ----------------------------------------------------
+     Every real Bangla word this flower can spell, beyond the 24 the day
+     requires. It is fetched per puzzle rather than shipped in index.json,
+     because index.json is parsed by the front page and the archive by every
+     visitor, and the thirty accept-sets together are 4.2 MB of text that
+     only a reader who actually opens a board has any use for. One day is a
+     median 15 KB gzipped.
+
+     THE INLINE BONUS LIST IS NOT REPLACED BY THIS, it is joined by it. The
+     160 words in index.json are live from the first frame, so there is no
+     loading state, no disabled ✓, and no window in which the game refuses a
+     word it is about to start accepting. If the fetch fails outright the
+     game degrades to exactly the behaviour it shipped with. */
+  var accept = null;      // Set of NFC words, or null until it lands
+  var acceptFor = null;   // the puzzle id `accept` belongs to
+  var MISS = 'pa:wf-bn:miss';
+
+  function loadAccept(id) {
+    if (acceptFor === id) return;
+    accept = null;
+    acceptFor = id;
+    fetch('puzzles/accept/' + id + '.txt')
+      .then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (txt) {
+        if (!txt || acceptFor !== id) return;
+        var set = {}, list = txt.split('\n'), i, w;
+        for (i = 0; i < list.length; i++) {
+          w = list[i];
+          if (w) set[w] = true;
+        }
+        accept = set;
+      })
+      .catch(function () { /* the inline 160 still stand */ });
+  }
+
+  /* A word the flower can legally spell that neither list knows. The
+     dictionary is a 2018 lemma list run through its own affix rules; it has
+     holes, and কামরায় is one of them. Recording the misses is how the next
+     pack build learns what they are — the refusal message already tells the
+     reader it is our dictionary at fault, and this is what makes that true
+     rather than merely polite. Capped, because it is a diagnostic and not a
+     database. */
+  /* ---- requesting a word -------------------------------------------------
+     The refusal message admits our dictionary might be the one at fault. This
+     is what lets the reader do something about it, and lets us find out.
+
+     Paste a Google Form's response URL here and the reader's tap opens it
+     with the word, the puzzle and the date already filled in, so answers land
+     in a sheet beside GamesTracker. Until then it falls back to a mail draft,
+     which works everywhere and collects almost nothing — the form is the
+     real answer, this is the thing that stops the button being dead in the
+     meantime.
+
+     To wire it up: make the form with three short-answer questions, take the
+     prefilled-link URL, and drop it in below with its entry.* ids. */
+  var REQUEST_FORM = '';                       // e.g. 'https://docs.google.com/forms/d/e/FORM_ID/viewform'
+  var REQUEST_FIELDS = { word: 'entry.111', puzzle: 'entry.222', date: 'entry.333' };
+  var REQUEST_MAIL = 'pasha@nagorik.tech';
+  var ASKED = 'pa:wf-bn:asked';
+
+  function requestUrl(w) {
+    var pid = P ? P.id : '', when = new Date().toISOString().slice(0, 10);
+    if (REQUEST_FORM) {
+      return REQUEST_FORM + (REQUEST_FORM.indexOf('?') < 0 ? '?' : '&') + 'usp=pp_url'
+        + '&' + REQUEST_FIELDS.word + '=' + encodeURIComponent(w)
+        + '&' + REQUEST_FIELDS.puzzle + '=' + encodeURIComponent(pid)
+        + '&' + REQUEST_FIELDS.date + '=' + encodeURIComponent(when);
+    }
+    return 'mailto:' + REQUEST_MAIL
+      + '?subject=' + encodeURIComponent('শব্দফুল — শব্দের অনুরোধ')
+      + '&body=' + encodeURIComponent('শব্দ: ' + w + '\nধাঁধা: ' + pid + '\nতারিখ: ' + when);
+  }
+
+  /* Kept locally as well as sent, so the requests survive a reader who never
+     completes the form — and so a rebuild can be checked against what people
+     actually asked for rather than against what arrived. */
+  function saveAsked(w) {
+    try {
+      var raw = localStorage.getItem(ASKED);
+      var list = raw ? JSON.parse(raw) : [];
+      if (list.indexOf(w) < 0 && list.length < 200) {
+        list.push(w);
+        localStorage.setItem(ASKED, JSON.stringify(list));
+      }
+    } catch (e) {}
+  }
+
+  function askFor(w) {
+    if (!w) return;
+    saveAsked(w);
+    say(T.askSent, false);
+    try { window.open(requestUrl(w), '_blank', 'noopener'); }
+    catch (e) { location.href = requestUrl(w); }
+  }
+
+  function logMiss(w) {
+    try {
+      var raw = localStorage.getItem(MISS);
+      var list = raw ? JSON.parse(raw) : [];
+      if (list.indexOf(w) >= 0 || list.length >= 200) return;
+      list.push(w);
+      localStorage.setItem(MISS, JSON.stringify(list));
+    } catch (e) { /* private mode: a diagnostic is not worth an exception */ }
+  }
+
   function loadPuzzle(pz) {
     clockStop();
     P = {
@@ -820,6 +989,7 @@
     found = st.w; bonus = st.b; hinted = st.h;
     clock.secs = st.t;
     cells = []; buf = '';
+    loadAccept(P.id);
     return true;
   }
 
@@ -850,7 +1020,10 @@
       })
       .catch(function (err) {
         console.error(err);
-        $('fp-letters').textContent = 'ধাঁধা লোড করা গেল না';
+        /* The letters line used to carry this. It is gone, so the state line
+           does — it is the only thing on the front page whose job is to say
+           what is happening. */
+        $('fp-state').textContent = 'ধাঁধা লোড করা গেল না';
       });
   }
 
