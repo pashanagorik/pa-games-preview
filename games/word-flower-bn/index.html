@@ -444,7 +444,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
     grid-template-rows: auto auto auto 1fr auto;
-    width: min(100rem, 100%);
+    width: min(var(--pa-page), 100%);
     margin-inline: auto;
     border-inline: 1px solid var(--pa-rule);
   }
@@ -471,7 +471,7 @@
     overflow-y: auto;
   }
 
-  .wf-front { width: min(76rem, 100%); }
+  .wf-front { width: min(var(--pa-page), 100%); }
   .wf-front__body { padding: var(--pa-s-6) var(--pa-s-5); }
   .wf-spread { display: grid; grid-template-columns: minmax(0, 34rem) minmax(18rem, 24rem); justify-content: center; gap: var(--pa-s-6); align-items: start; }
   .wf-aside { display: flex; flex-direction: column; min-height: 12rem; }

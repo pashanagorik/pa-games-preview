@@ -96,7 +96,33 @@
     --pa-size-title:    1.5rem;
     --pa-size-body:     1.0625rem;
     --pa-size-meta:     0.8125rem;
+
+    /* The One Page Measure. Every surface in the programme — the hub, a
+       game's front page, a game's board — is the same printed page, so on a
+       desktop they take the same measure and sit on the same centre line.
+       They did not: the hub was 68rem, a front page 76rem and a board an
+       uncapped 100rem, so at 1440px their left edges fell at 142px, 74px and
+       0px and the whole page slid left twice as a reader walked from the hub
+       into a puzzle. A newspaper does not change width when you turn to the
+       puzzle page.
+
+       Widened past 90rem rather than held flat, because a board is the one
+       surface with a real reason to grow: at the widest tier the crossword is
+       8 cells at 112px (56rem) beside a 26rem clue rail, which does not fit
+       in 76rem. Both steps are declared here so no surface can drift.
+
+       The `100vw −` term is what keeps it a page. A flat 88rem on a 1440px
+       laptop leaves 16px of paper either side, which is not a margin, it is a
+       rounding error — the hairline page edges land under the window chrome
+       and the spread reads as full-bleed. Subtracting from the viewport floors
+       the margin instead, so there is always visible paper outside the rules
+       no matter what the reader's window happens to be. */
+    --pa-page: min(76rem, calc(100vw - 6rem));
   }
+}
+
+@media (min-width: 90rem) and (min-height: 48rem) {
+  :root { --pa-page: min(88rem, calc(100vw - 8rem)); }
 }
 
 @media (prefers-reduced-motion: reduce) {

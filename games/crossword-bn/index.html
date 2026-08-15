@@ -676,7 +676,7 @@
    behind its sheet to fill the second column. */
 
 @media (min-width: 60rem) and (min-height: 40rem) {
-  .pa-front { width: min(76rem, 100%); }
+  .pa-front { width: min(var(--pa-page), 100%); }
   .pa-front__body { padding: var(--pa-s-6) var(--pa-s-5) var(--pa-s-6); }
   /* Fixed measures, centred — not two stretching columns. Letting the lead
      grow with the viewport pushed its own caption a screen away from the
@@ -892,7 +892,7 @@
   /* a page, not a billboard — past this the spread stops growing and the
      paper runs out to the edges either side */
   .xw {
-    max-width: 100rem;
+    max-width: var(--pa-page);
     margin-inline: auto;
     border-inline: 1px solid var(--pa-rule);
   }

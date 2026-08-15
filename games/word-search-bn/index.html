@@ -525,7 +525,7 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
     grid-template-rows: auto auto 1fr auto;
-    width: min(100rem, 100%);
+    width: min(var(--pa-page), 100%);
     margin-inline: auto;
     border-inline: 1px solid var(--pa-rule);
   }
@@ -577,7 +577,7 @@
      lead takes the measure it deserves and the puzzle list comes out from
      behind its sheet to fill the second column. Fixed measures, centred —
      not two stretching columns. */
-  .ws-front { width: min(76rem, 100%); }
+  .ws-front { width: min(var(--pa-page), 100%); }
   .ws-front__body { padding: var(--pa-s-6) var(--pa-s-5); }
   .ws-spread {
     display: grid;
