@@ -38,7 +38,13 @@
   var WS_BEST  = 'pa:ws-bn:best:';
   var WF_STORE = 'pa:wf-bn:';
   var WF_BEST  = 'pa:wf-bn:best:';
+  var SD_STORE = 'pa:sd-bn:';
+  var SD_BEST  = 'pa:sd-bn:best:';
   var DEMO_KEY = 'pa-hub:demo';
+
+  /* সুডোকু prints the day's difficulty rather than a theme; it is the one fact
+     that tells a reader whether the issue is ten minutes or forty. */
+  var DIFF = { easy: 'সহজ', medium: 'মাঝারি', hard: 'কঠিন' };
 
   /* ---- the five heroes -------------------------------------------------
      Three are built. The other two carry the contracted build week rather
@@ -49,7 +55,8 @@
       note: 'প্রথম আলোর ছাপা শব্দভেদ' },
     { key: 'ws', name: 'শব্দ সন্ধান', href: '../games/word-search-bn/index.html', live: true,
       note: '৮×৮ · ১২টি শব্দ' },
-    { key: 'sd', name: 'সুডোকু', live: false, when: 'সপ্তাহ ১', note: 'বাংলা সংখ্যায় ১–৯' },
+    { key: 'sd', name: 'সুডোকু', href: '../games/sudoku-bn/index.html', live: true,
+      note: '৯×৯ · বাংলা সংখ্যায় ১–৯' },
     { key: 'wf', name: 'শব্দফুল', href: '../games/word-flower-bn/index.html', live: true,
       note: 'সাত অক্ষর · ২৪টি শব্দ' },
     { key: 'qz', name: 'কুইজ', live: false, when: 'সপ্তাহ ৩', note: 'দিনে ১০টি প্রশ্ন' }
@@ -104,6 +111,7 @@
   var XW = { puzzles: [], byDate: {} };   // crossword index
   var WS = { puzzles: [], byDate: {} };   // word-search index
   var WF = { puzzles: [], byDate: {} };   // word-flower index
+  var SD = { puzzles: [], byDate: {} };   // sudoku index
   var GRIDS = {};                          // crossword id -> grid array
 
   /* One row per built game, and the ONLY place a game's wiring is written
@@ -181,6 +189,23 @@
     return n ? { state: 'started', done: n, total: total } : { state: 'new', total: total };
   }
 
+  /* সুডোকু is the one game the hub cannot verify: it has no solution to check
+     a board against, and deriving one here would mean shipping a solver to a
+     surface that is not the game. So the game writes an explicit solved flag
+     and this reads it. Progress needs no solution at all — it is the givens
+     the pack declares plus the numerals the reader has entered, over 81. */
+  function sdStatus(id) {
+    if (!id) return { state: 'none' };
+    var p = SD.byDate[id.slice(3)];
+    if (!p) return { state: 'none' };
+    var st = readJSON(SD_STORE + id);
+    if (!st) return { state: 'new', total: 81 };
+    if (st.s) return { state: 'solved', secs: st.t || 0, total: 81 };
+    var e = String(st.e || ''), n = 0;
+    for (var i = 0; i < 81; i++) if (+e.charAt(i)) n++;
+    return n ? { state: 'started', done: (p.n || 0) + n, total: 81 } : { state: 'new', total: 81 };
+  }
+
   function bestOf(prefix, id) {
     try { return parseInt(localStorage.getItem(prefix + id) || '0', 10) || 0; } catch (e) { return 0; }
   }
@@ -191,9 +216,11 @@
     ws: { idx: WS, store: WS_STORE, best: WS_BEST, status: wsStatus, demoSecs: 150, demoSeed: 5,
           thumb: function (id, st) { return wsThumb(st); } },
     wf: { idx: WF, store: WF_STORE, best: WF_BEST, status: wfStatus, demoSecs: 200, demoSeed: 9,
-          thumb: function (id, st) { return wfThumb(id, st); } }
+          thumb: function (id, st) { return wfThumb(id, st); } },
+    sd: { idx: SD, store: SD_STORE, best: SD_BEST, status: sdStatus, demoSecs: 430, demoSeed: 13,
+          thumb: function (id, st) { return sdThumb(id, st); } }
   };
-  var BUILT = ['xw', 'ws', 'wf'];
+  var BUILT = ['xw', 'ws', 'wf', 'sd'];
 
   /* ---- what happened on a given day -------------------------------------
      A day is "kept" when at least one of that day's puzzles is solved. Demo
@@ -255,7 +282,8 @@
            shares the progress prefix — hence the explicit exclusion. */
         if (k && (k.indexOf(XW_STORE) === 0
           || (k.indexOf(WS_STORE) === 0 && k.indexOf(WS_BEST) !== 0)
-          || (k.indexOf(WF_STORE) === 0 && k.indexOf(WF_BEST) !== 0))) {
+          || (k.indexOf(WF_STORE) === 0 && k.indexOf(WF_BEST) !== 0)
+          || (k.indexOf(SD_STORE) === 0 && k.indexOf(SD_BEST) !== 0))) {
           _hasReal = true; break;
         }
       }
@@ -357,6 +385,39 @@
         ? '<line x1="6" y1="22" x2="42" y2="22" stroke="var(--pa-red)" stroke-width="2.5"/>'
         : '';
     return svg(gridLines(8) + strike + '<rect class="fr" x="1" y="1" width="62" height="62"/>');
+  }
+
+  /* সুডোকু's thumbnail obeys the hub's thumbnail rule unchanged — givens in
+     cyan 16% because those really are cells you may not fill, the reader's own
+     numerals in red 16%, and NEVER a numeral: a digit at a 7px square is noise
+     pretending to be information. The heavy box rules are drawn over the
+     hairlines so the 3×3 structure survives at 3.5rem, which is what makes the
+     drawing read as a sudoku rather than as any ruled square. */
+  function sdThumb(id, status) {
+    var p = SD.byDate[id ? id.slice(3) : ''];
+    var cells = '', i, step = 64 / 9;
+    if (p && p.g) {
+      var e = '';
+      var st = readJSON(SD_STORE + id);
+      if (st && st.e) e = String(st.e);
+      /* A demo solve has no stored board behind it, so fill the whole grid
+         rather than showing a solved day as untouched. */
+      var demoDone = status && status.demo && status.state === 'solved';
+      for (i = 0; i < 81; i++) {
+        var given = p.g.charAt(i) !== '.';
+        var mine = !given && (demoDone || !!+e.charAt(i));
+        if (!given && !mine) continue;
+        cells += '<rect class="' + (given ? 'b' : 'f') + '"'
+          + ' x="' + (i % 9 * step).toFixed(2) + '" y="' + ((i / 9 | 0) * step).toFixed(2) + '"'
+          + ' width="' + step.toFixed(2) + '" height="' + step.toFixed(2) + '"/>';
+      }
+    }
+    var boxes = '';
+    for (i = 1; i < 3; i++) {
+      boxes += '<line class="gb" x1="' + (i * 64 / 3) + '" y1="0" x2="' + (i * 64 / 3) + '" y2="64"/>'
+             + '<line class="gb" x1="0" y1="' + (i * 64 / 3) + '" x2="64" y2="' + (i * 64 / 3) + '"/>';
+    }
+    return svg(cells + gridLines(9) + boxes + '<rect class="fr" x="1" y="1" width="62" height="62"/>');
   }
 
   function hexPts(cx, cy, r) {
@@ -547,6 +608,11 @@
          of leaking the tools. */
       var deck = h.key === 'ws' && p.theme ? p.theme + ' · ' + toBn(p.words.length) + 'টি শব্দ'
         : h.key === 'wf' ? toBn(p.words.length) + 'টি শব্দ · দীর্ঘতম ' + toBn(p.longest ? B.segment(p.longest).length : 0) + ' অক্ষর'
+        /* The difficulty and how many numerals are already printed: what makes
+           this issue different from yesterday's, and the sudoku equivalent of
+           the word search's theme. It leaks nothing — the count is on the
+           game's own front page. */
+        : h.key === 'sd' ? (DIFF[p.d] || '') + ' · ' + toBn(p.n || 0) + 'টি সংখ্যা দেওয়া'
         : h.note;
       if (!found.exact) deck = shortDate(parseISO(p.date)) + 'ের সংখ্যা · ' + deck;
 
@@ -687,7 +753,12 @@
       if (streakRun > maxRun) maxRun = streakRun;
     });
 
-    return { played: played, solved: solved, best: best, run: run, max: maxRun, store: store };
+    /* No `store` here. It was returned for a while as `store: store`, naming a
+       variable that exists nowhere in this scope — reading an undeclared name
+       throws, so gameStats threw, renderStats threw with it, and the whole
+       sheet stayed empty including the totals block that had nothing to do
+       with any one game. Nothing ever read the field. */
+    return { played: played, solved: solved, best: best, run: run, max: maxRun };
   }
 
   function renderStats() {
@@ -745,7 +816,11 @@
         var kill = [];
         for (var i = 0; i < localStorage.length; i++) {
           var k = localStorage.key(i);
-          if (k && (k.indexOf('pa-xw') === 0 || k.indexOf('pa:ws-bn') === 0 || k.indexOf('pa:wf-bn') === 0)) kill.push(k);
+          /* Progress only. `pa:numerals` is a reading preference, not a
+             record of play, and wiping it would change how the pages read
+             for someone who only asked to clear their scores. */
+          if (k && (k.indexOf('pa-xw') === 0 || k.indexOf('pa:ws-bn') === 0
+            || k.indexOf('pa:wf-bn') === 0 || k.indexOf('pa:sd-bn') === 0)) kill.push(k);
         }
         kill.forEach(function (k) { localStorage.removeItem(k); });
       } catch (e) {}
@@ -803,6 +878,16 @@
          search. Drawn at the card's own width rather than as cells. */
       grid = '';
       cols = 1;
+    } else if (h.key === 'sd' && SD.byDate[p.date] && SD.byDate[p.date].g) {
+      /* A sudoku's silhouette is the pattern of its givens — the same thing a
+         solver recognises on the printed page, and 180°-symmetric, so it
+         reads as a set puzzle rather than as noise. Falling through to the
+         `else` below would have printed a blank 8×8 and claimed this issue
+         was the word search. */
+      cols = 9;
+      SD.byDate[p.date].g.split('').forEach(function (c) {
+        grid += '<i class="' + (c === '.' ? '' : 'b') + '"></i>';
+      });
     } else {
       for (var i = 0; i < 64; i++) grid += '<i></i>';
     }
@@ -888,6 +973,11 @@
         WF.puzzles = (j.puzzles || []).slice();
         WF.byDate = indexBy(WF.puzzles);
         WF.puzzles.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      }).catch(function () {}),
+      getJSON('../games/sudoku-bn/puzzles/index.json').then(function (j) {
+        SD.puzzles = (j.puzzles || []).slice();
+        SD.byDate = indexBy(SD.puzzles);
+        SD.puzzles.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
       }).catch(function () {})
     ];
 

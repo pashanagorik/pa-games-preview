@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>সুডোকু — প্রথম আলো</title>
+<meta name="description" content="প্রথম আলোর দৈনিক সুডোকু। ৯×৯ ঘরে ১–৯ সংখ্যা বসান, কোনো সারি, কলাম বা বাক্সে একই সংখ্যা দুবার নয়।">
+<meta name="theme-color" content="#F4F3EF">
+<link rel="stylesheet" href="../../shared/pa-fonts.css">
+<link rel="stylesheet" href="../../shared/pa-tokens.css">
+<link rel="stylesheet" href="../../shared/pa-ui.css">
+<style>
+/* =====================================================================
+   সুডোকু — game surface.
+
+   Inherits the three-colour press whole from pa-tokens.css, and takes one
+   deliberate subtraction: THERE IS NO CYAN ON THIS BOARD. Cyan means "not
+   yours to fill" — a blocked square — and a sudoku has none. A given is not
+   withheld from the reader, it is already printed; so givens are separated
+   by ink weight, the way the newspaper separates them, and the protected
+   cyan tint is simply not reached for. It returns on the keyboard deck,
+   where DESIGN.md already assigns it to key press states, and on the front
+   page thumbnail, where a given genuinely is a cell you may not fill.
+
+   The board therefore runs on ink and red alone:
+
+     ink 700      a given — printed on the page before you arrived
+     ink-2 400    your own entry — pencil
+     red 16%      the square you are on, under a 2px spot-red rule
+     red 08%      its row, column and box — the three lines that constrain it
+     red 40%      a hairline inset rule on every other square holding the same
+                  numeral. A RULE, not a fill: a different channel, so it can
+                  sit under the peer tint without becoming a second meaning.
+     red-deep     a numeral that is wrong — either contradicting one already
+                  on the board, or caught by পরীক্ষা, which adds the slash.
+
+   Green never appears. Green means SETTLED, and this game cannot honestly
+   say a cell is settled without checking it against the solution, which is
+   the one thing the reader has to ask for.
+   ===================================================================== */
+
+/* Height from the SMALLEST viewport, not the dynamic one — iOS Chrome's dvh
+   includes the strip its collapsing toolbar will later take back, which
+   crops a bottom-docked deck the moment the toolbar returns. */
+.sd {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#app[data-view='front'] .sd-board { display: none; }
+#app[data-view='board'] .sd-front { display: none; }
+
+/* Progress vocabulary, shared by the front page and the archive rows so the
+   two surfaces agree. Ink, not colour: a puzzle under way is an outline, a
+   finished one is solid. */
+.sd-dot {
+  flex: none;
+  width: 0.5rem; height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--pa-rule);
+  background: transparent;
+}
+.sd-dot.is-started { background: transparent; border-color: var(--pa-ink-2); }
+.sd-dot.is-solved { background: var(--pa-ink-2); border-color: var(--pa-ink-2); }
+
+/* ---- front page ------------------------------------------------------
+   The top of a printed puzzle page, not a splash. Structure is শব্দভেদ's and
+   শব্দ সন্ধান's, line for line, so the three read as the same page: kicker,
+   the puzzle's print date at masthead scale, the board at thumbnail scale
+   beside its facts, one primary action, then the standing items under a
+   hairline. Where the word search prints its theme, this prints the day's
+   difficulty — the one fact that tells a reader whether they have ten
+   minutes of work ahead or forty. */
+
+.sd-front {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(34rem, 100%);
+  margin-inline: auto;
+}
+.sd-front__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--pa-s-5) var(--pa-s-4) calc(var(--pa-s-5) + env(safe-area-inset-bottom, 0px));
+}
+
+.sd-kicker {
+  margin: 0 0 var(--pa-s-1);
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  color: var(--pa-red);
+}
+/* Ink-faint once the pack has run past today: the kicker stops claiming to
+   be today's puzzle rather than quietly lying in spot red. */
+.sd-kicker.is-stale { color: var(--pa-ink-3); }
+
+.sd-date {
+  margin: 0 0 var(--pa-s-1);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-masthead);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+}
+.sd-diffline {
+  margin: 0 0 var(--pa-s-4);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: var(--pa-size-title);
+  line-height: 1.2;
+  color: var(--pa-ink-2);
+}
+
+.sd-lead__row { display: flex; gap: var(--pa-s-4); align-items: flex-start; margin-bottom: var(--pa-s-4); }
+
+/* Thumbnail of the day's board: the givens and the reader's own progress,
+   and NEVER a numeral — a digit at a 14px square is noise pretending to be
+   information. Here, and only here, givens take the cyan tint: on this
+   surface the cell really is one you may not fill, which is exactly what
+   cyan means, and it keeps parity with the thumbnails খেলাঘর already draws. */
+.sd-mini {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 1px;
+  width: 8.75rem;
+  aspect-ratio: 1;
+  padding: 3px;
+  background: var(--pa-rule-strong);
+}
+.sd-mini i { background: var(--pa-cell); }
+.sd-mini i.is-given { background: var(--pa-cyan-16); }
+.sd-mini i.is-filled { background: var(--pa-red-16); }
+
+.sd-facts { flex: 1 1 auto; display: flex; flex-direction: column; gap: var(--pa-s-1); min-width: 0; padding-block-start: 2px; }
+.sd-facts__m { font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.sd-facts__s {
+  display: flex; align-items: baseline; gap: 0.35rem;
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+  line-height: 1.2; font-variant-numeric: tabular-nums;
+}
+
+.sd-cta { width: 100%; }
+
+/* ---- standing rows & footer ------------------------------------------ */
+
+.sd-rows { margin-block-start: var(--pa-s-5); border-block-start: 1px solid var(--pa-rule); }
+.sd-row {
+  display: flex; align-items: center; gap: var(--pa-s-2);
+  width: 100%;
+  min-height: 3.25rem;
+  padding: var(--pa-s-2) var(--pa-s-1);
+  text-align: start;
+  border-block-end: 1px solid var(--pa-rule);
+  transition: background-color 140ms var(--pa-ease);
+}
+.sd-row:hover { background: var(--pa-chrome-tint); }
+.sd-row__t { font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title); }
+.sd-row__end { margin-inline-start: auto; display: flex; align-items: center; gap: var(--pa-s-2); color: var(--pa-ink-3); }
+.sd-row__m { font-size: var(--pa-size-meta); }
+
+.sd-foot {
+  margin: var(--pa-s-6) 0 0;
+  text-align: center;
+  font-family: var(--pa-serif);
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-3);
+}
+
+/* ---- archive list ----------------------------------------------------
+   One renderer, two homes: a bottom sheet on a phone, and this list inline
+   in the front page's second column on a desktop. */
+
+.sd-aside__h {
+  display: flex; align-items: baseline; gap: var(--pa-s-2);
+  margin: 0;
+  padding-block-end: var(--pa-s-2);
+  border-block-end: 2px solid var(--pa-red);
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+}
+.sd-aside__n { margin-inline-start: auto; font-family: var(--pa-sans); font-weight: 400; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.sd-aside { display: none; }
+
+.sd-arclist { list-style: none; margin: 0; padding: var(--pa-s-1) 0 var(--pa-s-4); }
+.sd-arcrow {
+  display: flex; align-items: center; gap: var(--pa-s-2);
+  width: 100%;
+  min-height: var(--pa-tap);
+  padding: var(--pa-s-2) var(--pa-s-4);
+  text-align: start;
+  transition: background-color 140ms var(--pa-ease);
+}
+.sd-arcrow:hover { background: var(--pa-cyan-08); }
+.sd-arcrow[aria-current='true'] { background: var(--pa-red-08); }
+.sd-arcrow__date { font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-body); }
+.sd-arcrow__badge {
+  flex: none;
+  padding: 0.05rem 0.35rem;
+  border-radius: var(--pa-r-sm);
+  background: var(--pa-red);
+  color: #fff;
+  font-size: var(--pa-size-meta); font-weight: 600; line-height: 1.6;
+}
+.sd-arcrow__badge.is-latest { background: var(--pa-cyan); }
+.sd-arcrow__diff { margin-inline-start: auto; flex: none; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.sd-arcrow__state { flex: none; display: inline-flex; align-items: center; gap: 0.35rem; font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.sd-arcrow__time { flex: none; min-width: 2.75rem; text-align: end; font-family: var(--pa-serif); font-variant-numeric: tabular-nums; font-size: var(--pa-size-meta); color: var(--pa-ink-2); }
+.sd-arcrow:disabled { opacity: 0.45; cursor: default; }
+.sd-arcrow:disabled:hover { background: none; }
+.sd-aside .sd-arclist { padding-block: 0; }
+.sd-aside .sd-arcrow { padding-inline: var(--pa-s-1); border-block-end: 1px solid var(--pa-rule); }
+
+/* ---- head slot -------------------------------------------------------
+   One line under the dateline, and one line only. At rest it names the day's
+   difficulty. The first-run coach and the grid-full notice take the SAME
+   slot, never stacking — a 640dp screen cannot spend two bands on the board's
+   height, and two notices at once is the layout refusing to decide what the
+   reader should read. */
+.sd-head {
+  flex: none;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--pa-rule);
+  background: var(--pa-paper);
+}
+.sd-band {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0 var(--pa-s-3);
+  text-align: center;
+  font-family: var(--pa-serif);
+  font-size: var(--pa-size-title);
+  line-height: 1.3;
+  color: var(--pa-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.sd-head.has-note .sd-band { display: none; }
+
+/* The notice STATES AND STOPS. It marks nothing: drawing the slashes is the
+   reader's to ask for, and dismissing is free. */
+.sd-note {
+  display: none;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--pa-s-2);
+  min-height: 2.5rem;
+  padding: 0 var(--pa-s-2) 0 var(--pa-s-4);
+  font-size: var(--pa-size-meta);
+}
+.sd-head.has-note .sd-note { display: flex; }
+.sd-note__t { flex: 1 1 auto; min-width: 0; }
+/* Coach, and পরীক্ষা's answer when nothing is wrong: the cyan wash, which is
+   where structural-not-fillable chrome lives. Neither says anything is
+   wrong, so neither may take the red ground. */
+.sd-head[data-note='coach'],
+.sd-head[data-note='reply'] { background: var(--pa-cyan-08); }
+/* Grid-full: red 8% under a red 40% hairline. The ACTION takes portal violet,
+   not red — the ground and the hairline already carry "something is wrong",
+   and a full-strength red fill behind text is forbidden. */
+.sd-head[data-note='full'] { background: var(--pa-red-08); box-shadow: inset 0 -1px 0 var(--pa-red-40); }
+.sd-note__act {
+  flex: none;
+  height: 2rem;
+  padding: 0 var(--pa-s-3);
+  border-radius: var(--pa-r-md);
+  background: var(--pa-chrome);
+  color: #fff;
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+}
+.sd-note__act:hover { background: var(--pa-chrome-strong); }
+.sd-note__x { flex: none; width: 2rem; height: 2rem; display: grid; place-items: center; color: var(--pa-ink-3); }
+
+/* ---- board -----------------------------------------------------------
+   --sd-max is the board's ceiling, read by the sizing routine rather than
+   hardcoded, so a desktop is not a phone centred in 1920px of paper. */
+.sd-main {
+  --sd-max: 544px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--pa-s-3);
+}
+
+/* A printed sudoku is a grid of grids, and that is how this is built: nine
+   boxes on an ink ground with a 3px gutter between them, nine cells inside
+   each on the same ink with a 1px gutter. The heavy box rules and the
+   hairline cell rules are therefore the SAME ink showing through two gap
+   widths — no borders, no radius, nothing to misalign at fractional cell
+   sizes. */
+/* Rows are declared, not inferred. Columns were always even because 1fr
+   divides the width, but with no `grid-template-rows` the row heights came
+   from cell CONTENT — a numeral, a 3×3 of pencil marks, or nothing at all —
+   and the leftover height was then distributed equally, which preserves the
+   difference instead of removing it. That gave three cell heights on one
+   board (23px, 38px, 45px). A printed grid is a ruled square: every cell is
+   the same cell, and nothing inside one may size it. */
+.sd-grid {
+  width: var(--sd-side, 20rem);
+  height: var(--sd-side, 20rem);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 3px;
+  padding: 3px;
+  background: var(--pa-rule-strong);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.sd-box {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--pa-rule-strong);
+  min-height: 0;
+  min-width: 0;
+}
+.sd-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  /* A grid item's automatic minimum size is its content, which would let a
+     tall glyph or a full set of pencil marks push its track open again. The
+     cell is sized by the board and never by what is in it. */
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+  background: var(--pa-cell);
+  font-family: var(--pa-serif);
+  font-size: calc(var(--sd-side, 20rem) / 9 * 0.56);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--pa-ink-2);
+  font-weight: 400;
+  transition: background-color 110ms var(--pa-ease);
+}
+/* A given was printed before the reader arrived: full ink, 700. Their own
+   entries are pencil — the same ink, lighter, at normal weight. */
+.sd-cell.is-given { color: var(--pa-ink); font-weight: 700; }
+
+/* Every other square holding the same numeral, drawn as a hairline RULE
+   rather than a fill. It has to survive underneath the peer tint without
+   competing with it, and a fourth tint on a 9×9 board is a board that has
+   stopped being paper. */
+.sd-cell.is-same { box-shadow: inset 0 0 0 1px var(--pa-red-40); }
+.sd-cell.is-peer { background: var(--pa-red-08); }
+/* The active square, and it must outrank both of the above. */
+.sd-cell.is-sel { background: var(--pa-red-16); box-shadow: inset 0 0 0 2px var(--pa-red); }
+
+/* Wrong, in both of its senses. A contradiction the reader can see on the
+   board — the same numeral twice in one line — states itself as it happens
+   and costs nothing, because it tells them nothing the page does not already
+   show. A cell caught by পরীক্ষা is wrong against the solution, which the
+   page does NOT show, so it additionally takes the proof-reader's slash. */
+.sd-cell.is-dup { color: var(--pa-red-deep); }
+.sd-cell.is-wrong { color: var(--pa-red-deep); }
+.sd-cell.is-wrong::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top right,
+    transparent calc(50% - 0.5px), var(--pa-red) calc(50% - 0.5px),
+    var(--pa-red) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+  pointer-events: none;
+}
+
+/* Pencil marks: the reader's own working, so ink-faint and small, laid out
+   on the numeral's own 3×3 position so a mark never moves as its neighbours
+   come and go. */
+.sd-marks {
+  position: absolute;
+  inset: 6%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  font-family: var(--pa-sans);
+  /* 0.28 of the cell, not 0.22. At 0.22 a mark was ~8px on a 360dp phone —
+     present in the DOM and unreadable on the glass, which is worse than not
+     drawing it, because the reader trusts working they cannot check. */
+  font-size: calc(var(--sd-side, 20rem) / 9 * 0.28);
+  line-height: 1;
+  color: var(--pa-ink-3);
+  pointer-events: none;
+}
+.sd-marks span { display: grid; place-items: center; }
+
+/* The finished page takes the spot red once and releases it, wiping along
+   the diagonal — the gesture শব্দভেদ and শব্দ সন্ধান both make when their grids
+   come out. A rule, not a fill: it crosses givens too, and inking their
+   ground would claim the reader had filled them. */
+.sd-cell.is-solved {
+  animation: sd-solve 560ms var(--pa-ease) both;
+  animation-delay: var(--d, 0ms);
+}
+@keyframes sd-solve {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(0,0,0,0); }
+  45%      { box-shadow: inset 0 0 0 2px var(--pa-red); }
+}
+
+/* ---- deck ------------------------------------------------------------
+   Nine numeral keys in one row, and one row of tools beneath. Two rows, not
+   the crossword's five: a numeral pad does not need the type case's grabber
+   because it never takes enough height to be worth collapsing, and the One
+   Switch Rule exists to stop a keyboard eating the board — not to make every
+   game hide its input. */
+.sd-deck {
+  flex: none;
+  background: var(--pa-paper-lift);
+  border-top: 1px solid var(--pa-rule);
+  padding: var(--pa-s-2) var(--pa-s-2) calc(var(--pa-s-2) + env(safe-area-inset-bottom, 0px));
+}
+.sd-pad { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; }
+.sd-key {
+  height: var(--pa-tap);
+  background: var(--pa-cell);
+  border: 1px solid var(--pa-rule);
+  border-radius: var(--pa-r-sm);
+  font-family: var(--pa-serif);
+  font-weight: 700;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--pa-ink);
+  transition: background-color 90ms var(--pa-ease);
+}
+.sd-key:active { background: var(--pa-cyan-30); }
+/* All nine of that numeral are on the board. The key stays in place — the
+   pad must not reflow mid-solve — and stops being ink. */
+.sd-key.is-done { color: var(--pa-ink-3); background: var(--pa-paper); font-weight: 400; }
+
+.sd-tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; margin-top: 3px; }
+.sd-tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  height: var(--pa-tap);
+  border-radius: var(--pa-r-sm);
+  /* Tools are not numerals — they are the deck's marks. The cyan wash is
+     where DESIGN.md already puts keys that act rather than print. */
+  background: var(--pa-cyan-08);
+  color: var(--pa-ink);
+  font-size: var(--pa-size-meta);
+  font-weight: 600;
+}
+.sd-tool:active { background: var(--pa-cyan-45); }
+.sd-tool[aria-pressed='true'] { background: var(--pa-cyan-30); box-shadow: inset 0 0 0 2px var(--pa-ink); }
+.sd-tool:disabled { color: var(--pa-ink-3); background: var(--pa-paper); }
+.sd-tool__n { font-variant-numeric: tabular-nums; color: var(--pa-ink-3); font-weight: 400; }
+
+/* ---- sheets ---------------------------------------------------------- */
+
+.sd-sheetbody { padding: var(--pa-s-3) var(--pa-s-4) var(--pa-s-5); }
+
+.sd-htp { margin: 0; padding: 0; list-style: none; counter-reset: htp; }
+.sd-htp > li { counter-increment: htp; margin-bottom: var(--pa-s-5); }
+.sd-htp__h {
+  display: flex; align-items: baseline; gap: var(--pa-s-2);
+  margin: 0 0 var(--pa-s-1);
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+}
+/* `bengali` is a predefined counter style. A bare counter() renders 1 2 3 4,
+   which would be the one place the how-to sheet stopped speaking Bangla. */
+.sd-htp__h::before { content: counter(htp, bengali); color: var(--pa-red); font-variant-numeric: tabular-nums; }
+.sd-htp__p { margin: 0; color: var(--pa-ink-2); }
+
+/* Board states are shown as real cells at tap size, never as icons. */
+.sd-figs { display: flex; flex-wrap: wrap; gap: var(--pa-s-3); margin-top: var(--pa-s-3); }
+.sd-fig { display: flex; flex-direction: column; align-items: center; gap: var(--pa-s-1); }
+.sd-fig__c {
+  position: relative;
+  display: grid; place-items: center;
+  width: 2.75rem; height: 2.75rem;
+  background: var(--pa-cell);
+  box-shadow: 0 0 0 1px var(--pa-rule-strong);
+  font-family: var(--pa-serif); font-size: var(--pa-size-title); line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--pa-ink-2);
+}
+.sd-fig__c.is-given { color: var(--pa-ink); font-weight: 700; }
+.sd-fig__c.is-sel { background: var(--pa-red-16); box-shadow: 0 0 0 1px var(--pa-rule-strong), inset 0 0 0 2px var(--pa-red); }
+.sd-fig__c.is-wrong { color: var(--pa-red-deep); }
+.sd-fig__c.is-wrong::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(to top right,
+    transparent calc(50% - 0.5px), var(--pa-red) calc(50% - 0.5px),
+    var(--pa-red) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+/* Derived from the figure cell, exactly as the board derives its marks from
+   cell size — a 3×3 of marks in one cell cannot sit on the page's type ramp,
+   because it is a fraction of a cell and not a step of running type. */
+.sd-fig__c .sd-marks { font-size: 0.4em; }
+.sd-fig__l { font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+
+/* ---- completion card ------------------------------------------------- */
+
+.sd-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; }
+.sd-win__mark {
+  margin: 0 0 var(--pa-s-1);
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead);
+}
+.sd-win__diff { margin: 0 0 var(--pa-s-4); color: var(--pa-ink-2); }
+.sd-win__nums {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  margin-bottom: var(--pa-s-3);
+  border-block: 1px solid var(--pa-rule);
+}
+.sd-win__num { padding: var(--pa-s-3) var(--pa-s-1); }
+.sd-win__num + .sd-win__num { border-inline-start: 1px solid var(--pa-rule); }
+.sd-win__v {
+  display: block;
+  font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-title);
+  font-variant-numeric: tabular-nums;
+}
+.sd-win__k { display: block; font-size: var(--pa-size-meta); color: var(--pa-ink-3); }
+.sd-win__note { margin: 0 0 var(--pa-s-4); font-size: var(--pa-size-meta); color: var(--pa-ink-3); min-height: 1.2em; }
+.sd-win__acts { display: flex; flex-direction: column; gap: var(--pa-s-2); }
+.sd-win__ghosts { display: flex; gap: var(--pa-s-2); }
+.sd-win__ghosts .pa-btn { flex: 1; }
+
+/* ---- tablet ----------------------------------------------------------
+   Still the phone column, but full-bleed surfaces are capped and centred. A
+   nine-key pad stretched across 768px gives absurd keys. */
+@media (min-width: 48rem) {
+  .sd-head > * { max-width: 34rem; margin-inline: auto; }
+  .sd-deck > * { width: min(34rem, 100%); margin-inline: auto; }
+}
+
+/* ---- spread ----------------------------------------------------------
+   No rail. শব্দভেদ fills its second column with clue lists and শব্দ সন্ধান with
+   its word list; a sudoku has neither, and a rail invented to fill width is
+   the Fixed Measure Rule violation DESIGN.md warns about. The three things
+   that must scale together do: the type ramp at the token layer, the board
+   ceiling here, and the input model — a physical keyboard types 1–9 and the
+   pad stays as the touch fallback rather than being hidden.
+
+   The board and its deck take the shared page measure and centre on it, so
+   walking from the hub into this puzzle does not move the page. */
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .sd-board { width: min(var(--pa-page), 100%); margin-inline: auto; border-inline: 1px solid var(--pa-rule); }
+  .sd-main { --sd-max: 672px; padding: var(--pa-s-5); }
+  .sd-head > * { max-width: none; }
+  .sd-band { font-size: var(--pa-size-masthead); }
+  .sd-deck { background: none; border-top: 0; padding-bottom: var(--pa-s-5); }
+  .sd-deck > * { width: min(30rem, 100%); }
+
+  /* The front page comes out from behind its sheet: the lead takes the
+     measure it deserves and the archive fills the second column. Fixed
+     measures, centred — not two stretching columns. */
+  .sd-front { width: min(var(--pa-page), 100%); }
+  .sd-front__body { padding: var(--pa-s-6) var(--pa-s-5); }
+  .sd-spread {
+    display: grid;
+    grid-template-columns: minmax(0, 34rem) minmax(18rem, 24rem);
+    justify-content: center;
+    gap: var(--pa-s-6);
+    align-items: start;
+  }
+  .sd-aside { display: flex; flex-direction: column; min-height: 12rem; }
+  .sd-mini { width: 15rem; }
+  .sd-lead__row { gap: var(--pa-s-5); }
+  /* Exactly the thumbnail's width, directly beneath it — the action belongs
+     to the board, so it shares its measure and its centre line. */
+  .sd-cta { width: 15rem; }
+  #fp-archive { display: none; }
+}
+
+/* The rail only earns its own scrollbar when the page can hold it. Below
+   this height the lead block is taller than any budget the rail could take,
+   so the page is the single scroller — which is the whole point of the rule. */
+@media (min-width: 60rem) and (min-height: 46rem) {
+  .sd-aside { max-height: calc(100svh - 22rem); }
+  .sd-aside .sd-arclist { min-height: 0; overflow-y: auto; }
+}
+
+/* Past this the ceiling stops binding and available height governs, which is
+   the intended end state: the board grows until the window stops it. */
+@media (min-width: 90rem) and (min-height: 48rem) {
+  .sd-main { --sd-max: 896px; }
+}
+</style>
+</head>
+<body>
+<!--
+  THESIS: The newspaper sudoku, kept as print set it. A ruled 9×9, the day's
+  difficulty stated plainly, and nothing keeping score against you.
+
+  OWN-WORLD: the three-colour press, inherited whole, minus cyan on the board —
+  a sudoku has no blocked square, so it does not reach for the ink that means
+  one. Ink weight separates what was printed from what you wrote, exactly as
+  the paper does.
+
+  STORY: a reader opens it, sees today's date and today's difficulty on a front
+  page, taps in, taps a square, taps a numeral. Nothing scolds them. When they
+  want to know if they have gone wrong they ask, and the page answers with a
+  proof-reader's slash.
+
+  FORM: front page → board, two views in one document, switched by data-view on
+  the shell. The clock holds at zero until the reader enters the board — loading
+  a puzzle is not starting one.
+-->
+<div class="sd" id="app" data-view="front">
+
+<!-- =====================================================================
+     FRONT PAGE
+     ===================================================================== -->
+<section class="sd-front pa-scroll">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="exit" aria-label="সব গেম">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">সুডোকু</h1>
+      <span class="pa-masthead__tail">
+        <button class="pa-iconbtn" id="top-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114.1 2.2c-.9.7-1.7 1.1-1.7 2.1"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <button class="pa-masthead__date" id="dateline" aria-haspopup="dialog" aria-label="অন্য ধাঁধা বেছে নিন">
+        <span id="date"></span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="sd-front__body pa-scroll">
+    <div class="sd-spread">
+      <section class="sd-lead">
+        <p class="sd-kicker" id="fp-kicker">আজকের ধাঁধা</p>
+        <h2 class="sd-date" id="fp-date">—</h2>
+        <p class="sd-diffline" id="fp-diff">…</p>
+
+        <div class="sd-lead__row">
+          <div class="sd-mini" id="fp-mini" aria-hidden="true"></div>
+          <div class="sd-facts">
+            <span class="sd-facts__m" id="fp-size">৯×৯</span>
+            <span class="sd-facts__s"><i class="sd-dot" id="fp-dot"></i><span id="fp-state">লোড হচ্ছে…</span></span>
+          </div>
+        </div>
+
+        <button class="pa-btn pa-btn--primary sd-cta" id="fp-cta">শুরু করুন</button>
+      </section>
+
+      <aside class="sd-aside">
+        <h2 class="sd-aside__h">সব ধাঁধা<span class="sd-aside__n" id="fp-aside-count"></span></h2>
+        <div class="sd-arclist pa-scroll" id="fp-archlist"></div>
+      </aside>
+    </div>
+
+    <nav class="sd-rows">
+      <button class="sd-row" id="fp-archive" aria-haspopup="dialog">
+        <span class="sd-row__t">সব ধাঁধা</span>
+        <span class="sd-row__end">
+          <span class="sd-row__m" id="fp-archive-meta"></span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+      <button class="sd-row" id="fp-howto" aria-haspopup="dialog">
+        <span class="sd-row__t">কীভাবে খেলবেন</span>
+        <span class="sd-row__end">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+      <button class="sd-row" id="fp-settings" aria-haspopup="dialog">
+        <span class="sd-row__t">সেটিংস</span>
+        <span class="sd-row__end">
+          <span class="sd-row__m" id="fp-settings-meta"></span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+    </nav>
+
+    <p class="sd-foot">প্রথম আলো</p>
+  </div>
+</section>
+
+<!-- =====================================================================
+     BOARD
+     ===================================================================== -->
+<section class="sd-board sd" aria-label="সুডোকু বোর্ড">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="back" aria-label="নামপাতা">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">সুডোকু</h1>
+      <span class="pa-masthead__tail">
+        <span class="pa-masthead__timer" id="timer" role="timer" aria-label="সময়">০:০০</span>
+        <button class="pa-iconbtn" id="board-more" aria-label="আরও" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <span class="pa-masthead__date" id="board-date"></span>
+    </div>
+  </header>
+
+  <div class="sd-head" id="head">
+    <p class="sd-band" id="band" aria-live="polite"></p>
+    <div class="sd-note" id="note">
+      <span class="sd-note__t" id="note-text"></span>
+      <button class="sd-note__act" id="note-act" hidden>পরীক্ষা</button>
+      <button class="sd-note__x" id="note-x" aria-label="বন্ধ করুন">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="sd-main" id="board-main">
+    <div class="sd-grid" id="grid" role="grid" aria-label="সুডোকুর ছক"></div>
+  </div>
+
+  <div class="sd-deck">
+    <div class="sd-pad" id="pad"></div>
+    <div class="sd-tools">
+      <button class="sd-tool" id="t-pencil" aria-pressed="false">পেন্সিল</button>
+      <button class="sd-tool" id="t-undo">ফেরত</button>
+      <button class="sd-tool" id="t-erase">মুছুন</button>
+      <button class="sd-tool" id="t-check">পরীক্ষা<span class="sd-tool__n" id="t-check-n"></span></button>
+    </div>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SHEETS
+     ===================================================================== -->
+<div class="pa-sheet" id="sheet-arch" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সব ধাঁধা" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">সব ধাঁধা</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="sd-arclist" id="arch-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-howto" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="কীভাবে খেলবেন" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">কীভাবে খেলবেন</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll sd-sheetbody">
+      <ol class="sd-htp">
+        <li>
+          <h4 class="sd-htp__h">ছক ভরান</h4>
+          <p class="sd-htp__p">প্রতিটি সারি, প্রতিটি কলাম আর প্রতিটি ৩×৩ বাক্সে ১ থেকে ৯ প্রতিটি সংখ্যা একবার করে বসবে — দুবার নয়।</p>
+        </li>
+        <li>
+          <h4 class="sd-htp__h">ঘর বেছে সংখ্যা বসান</h4>
+          <p class="sd-htp__p">আগে একটি খালি ঘরে চাপ দিন, তারপর নিচের সারি থেকে সংখ্যা বেছে নিন। একই সংখ্যা আবার চাপলে ঘরটি খালি হয়ে যাবে। মোটা কালো সংখ্যাগুলো ছাপা — ওগুলো বদলানো যায় না।</p>
+          <div class="sd-figs">
+            <span class="sd-fig"><span class="sd-fig__c is-given">৪</span><span class="sd-fig__l">ছাপা</span></span>
+            <span class="sd-fig"><span class="sd-fig__c">৭</span><span class="sd-fig__l">আপনার লেখা</span></span>
+            <span class="sd-fig"><span class="sd-fig__c is-sel">২</span><span class="sd-fig__l">এখন যেখানে আছেন</span></span>
+          </div>
+        </li>
+        <li>
+          <h4 class="sd-htp__h">পেন্সিলে টুকে রাখুন</h4>
+          <p class="sd-htp__p">নিশ্চিত না হলে <b>পেন্সিল</b> চেপে সম্ভাব্য সংখ্যাগুলো ছোট করে টুকে রাখুন। কোনো ঘরে সংখ্যা বসালে সেই সারি, কলাম ও বাক্স থেকে ওই সংখ্যার টুকে রাখা দাগ নিজেই মুছে যায়।</p>
+          <div class="sd-figs">
+            <span class="sd-fig"><span class="sd-fig__c"><span class="sd-marks"><span>১</span><span></span><span>৩</span><span></span><span>৫</span><span></span><span></span><span></span><span>৯</span></span></span><span class="sd-fig__l">পেন্সিলের দাগ</span></span>
+          </div>
+        </li>
+        <li>
+          <h4 class="sd-htp__h">ভুল হলে</h4>
+          <p class="sd-htp__p">একই সারি, কলাম বা বাক্সে একই সংখ্যা দুবার পড়লে দুটোই লাল হয়ে যাবে — ওটা ছকেই দেখা যায়। সমাধানের সঙ্গে মিলিয়ে দেখতে চাইলে <b>পরীক্ষা</b> চাপুন; যেসব ঘর ভুল, সেগুলোয় কাটা দাগ পড়বে। যতবার খুশি পরীক্ষা করতে পারেন, কোনো শাস্তি নেই — শেষে শুধু কতবার দেখেছেন তা লেখা থাকবে।</p>
+          <div class="sd-figs">
+            <span class="sd-fig"><span class="sd-fig__c is-wrong">৬</span><span class="sd-fig__l">পরীক্ষায় ভুল</span></span>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-set" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সেটিংস" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">সেটিংস</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="pa-menu">
+        <button class="pa-menu__row" id="set-num" role="switch" aria-checked="true">
+          <span>
+            <span class="pa-menu__label">বাংলা সংখ্যা</span><br>
+            <span class="pa-menu__hint">বন্ধ করলে ছক, সময় ও তারিখ — সব সংখ্যা ইংরেজিতে দেখাবে</span>
+          </span>
+          <span class="pa-switch" aria-hidden="true"></span>
+        </button>
+        <div class="pa-menu__sep"></div>
+        <button class="pa-menu__row" id="set-howto">
+          <span class="pa-menu__label">কীভাবে খেলবেন</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <button class="pa-menu__row" id="set-arch">
+          <span class="pa-menu__label">সব ধাঁধা</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </button>
+        <div class="pa-menu__sep"></div>
+        <button class="pa-menu__row" id="set-reset">
+          <span>
+            <span class="pa-menu__label">এই ধাঁধা নতুন করে শুরু</span><br>
+            <span class="pa-menu__hint">আপনার লেখা সব সংখ্যা ও পেন্সিলের দাগ মুছে যাবে</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-win" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সম্পূর্ণ" tabindex="-1">
+    <div class="sd-win">
+      <p class="sd-win__mark">চমৎকার!</p>
+      <p class="sd-win__diff" id="win-diff"></p>
+      <div class="sd-win__nums">
+        <span class="sd-win__num"><b class="sd-win__v" id="win-time">০:০০</b><span class="sd-win__k">সময়</span></span>
+        <span class="sd-win__num"><b class="sd-win__v" id="win-best">০:০০</b><span class="sd-win__k">সেরা</span></span>
+        <span class="sd-win__num"><b class="sd-win__v" id="win-checks">০</b><span class="sd-win__k">পরীক্ষা</span></span>
+      </div>
+      <p class="sd-win__note" id="win-note"></p>
+      <div class="sd-win__acts">
+        <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
+        <span class="sd-win__ghosts">
+          <button class="pa-btn pa-btn--ghost" id="win-board">ফিরে দেখুন</button>
+          <button class="pa-btn pa-btn--ghost" id="win-front">প্রথম পাতা</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script src="../../shared/bn-text.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

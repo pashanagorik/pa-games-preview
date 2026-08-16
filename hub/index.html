@@ -245,6 +245,9 @@ a.kg-game:hover { background: var(--pa-chrome-tint); }
 /* fill:none matters for the flower: a <polygon> with no fill rule defaults to
    solid black, so a hairline hex cell would print as an ink blob. */
 .kg-thumb .g { stroke: var(--pa-rule); stroke-width: 1; fill: none; }
+/* Box rules for a grid of grids. Ink, not hairline: at 3.5rem the 3×3
+   structure is the whole of what identifies the drawing as a sudoku. */
+.kg-thumb .gb { stroke: var(--pa-ink); stroke-width: 1.5; fill: none; }
 /* A petal the reader has earned. Green is the system's settled ink — red is
    *now*, and a word already found is not now; cyan is blocked, which it also
    is not. */
