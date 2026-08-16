@@ -270,28 +270,35 @@
     return st;
   }
 
+  /* Real play means a real SOLVE, not a keystroke. Scanning for progress keys
+     counted the first letter typed as real play, which switched the sample
+     history off mid-puzzle and dropped a six-day streak to zero while the
+     reader was still filling the grid. A solve is the only event that can
+     honestly replace a demo day, so it is the only one that ends the demo —
+     and it is read through each game's own status reader, so this can never
+     drift from what the ledger rows say. */
   var _hasReal = null;
   function hasRealPlay() {
     if (_hasReal !== null) return _hasReal;
     _hasReal = false;
     try {
-      for (var i = 0; i < localStorage.length; i++) {
-        var k = localStorage.key(i);
-        /* A best-time key is written by the game on a solve, so it is real
-           play; a `:best:` key alone without a progress key is not, and it
-           shares the progress prefix — hence the explicit exclusion. */
-        if (k && (k.indexOf(XW_STORE) === 0
-          || (k.indexOf(WS_STORE) === 0 && k.indexOf(WS_BEST) !== 0)
-          || (k.indexOf(WF_STORE) === 0 && k.indexOf(WF_BEST) !== 0)
-          || (k.indexOf(SD_STORE) === 0 && k.indexOf(SD_BEST) !== 0))) {
-          _hasReal = true; break;
+      for (var i = 0; i < BUILT.length && !_hasReal; i++) {
+        var g = GAMES[BUILT[i]];
+        if (!g) continue;
+        var list = (g.idx && g.idx.puzzles) || [];
+        for (var j = 0; j < list.length; j++) {
+          if (g.status(list[j].id).state === 'solved') { _hasReal = true; break; }
         }
       }
     } catch (e) {}
     return _hasReal;
   }
 
-  /* Demo runs until the reader has played something real, or until they
+  /* Before the indexes arrive every game reports nothing, so an answer cached
+     at that point is worthless; boot drops it once the packs are in. */
+  function forgetRealPlay() { _hasReal = null; }
+
+  /* Demo runs until the reader has solved something real, or until they
      switch it off; either way the choice is theirs to change in the sheet. */
   function demoActive() {
     var v = demoOn();
@@ -988,6 +995,13 @@
         .then(function (p) { GRIDS[p.id] = p.grid; })
         .catch(function () {});
     }).then(function () {
+      /* Settle the demo question once, with the packs loaded, and write the
+         answer down. Left undecided it is re-derived on every load, so the
+         sample history could vanish underneath a reader between sessions —
+         and solving today's puzzle would have read as 0 → 1 rather than the
+         6 → 7 the ledger note promises. */
+      forgetRealPlay();
+      if (demoOn() === null) setDemo(!hasRealPlay());
       renderWeek();
       renderDay();
       setInterval(renderNext, 30000);
