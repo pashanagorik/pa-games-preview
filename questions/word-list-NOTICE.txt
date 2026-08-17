@@ -1,0 +1,28 @@
+শব্দফুল accept-sets — third-party attribution
+=============================================
+
+The .txt files in this directory are word lists derived from the Bengali
+(Bangladesh) Hunspell dictionary shipped with LibreOffice:
+
+    https://github.com/LibreOffice/dictionaries/tree/master/bn_BD
+
+    bn_BD.dic — the stem list
+    bn_BD.aff — the affix rules
+    Copyright 2018 Jacob Thomas, Bengal Creative Media LTD
+
+That dictionary is licensed under the GNU General Public License. These
+files are a derived work of it: each is the subset of the dictionary
+(stems expanded through the affix rules) that a single day's seven letters
+can spell. They are redistributed under the same licence.
+
+This is a deliberate change of position. PHASE2-BANGLA-SPEC.md originally
+held that the dictionary was internal tooling and that nothing derived from
+it would ship, on the basis that the GPL binds distribution and not use.
+That position was compatible with shipping a 160-word bonus list; it is not
+compatible with the game's own load-bearing promise that a real Bangla word
+is never refused, which requires shipping the accept-set in full. The
+promise was judged worth more than the position (2026-08-15).
+
+Nothing else in this repository is GPL. These data files are aggregated
+with the game, not linked into it: the game reads them at runtime the way
+it reads any content file.
