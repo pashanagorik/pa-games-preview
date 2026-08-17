@@ -966,7 +966,7 @@
   FIRST VIEWPORT (front): masthead over the spot-red rule; a lead block —
   kicker, date set at masthead scale, the 8×8 board at thumbnail scale
   carrying its blocks and the reader's own progress, the state line; one
-  primary action; then সব শব্দভেদ and কীভাবে খেলবেন beneath a hairline.
+  primary action; then সব ধাঁধা and কীভাবে খেলবেন beneath a hairline.
 
   SECOND VIEWPORT (board): the active clue with step arrows; the active
   entry enlarged to roughly 2× across the full width; the 8×8 grid centred;
@@ -1025,14 +1025,14 @@
     </section>
 
     <aside class="fp-aside">
-      <h2 class="fp-aside__h">সব শব্দভেদ<span class="fp-aside__n" id="fp-aside-count"></span></h2>
+      <h2 class="fp-aside__h">সব ধাঁধা<span class="fp-aside__n" id="fp-aside-count"></span></h2>
       <ul class="xw-arclist pa-scroll" id="fp-archivelist"></ul>
     </aside>
    </div>
 
     <nav class="fp-rows">
       <button class="fp-row" id="fp-archive" aria-haspopup="dialog">
-        <span class="fp-row__t">সব শব্দভেদ</span>
+        <span class="fp-row__t">সব ধাঁধা</span>
         <span class="fp-row__end">
           <span class="fp-row__m" id="fp-archive-meta"></span>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
@@ -1063,7 +1063,7 @@
       <h1 class="pa-masthead__title">শব্দভেদ</h1>
       <span class="pa-masthead__tail">
         <span class="pa-masthead__timer" id="timer" role="timer" aria-label="সময়">০:০০</span>
-        <button class="pa-iconbtn" id="btn-menu" aria-label="সহায়তা ও সেটিংস" aria-haspopup="dialog">
+        <button class="pa-iconbtn" id="btn-menu" aria-label="সেটিংস" aria-haspopup="dialog">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><circle cx="12" cy="5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"/></svg>
         </button>
       </span>
@@ -1077,24 +1077,24 @@
   </header>
 
   <div class="xw-clue">
-    <button class="xw-clue__nav" id="btn-prev" aria-label="আগের সংকেত">
+    <button class="xw-clue__nav" id="btn-prev" aria-label="আগের সূত্র">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14 6l-6 6 6 6"/></svg>
     </button>
-    <button class="xw-clue__body" id="btn-clue" aria-label="সব সংকেত দেখুন" aria-haspopup="dialog">
+    <button class="xw-clue__body" id="btn-clue" aria-label="সবগুলো সূত্র দেখুন" aria-haspopup="dialog">
       <span class="xw-clue__num" id="clue-num"></span>
       <span class="xw-clue__text" id="clue-text"></span>
       <span class="xw-clue__list">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
       </span>
     </button>
-    <button class="xw-clue__nav" id="btn-next" aria-label="পরের সংকেত">
+    <button class="xw-clue__nav" id="btn-next" aria-label="পরের সূত্র">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 6l6 6-6 6"/></svg>
     </button>
   </div>
 
   <!-- first run only; retires itself after the third filled square -->
   <div class="xw-coach" id="coach" hidden>
-    <p class="xw-coach__t">একই ঘরে আবার চাপলে দিক বদলায়।</p>
+    <p class="xw-coach__t">একই ঘরে আবার ক্লিক করলে দিক বদলায়।</p>
     <button class="xw-coach__more" id="coach-more" aria-haspopup="dialog">কীভাবে খেলবেন</button>
     <button class="pa-iconbtn xw-coach__x" id="coach-x" aria-label="বন্ধ করুন">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
@@ -1104,7 +1104,7 @@
   <!-- shown once per fill: the grid is complete but does not match -->
   <div class="xw-full" id="full" role="status" hidden>
     <p class="xw-full__t">কিছু অক্ষর মিলছে না।</p>
-    <button class="xw-full__act" id="full-check">পরীক্ষা</button>
+    <button class="xw-full__act" id="full-check">যাচাই</button>
     <button class="pa-iconbtn xw-full__x" id="full-x" aria-label="বন্ধ করুন">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
@@ -1127,11 +1127,11 @@
 </div><!-- /.pa-app -->
 
 <!-- clue list sheet -->
-<div class="pa-sheet" id="sheet-clues" role="dialog" aria-modal="true" aria-label="সংকেত" hidden>
+<div class="pa-sheet" id="sheet-clues" role="dialog" aria-modal="true" aria-label="সূত্র" hidden>
   <div class="pa-sheet__scrim" data-close></div>
   <div class="pa-sheet__panel" tabindex="-1">
     <div class="pa-sheet__head">
-      <h2 class="pa-sheet__title">সংকেত</h2>
+      <h2 class="pa-sheet__title">সূত্র</h2>
       <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -1142,11 +1142,11 @@
 </div>
 
 <!-- archive sheet -->
-<div class="pa-sheet" id="sheet-archive" role="dialog" aria-modal="true" aria-label="সব শব্দভেদ" hidden>
+<div class="pa-sheet" id="sheet-archive" role="dialog" aria-modal="true" aria-label="সব ধাঁধা" hidden>
   <div class="pa-sheet__scrim" data-close></div>
   <div class="pa-sheet__panel" tabindex="-1">
     <div class="pa-sheet__head">
-      <h2 class="pa-sheet__title">সব শব্দভেদ</h2>
+      <h2 class="pa-sheet__title">সব ধাঁধা</h2>
       <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -1173,9 +1173,9 @@
 
         <section class="ht__sec">
           <h3 class="ht__h"><span class="ht__n">১</span>ছক</h3>
-          <p class="ht__p">ফাঁকা ঘরে চাপলে সেই শব্দটি সক্রিয় হয়। একই ঘরে আবার চাপলে বাঁ থেকে ডানে আর ওপর থেকে নিচে — দিক বদলে যায়।</p>
+          <p class="ht__p">ফাঁকা ঘরে ক্লিক করলে সেই শব্দটি সক্রিয় হয়। একই ঘরে আবার ক্লিক করলে বাঁ থেকে ডানে আর ওপর থেকে নিচে — দিক বদলে যায়।</p>
           <div class="ht__fig">
-            <span class="ht-item"><span class="ht-cell"></span><span class="ht-item__l">খালি ঘর</span></span>
+            <span class="ht-item"><span class="ht-cell"></span><span class="ht-item__l">ফাঁকা ঘর</span></span>
             <span class="ht-item"><span class="ht-cell ht-cell--block"></span><span class="ht-item__l">বন্ধ ঘর</span></span>
             <span class="ht-item"><span class="ht-cell ht-cell--active">ক</span><span class="ht-item__l">চলতি ঘর</span></span>
           </div>
@@ -1183,7 +1183,7 @@
 
         <section class="ht__sec">
           <h3 class="ht__h"><span class="ht__n">২</span>অক্ষর লেখা</h3>
-          <p class="ht__p">প্রতিটি ঘরে একটি পূর্ণ অক্ষর বসে। আগে ব্যঞ্জন, তারপর কার বা হসন্ত — যেভাবে হাতে লেখা হয়।</p>
+          <p class="ht__p">প্রতিটি ঘরে একটি পূর্ণ অক্ষর বসে। আগে ব্যঞ্জনবর্ণ, তারপর কার বা হসন্ত — যেভাবে হাতে লেখা হয়।</p>
           <div class="ht-steps">
             <span class="ht-key">ধ</span>
             <span class="ht-key ht-key--mark">◌ো</span>
@@ -1199,12 +1199,12 @@
             <span class="ht-arrow"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12h13M13 7l5 5-5 5"/></svg></span>
             <span class="ht-cell">ন্দ্র</span>
           </div>
-          <p class="ht__p">নতুন ব্যঞ্জন চাপলে ঘরটি সম্পূর্ণ হয় আর পরের ঘরে চলে যায়। মুছুন বোতাম একবারে একটি অংশ তুলে নেয়।</p>
+          <p class="ht__p">নতুন ব্যঞ্জনবর্ণ ক্লিক করলে ঘরটি সম্পূর্ণ হয় আর পরের ঘরে চলে যায়। মুছুন বোতাম একবারে একটি অংশ তুলে নেয়।</p>
         </section>
 
         <section class="ht__sec">
-          <h3 class="ht__h"><span class="ht__n">৩</span>পরীক্ষা ও প্রকাশ</h3>
-          <p class="ht__p">ওপরের ডানদিকের সহায়তা বোতাম থেকে পরীক্ষা করলে ভুল অক্ষরের ওপর লাল দাগ পড়ে। প্রকাশ করলে অক্ষরটি নীল রঙে বসে, যাতে মনে থাকে কোনটি নিজে মেলানো হয়নি।</p>
+          <h3 class="ht__h"><span class="ht__n">৩</span>যাচাই ও প্রকাশ</h3>
+          <p class="ht__p">ওপরের ডানদিকের সহায়তা বোতাম থেকে যাচাই করলে ভুল অক্ষরের ওপর লাল দাগ পড়ে। প্রকাশ করলে অক্ষরটি নীল রঙে বসে, যাতে মনে থাকে কোনটি নিজে থেকে মেলানো হয়নি।</p>
           <div class="ht__fig">
             <span class="ht-item"><span class="ht-cell ht-cell--wrong">ক</span><span class="ht-item__l">ভুল</span></span>
             <span class="ht-item"><span class="ht-cell ht-cell--revealed">খ</span><span class="ht-item__l">প্রকাশ করা</span></span>
@@ -1213,8 +1213,8 @@
 
         <section class="ht__sec">
           <h3 class="ht__h"><span class="ht__n">৪</span>পুরো ছক দেখা</h3>
-          <p class="ht__p">কীবোর্ডের ওপরের হাতলে চাপলে কীবোর্ড আর বড় শব্দপট্টি একসঙ্গে গুটিয়ে যায়, তখন পুরো ছক বড় করে দেখা যায়। যেকোনো ঘরে চাপলে আবার ফিরে আসে।</p>
-          <p class="ht__p">সময় গোনা হয়, কিন্তু হারার কিছু নেই।</p>
+          <p class="ht__p">কীবোর্ডের ওপরের হাতলে ক্লিক করলে কীবোর্ড আর বড় শব্দগুচ্ছ একসঙ্গে গুটিয়ে যায়, তখন পুরো ছক বড় করে দেখা যায়। যেকোনো ঘরে ক্লিক করলে কীবোর্ড আবার ফিরে আসে।</p>
+          <p class="ht__p">সময় কেবল পরিসংখ্যান - জেতা বা হারার সাথে সম্পর্কিত না</p>
         </section>
 
       </div>
@@ -1223,7 +1223,7 @@
 </div>
 
 <!-- menu sheet -->
-<div class="pa-sheet" id="sheet-menu" role="dialog" aria-modal="true" aria-label="সহায়তা ও সেটিংস" hidden>
+<div class="pa-sheet" id="sheet-menu" role="dialog" aria-modal="true" aria-label="সেটিংস" hidden>
   <div class="pa-sheet__scrim" data-close></div>
   <div class="pa-sheet__panel" tabindex="-1">
     <div class="pa-sheet__head">
@@ -1236,19 +1236,19 @@
       <div class="pa-menu">
         <button class="pa-menu__row" data-act="howto"><span class="pa-menu__label">কীভাবে খেলবেন</span></button>
         <div class="pa-menu__sep"></div>
-        <button class="pa-menu__row" data-act="check-cell"><span class="pa-menu__label">পরীক্ষা — ঘর</span></button>
-        <button class="pa-menu__row" data-act="check-word"><span class="pa-menu__label">পরীক্ষা — শব্দ</span></button>
-        <button class="pa-menu__row" data-act="check-all"><span class="pa-menu__label">পরীক্ষা — পুরো ছক</span></button>
+        <button class="pa-menu__row" data-act="check-cell"><span class="pa-menu__label">ঘর যাচাই</span></button>
+        <button class="pa-menu__row" data-act="check-word"><span class="pa-menu__label">শব্দ যাচাই</span></button>
+        <button class="pa-menu__row" data-act="check-all"><span class="pa-menu__label">পুরো ছক যাচাই</span></button>
         <div class="pa-menu__sep"></div>
         <button class="pa-menu__row" data-act="reveal-cell"><span class="pa-menu__label">প্রকাশ — ঘর</span></button>
         <button class="pa-menu__row" data-act="reveal-word"><span class="pa-menu__label">প্রকাশ — শব্দ</span></button>
         <button class="pa-menu__row" data-act="reveal-all"><span class="pa-menu__label">প্রকাশ — পুরো ছক</span><span class="pa-menu__hint">সমাধান দেখাবে</span></button>
         <div class="pa-menu__sep"></div>
         <button class="pa-menu__row" id="row-autocheck" role="switch" aria-checked="false" data-act="autocheck">
-          <span class="pa-menu__label">স্বয়ংপরীক্ষা</span><span class="pa-switch" aria-hidden="true"></span>
+          <span class="pa-menu__label">স্বয়ংক্রিয় যাচাই</span><span class="pa-switch" aria-hidden="true"></span>
         </button>
         <div class="pa-menu__sep"></div>
-        <button class="pa-menu__row" data-act="clear"><span class="pa-menu__label">ছক খালি করুন</span></button>
+        <button class="pa-menu__row" data-act="clear"><span class="pa-menu__label">ছক ফাঁকা করুন</span></button>
       </div>
     </div>
   </div>

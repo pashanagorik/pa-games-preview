@@ -31,31 +31,31 @@
     review: 'আবার দেখুন',
 
     stateNew: 'এখনো শুরু হয়নি',
-    stateFull: 'ছক ভরেছে',
+    stateFull: 'ছক সম্পূর্ণ হয়েছে',
     stateRunning: 'চলছে',
     stateSolved: 'সমাধান হয়েছে',
     cellsLeft: 'টি ঘর বাকি',
-    clueCount: 'টি সংকেত',
+    clueCount: 'টি সূত্র',
     puzzleCount: 'টি ধাঁধা',
     solvedCount: 'টি সমাধান হয়েছে',
     timePrefix: 'সময় ',
 
-    clear: 'ছক খালি করুন',
-    clearArm: 'নিশ্চিত? আবার চাপুন',
+    clear: 'ছক ফাঁকা করুন',
+    clearArm: 'নিশ্চিত? আবার ক্লিক করুন',
 
     noAssist: 'কোনো সহায়তা ছাড়াই সমাধান',
     withAssist: 'সহায়তা নিয়ে সম্পন্ন',
     newBest: 'এটিই আপনার সেরা সময়',
     nextPuzzle: 'পরের ধাঁধা',
-    allPuzzles: 'সব শব্দভেদ',
+    allPuzzles: 'সব ধাঁধা',
 
-    loadFail: 'ধাঁধা লোড করা গেল না।',
+    loadFail: 'ধাঁধা লোড হয়নি।',
     retry: 'আবার চেষ্টা করুন',
 
     ariaRow: 'সারি ',
     ariaCol: ' ঘর ',
     ariaNum: ' নম্বর',
-    ariaEmpty: 'খালি'
+    ariaEmpty: 'ফাঁকা'
   };
 
   var K_COACH = 'pa-xw-coach';

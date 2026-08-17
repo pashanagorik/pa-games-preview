@@ -23,7 +23,7 @@
      markup; this is the half that changes with state. */
   var T = {
     today: 'আজকের ধাঁধা',
-    recent: 'সাম্প্রতিক ধাঁধা',
+    recent: 'সর্বশেষ ধাঁধা',
     start: 'শুরু করুন',
     resume: 'চালিয়ে যান',
     review: 'আবার দেখুন',
@@ -733,7 +733,7 @@
       })
       .catch(function (err) {
         console.error(err);
-        $('fp-theme').textContent = 'ধাঁধা লোড করা গেল না';
+        $('fp-theme').textContent = 'ধাঁধা লোড হয়নি';
       });
   }
 

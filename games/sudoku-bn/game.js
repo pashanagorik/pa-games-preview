@@ -34,7 +34,7 @@
      markup; this is the half that changes with state. */
   var T = {
     today: 'আজকের ধাঁধা',
-    recent: 'সাম্প্রতিক ধাঁধা',
+    recent: 'সর্বশেষ ধাঁধা',
     start: 'শুরু করুন',
     resume: 'চালিয়ে যান',
     review: 'আবার দেখুন',
@@ -48,7 +48,7 @@
     latestBadge: 'সর্বশেষ',
     newBest: 'নতুন সেরা সময়',
     firstSolve: 'প্রথমবার সমাধান',
-    unaided: 'একবারও পরীক্ষা না করে',
+    unaided: 'একবারও যাচাই না করে',
     puzzle: ' ধাঁধা',
     coach: 'নিশ্চিত না হলে পেন্সিল চেপে সম্ভাব্য সংখ্যা টুকে রাখুন।',
     full: 'কিছু সংখ্যা মিলছে না।',
@@ -58,7 +58,7 @@
     ariaCell: ' নম্বর ঘর, সারি ',
     ariaCol: ', কলাম ',
     ariaGiven: ', ছাপা',
-    ariaEmpty: 'খালি'
+    ariaEmpty: 'ফাঁকা'
   };
 
   var DIFF = { easy: 'সহজ', medium: 'মাঝারি', hard: 'কঠিন' };
@@ -1001,7 +1001,7 @@
       })
       .catch(function (err) {
         console.error(err);
-        $('fp-diff').textContent = 'ধাঁধা লোড করা গেল না';
+        $('fp-diff').textContent = 'ধাঁধা লোড হয়নি';
       });
   }
 

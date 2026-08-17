@@ -29,7 +29,7 @@
      markup; this is the half that changes with state. */
   var T = {
     today: 'আজকের ধাঁধা',
-    recent: 'সাম্প্রতিক ধাঁধা',
+    recent: 'সর্বশেষ ধাঁধা',
     start: 'শুরু করুন',
     resume: 'চালিয়ে যান',
     review: 'আবার দেখুন',
@@ -44,8 +44,8 @@
     latestBadge: 'সর্বশেষ',
     newBest: 'নতুন সেরা সময়',
     firstSolve: 'প্রথমবার সমাধান',
-    unaided: 'কোনো সহায়তা ছাড়াই',
-    prompt: 'অক্ষরে চাপ দিন',
+    unaided: 'কোনো সহায়তা ছাড়াই সমাধান',
+    prompt: 'অক্ষরে ক্লিক করুন',
     /* A refusal that does not say why is the failure the two-list design
        exists to prevent. Four reasons, one line, replaced not stacked. */
     badShort: 'তিন অক্ষরের কম',
@@ -1232,7 +1232,7 @@
         /* The letters line used to carry this. It is gone, so the state line
            does — it is the only thing on the front page whose job is to say
            what is happening. */
-        $('fp-state').textContent = 'ধাঁধা লোড করা গেল না';
+        $('fp-state').textContent = 'ধাঁধা লোড হয়নি';
       });
   }
 
