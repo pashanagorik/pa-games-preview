@@ -247,6 +247,10 @@ body {
   color: var(--ink-3);
 }
 
+.q__body ul { margin: 0 0 var(--s3); padding-inline-start: 1.15rem; display: grid; gap: var(--s2); color: var(--ink-2); }
+.q__body li::marker { color: var(--ink-3); }
+.q__body li b { color: var(--ink); font-weight: 600; }
+
 a { color: var(--cyan); }
 :focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
 
@@ -499,10 +503,39 @@ a { color: var(--cyan); }
   </section>
 
   <section class="sec">
-    <h2 class="sec__h">Editorial <span class="sec__n">Questions 18–21</span></h2>
+    <h2 class="sec__h">Ads and layout <span class="sec__n">Questions 18–19</span></h2>
+
+    <div class="q">
+      <div class="q__n">18</div>
+      <div class="q__body">
+        <h3 class="q__t">Which ad formats, and where?</h3>
+        <p class="q__p">Rewarded video is already covered in 9. For everything else we need the units you sell and where they may appear.</p>
+        <p class="q__p"><b>We recommend:</b></p>
+        <ul>
+          <li><b>Hub catalogue</b> — a native unit between game rows, in the feed rather than over it.</li>
+          <li><b>Game front page</b> — a banner above the fold, before play starts.</li>
+          <li><b>After a solve</b> — a banner on the result card. The best slot in the product: the reader has finished, nothing is interrupted, attention is high.</li>
+          <li><b>Nothing during play, and no full-screen ad before a daily puzzle.</b> A reader who meets a full-screen ad on the way to today’s crossword is a reader who stops coming daily. This is the one placement we would argue against.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="q">
+      <div class="q__n">19</div>
+      <div class="q__body">
+        <h3 class="q__t">The anchored banner is the one that costs us layout</h3>
+        <p class="q__p">A game page is a <b>fixed-height screen</b>: board, keyboard, nothing scrolls. The board takes whatever the rest leaves — currently the viewport height minus about 17rem of chrome and keyboard. A sticky banner pinned to the bottom comes straight out of the board, and on a small phone that shrinks every cell and the letters inside them. It also lands exactly where the keyboard already sits.</p>
+        <p class="rec"><span class="rec__l">We recommend</span>
+          No anchored banner on a game screen. Put it on the hub and the result card, where the page can simply grow. If you need one on the game screen, tell us early — the board sizing is what changes.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <h2 class="sec__h">Editorial <span class="sec__n">Questions 20–23</span></h2>
 
     <div class="q q--key">
-      <div class="q__n">18</div>
+      <div class="q__n">20</div>
       <div class="q__body">
         <h3 class="q__t">Your ban list</h3>
         <p class="q__p">We screen the dictionary against 27 blocked word-roots <b>we chose ourselves</b>. Please send Prothom Alo’s own.</p>
@@ -512,10 +545,10 @@ a { color: var(--cyan); }
     </div>
 
     <div class="q">
-      <div class="q__n">19</div>
+      <div class="q__n">21</div>
       <div class="q__body">
         <h3 class="q__t">Words no human has read — here they are</h3>
-        <p class="q__p">শব্দফুল accepts <b>108,900 distinct Bangla words</b> across the 30-day pack. They are machine-screened against the blocked roots in 18, but nobody has read them. Asking you to approve a list we never showed you would be meaningless, so here is all of it, one word per line: <a href="https://pashanagorik.github.io/pa-games-preview/questions/word-list.txt">word-list.txt</a></p>
+        <p class="q__p">শব্দফুল accepts <b>108,900 distinct Bangla words</b> across the 30-day pack. They are machine-screened against the blocked roots in 20, but nobody has read them. Asking you to approve a list we never showed you would be meaningless, so here is all of it, one word per line: <a href="https://pashanagorik.github.io/pa-games-preview/questions/word-list.txt">word-list.txt</a></p>
         <p class="q__p">Would you like a sampled human review before launch?</p>
         <p class="fallback"><span class="fallback__l">If we do not hear back</span>
           We take the screen as accepted.</p>
@@ -523,7 +556,7 @@ a { color: var(--cyan); }
     </div>
 
     <div class="q">
-      <div class="q__n">20</div>
+      <div class="q__n">22</div>
       <div class="q__body">
         <h3 class="q__t">Your editorial guidance</h3>
         <p class="q__p">Puzzle themes, crossword clues and quiz questions go out under your masthead, so they should follow your rules rather than ours. Please send whatever editorial guidance applies — and name the editor who signs off.</p>
@@ -533,7 +566,7 @@ a { color: var(--cyan); }
     </div>
 
     <div class="q">
-      <div class="q__n">21</div>
+      <div class="q__n">23</div>
       <div class="q__body">
         <h3 class="q__t">Who writes the puzzles after we hand over?</h3>
         <p class="q__p">We author the first packs. At some point your side takes it on — we need <b>the team or person who will own it</b>, and roughly when they start, so we can plan the training. Puzzles are added through a simple editor; nobody needs to be technical.</p>
@@ -542,10 +575,10 @@ a { color: var(--cyan); }
   </section>
 
   <section class="sec">
-    <h2 class="sec__h">Naming <span class="sec__n">Questions 22–23</span></h2>
+    <h2 class="sec__h">Naming <span class="sec__n">Questions 24–25</span></h2>
 
     <div class="q">
-      <div class="q__n">22</div>
+      <div class="q__n">24</div>
       <div class="q__body">
         <h3 class="q__t">খেলাঘর</h3>
         <p class="q__p">The name collides with the children’s organisation founded in 1952. We flagged it, it was chosen anyway, and it is on the preview now. Confirm it or replace it <b>before</b> launch.</p>
@@ -555,7 +588,7 @@ a { color: var(--cyan); }
     </div>
 
     <div class="q">
-      <div class="q__n">23</div>
+      <div class="q__n">25</div>
       <div class="q__body">
         <h3 class="q__t">Two catalogue names sit on the wrong games</h3>
         <p class="q__p"><b>Crossword Mini</b> is named <b>মিনি শব্দজট</b>, putting your print crossword’s name on a minor game — while the hero that actually reproduces it is <b>শব্দভেদ</b>. And the catalogue word search is named <b>শব্দ সন্ধান</b>, already hero #2. Neither is on the preview yet.</p>
@@ -567,10 +600,10 @@ a { color: var(--cyan); }
   </section>
 
   <section class="sec">
-    <h2 class="sec__h">Rights <span class="sec__n">Questions 24–26</span></h2>
+    <h2 class="sec__h">Rights <span class="sec__n">Questions 26–28</span></h2>
 
     <div class="q q--key">
-      <div class="q__n">24</div>
+      <div class="q__n">26</div>
       <div class="q__body">
         <h3 class="q__t">The printed archive</h3>
         <p class="q__p">We transcribed five of your printed শব্দজট puzzles into শব্দভেদ, and they are on the preview. We need the digital-reuse position confirmed <b>in writing</b>.</p>
@@ -581,20 +614,20 @@ a { color: var(--cyan); }
     </div>
 
     <div class="q q--key">
-      <div class="q__n">25</div>
+      <div class="q__n">27</div>
       <div class="q__body">
         <h3 class="q__t">A GPL word list on your surface</h3>
-        <p class="q__p">শব্দফুল promises never to refuse a real Bangla word. Keeping that promise meant shipping the <b>108,900-word list in 19</b>, built from the open Hunspell bn_BD dictionary, which carries a GPL notice. That is your call to make — and we would rather you made it than found it.</p>
+        <p class="q__p">শব্দফুল promises never to refuse a real Bangla word. Keeping that promise meant shipping the <b>108,900-word list in 21</b>, built from the open Hunspell bn_BD dictionary, which carries a GPL notice. That is your call to make — and we would rather you made it than found it.</p>
         <p class="fallback"><span class="fallback__l">If we do not hear back</span>
           It ships as built, with the notice.</p>
       </div>
     </div>
 
     <div class="q">
-      <div class="q__n">26</div>
+      <div class="q__n">28</div>
       <div class="q__body">
         <h3 class="q__t">Bangla Academy dictionary</h3>
-        <p class="q__p">Are you pursuing a licence? It would replace the list above and remove 25 entirely.</p>
+        <p class="q__p">Are you pursuing a licence? It would replace the list above and remove 27 entirely.</p>
         <p class="fallback"><span class="fallback__l">If we do not hear back</span>
           We assume not.</p>
       </div>
@@ -602,7 +635,7 @@ a { color: var(--cyan); }
   </section>
 
   <p class="foot">
-    If you answer only a few: <b>14, 18, 24 and 25</b>. Those four change what we
+    If you answer only a few: <b>14, 20, 26 and 27</b>. Those four change what we
     build. Everything else has a default and will proceed on it.
   </p>
   <p class="sig">Nagorik Technologies · প্রথম আলো খেলাঘর</p>
