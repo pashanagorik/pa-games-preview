@@ -58,7 +58,7 @@
        message should say which of the two of you is missing something. */
     badList: 'আমাদের শব্দকোষে নেই',
     askThis: 'অনুরোধ করুন',
-    askSent: 'ধন্যবাদ — শব্দটি পাঠানো হয়েছে',
+    askSent: 'ধন্যবাদ, শব্দটি পাঠানো হয়েছে',
     bonusTook: 'অতিরিক্ত শব্দ',
     hintNone: 'সব শব্দ পাওয়া গেছে',
     winWords: 'টি শব্দ, ',
@@ -1144,7 +1144,7 @@
         + '&' + REQUEST_FIELDS.date + '=' + encodeURIComponent(when);
     }
     return 'mailto:' + REQUEST_MAIL
-      + '?subject=' + encodeURIComponent('শব্দফুল — শব্দের অনুরোধ')
+      + '?subject=' + encodeURIComponent('শব্দফুল: শব্দের অনুরোধ')
       + '&body=' + encodeURIComponent('শব্দ: ' + w + '\nধাঁধা: ' + pid + '\nতারিখ: ' + when);
   }
 
