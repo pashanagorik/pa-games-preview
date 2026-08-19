@@ -1131,11 +1131,7 @@
 
   function loadPuzzle(id) {
     stopTimer();
-    return fetch('puzzles/' + id + '.json')
-      .then(function (r) {
-        if (!r.ok) throw new Error('puzzle ' + id + ' not found');
-        return r.json();
-      })
+    return PaData.json('puzzles/' + id + '.json')
       .then(function (puz) {
         P = puz;
         currentId = id;
@@ -1195,8 +1191,7 @@
 
     var deepLink = false;
 
-    fetch('puzzles/index.json')
-      .then(function (r) { return r.json(); })
+    PaData.json('puzzles/index.json')
       .then(function (index) {
         INDEX = index;
         if (!(INDEX.puzzles || []).length) throw new Error('no puzzles');

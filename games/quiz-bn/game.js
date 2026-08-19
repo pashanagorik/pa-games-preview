@@ -778,8 +778,7 @@
   }
 
   function init() {
-    fetch('puzzles/index.json')
-      .then(function (r) { return r.json(); })
+    PaData.json('puzzles/index.json')
       .then(function (pack) {
         PACK = pack;
         /* A #p= link is a request for that day, so it skips the front page.

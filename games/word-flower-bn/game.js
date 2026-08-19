@@ -1096,8 +1096,8 @@
     if (acceptFor === id) return;
     accept = null;
     acceptFor = id;
-    fetch('puzzles/accept/' + id + '.txt')
-      .then(function (r) { return r.ok ? r.text() : null; })
+    PaData.text('puzzles/accept/' + id + '.txt')
+      .catch(function () { return null; })
       .then(function (txt) {
         if (!txt || acceptFor !== id) return;
         var set = {}, list = txt.split('\n'), i, w;
@@ -1208,8 +1208,7 @@
   }
 
   function init() {
-    fetch('puzzles/index.json')
-      .then(function (r) { return r.json(); })
+    PaData.json('puzzles/index.json')
       .then(function (pack) {
         PACK = pack;
         if (!PACK.puzzles || !PACK.puzzles.length) throw new Error('empty pack');

@@ -716,8 +716,7 @@
   }
 
   function init() {
-    fetch('puzzles/index.json')
-      .then(function (r) { return r.json(); })
+    PaData.json('puzzles/index.json')
       .then(function (pack) {
         PACK = pack;
         SIZE = pack.size || 8;

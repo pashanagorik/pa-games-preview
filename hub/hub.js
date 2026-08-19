@@ -1048,8 +1048,10 @@
 
   /* ---- data ------------------------------------------------------------------- */
 
+  /* Routed through PaData so the hub works from a file:// page too — see
+     shared/pa-data.js. The key is the same relative URL it always was. */
   function getJSON(url) {
-    return fetch(url).then(function (r) {
+    return window.PaData ? window.PaData.json(url) : fetch(url).then(function (r) {
       if (!r.ok) throw new Error(r.status);
       return r.json();
     });
