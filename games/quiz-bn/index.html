@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>কুইজ · প্রথম আলো</title>
+<meta name="description" content="প্রথম আলোর দৈনিক কুইজ। প্রতিদিন এক বিষয়ে দশটি প্রশ্ন, চারটি করে উত্তর।">
+<meta name="theme-color" content="#F4F3EF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%23F4F3EF'/%3E%3Cg%20stroke='%2316171A'%20stroke-width='1.5'%20fill='none'%3E%3Crect%20x='5.75'%20y='7.75'%20width='20.5'%20height='4.5'/%3E%3Crect%20x='5.75'%20y='19.75'%20width='20.5'%20height='4.5'/%3E%3C/g%3E%3Cpath%20d='M7.5%2022l2.4%202.4L14.4%2019.6'%20stroke='%230F6B45'%20stroke-width='2.4'%20fill='none'%20stroke-linecap='round'%20stroke-linejoin='round'/%3E%3Cpath%20d='M7%2013.2L13.6%206.8'%20stroke='%23EE4023'%20stroke-width='2.4'%20stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../../shared/pa-fonts.css">
+<link rel="stylesheet" href="../../shared/pa-tokens.css">
+<link rel="stylesheet" href="../../shared/pa-ui.css">
+<style>
+/* =====================================================================
+   কুইজ — game surface.
+
+   The fifth hero and the first one that is not a board. Four grids came
+   before it and every layout pattern in DESIGN.md assumes one, so this file
+   authors the question column and inherits everything else whole.
+
+   Two things are load-bearing here and both come straight off the system:
+
+   1. The column is a COLUMN. Ten questions on one scrolling page, which is
+      what a newspaper prints and what the layout law already describes —
+      fixed head, scrolling middle, docked foot. A carousel would have meant
+      inventing a page transition four games have managed without.
+
+   2. A locked answer is marked by three carriers, not by hue. Green 30% and
+      a ✓ on the right answer; the proof-reader's slash and Red Deep on the
+      reader's wrong pick; untouched options unchanged on paper. Red and
+      green are the one pair a meaningful share of readers cannot separate,
+      and DESIGN.md forbids leaving them to do the work alone. The glyph and
+      the strike are what actually carry it; the inks agree with them.
+   ===================================================================== */
+
+/* Height from the SMALLEST viewport, as every hero does: iOS Chrome reports
+   a dvh that includes the area its collapsing toolbar will later take back,
+   which crops anything docked to the bottom the moment the toolbar returns. */
+.qz {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+#app[data-view='front'] .qz-sheetview { display: none; }
+#app[data-view='paper'] .qz-front { display: none; }
+
+/* Progress vocabulary shared by the front page and the archive rows, so the
+   two surfaces can never tell different stories. Same dots as শব্দভেদ. */
+.qz-dot {
+  flex: none;
+  width: 0.5rem; height: 0.5rem;
+  border-radius: 50%;
+  border: 1px solid var(--pa-rule);
+  background: transparent;
+}
+.qz-dot.is-part { background: var(--pa-ink-3); border-color: var(--pa-ink-3); }
+.qz-dot.is-done { background: var(--pa-green); border-color: var(--pa-green); }
+
+/* =====================================================================
+   FRONT PAGE
+   ===================================================================== */
+
+.qz-front { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.qz-front__body { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+.qz-spread { padding: var(--pa-s-5) var(--pa-s-4) 0; }
+
+.qz-kicker {
+  font: 400 var(--pa-size-meta)/1.4 var(--pa-sans);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-2);
+  text-transform: none;
+  margin: 0 0 var(--pa-s-2);
+}
+.qz-date {
+  font: 700 var(--pa-size-masthead)/1.15 var(--pa-serif);
+  letter-spacing: -0.015em;
+  color: var(--pa-ink);
+  margin: 0;
+}
+/* The theme is the day's headline and it is set as one: editorial serif on
+   the paper, not a chip and not a tag. A tag would have made the day's
+   subject read as metadata about the puzzle rather than as its title. */
+.qz-themeline {
+  font: 400 var(--pa-size-title)/1.3 var(--pa-serif);
+  color: var(--pa-red-deep);
+  margin: var(--pa-s-2) 0 0;
+}
+
+.qz-lead__row {
+  display: flex;
+  align-items: center;
+  gap: var(--pa-s-4);
+  margin: var(--pa-s-5) 0 0;
+  padding: var(--pa-s-4) 0;
+  border-top: 1px solid var(--pa-rule);
+  border-bottom: 1px solid var(--pa-rule);
+}
+.qz-facts { display: flex; flex-direction: column; gap: var(--pa-s-1); min-width: 0; }
+.qz-facts__m { font: 400 var(--pa-size-body)/1.4 var(--pa-sans); color: var(--pa-ink); }
+.qz-facts__s {
+  display: inline-flex; align-items: center; gap: var(--pa-s-2);
+  font: 400 var(--pa-size-meta)/1.4 var(--pa-sans);
+  color: var(--pa-ink-2);
+}
+
+/* The schematic. Four rules with one struck through — a quiz reduced to its
+   drawing weight, which is what Ink Faint is for and the only thing it is
+   for (The Legible Ink Rule: it is 2.99:1 and cannot set text). */
+.qz-mini {
+  flex: none;
+  width: 4.5rem; height: 4.5rem;
+  background: var(--pa-cell);
+  border: 1px solid var(--pa-rule);
+  padding: 0.55rem;
+  display: flex; flex-direction: column; justify-content: center; gap: 0.4rem;
+}
+.qz-mini i { display: block; height: 2px; background: var(--pa-ink-3); }
+.qz-mini i:nth-child(1) { width: 100%; }
+.qz-mini i:nth-child(2) { width: 72%; }
+.qz-mini i:nth-child(3) { width: 86%; background: var(--pa-green); }
+.qz-mini i:nth-child(4) { width: 60%; }
+
+.qz-cta { width: 100%; margin: var(--pa-s-5) 0 var(--pa-s-4); }
+
+.qz-rows { border-top: 1px solid var(--pa-rule); margin-top: var(--pa-s-2); }
+.qz-row {
+  width: 100%;
+  min-height: var(--pa-tap);
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--pa-s-3);
+  padding: var(--pa-s-3) var(--pa-s-4);
+  background: none; border: 0; border-bottom: 1px solid var(--pa-rule);
+  font: 400 var(--pa-size-body)/1.4 var(--pa-sans);
+  color: var(--pa-ink);
+  text-align: start;
+  cursor: pointer;
+}
+.qz-row:hover { background: var(--pa-chrome-tint); }
+.qz-row__end { display: inline-flex; align-items: center; gap: var(--pa-s-2); color: var(--pa-ink-2); }
+.qz-row__m { font-size: var(--pa-size-meta); }
+
+.qz-foot {
+  font: 400 var(--pa-size-meta)/1.4 var(--pa-sans);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-2);
+  text-align: center;
+  padding: var(--pa-s-5) 0 var(--pa-s-6);
+  margin: 0;
+}
+
+/* ---- archive ---------------------------------------------------------- */
+
+.qz-arclist { display: flex; flex-direction: column; }
+.qz-arc {
+  width: 100%;
+  display: flex; align-items: center; gap: var(--pa-s-3);
+  min-height: var(--pa-tap);
+  padding: var(--pa-s-3) var(--pa-s-4);
+  background: none; border: 0; border-bottom: 1px solid var(--pa-rule);
+  text-align: start; cursor: pointer;
+}
+.qz-arc:hover { background: var(--pa-chrome-tint); }
+.qz-arc__d { flex: 1 1 auto; min-width: 0; }
+.qz-arc__date { display: block; font: 400 var(--pa-size-body)/1.35 var(--pa-sans); color: var(--pa-ink); }
+.qz-arc__theme {
+  display: block;
+  font: 400 var(--pa-size-meta)/1.4 var(--pa-serif);
+  color: var(--pa-ink-2);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.qz-arc__end { display: inline-flex; align-items: center; gap: var(--pa-s-2); flex: none; }
+.qz-arc__score {
+  font: 400 var(--pa-size-meta)/1 var(--pa-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--pa-ink-2);
+}
+.qz-arc__badge {
+  font: 400 var(--pa-size-meta)/1 var(--pa-sans);
+  color: var(--pa-red-deep);
+  border: 1px solid var(--pa-red-40);
+  border-radius: var(--pa-r-sm);
+  padding: 0.2rem 0.4rem;
+}
+
+/* =====================================================================
+   THE COLUMN
+   ===================================================================== */
+
+.qz-sheetview { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+
+/* The head prints how many are ANSWERED, not how many are right. A running
+   score in the masthead would turn a scroll down the page into a scoreboard,
+   and the reader can count their own ✓ marks. The tally belongs on the card
+   at the end, where it is a result rather than a pressure. */
+.qz-progress {
+  font: 400 var(--pa-size-body)/1 var(--pa-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--pa-ink-2);
+  min-width: 3.25rem;
+  text-align: end;
+}
+
+.qz-themebar {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--pa-s-3);
+  padding: var(--pa-s-3) var(--pa-s-4);
+  background: var(--pa-cyan-08);
+  border-bottom: 1px solid var(--pa-rule);
+}
+.qz-themebar__t {
+  font: 400 var(--pa-size-title)/1.25 var(--pa-serif);
+  color: var(--pa-ink);
+  margin: 0;
+  min-width: 0;
+}
+.qz-themebar__d {
+  flex: none;
+  font: 400 var(--pa-size-meta)/1.4 var(--pa-sans);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-2);
+}
+
+/* scroll-behavior lives here, not in the walk that sets scrollTop. A
+   programmatic assignment is animated by this when the engine honours it and
+   simply arrives when it does not, so the reader always ends up at the next
+   question either way.
+
+   scroll-snap makes the column a stack of pages rather than a ribbon. It is
+   the whole of the "two questions per screen" fix and it costs no new
+   machinery: the DOM, the scroll model, the archive, the lock and every piece
+   of juice are unchanged — the questions simply each take a screen, and a
+   swipe lands on one rather than between two. A carousel would have meant
+   inventing a page transition five games have managed without. */
+.qz-col {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: y mandatory;
+}
+/* The spray layer scrolls WITH the column. The marks live ~520ms and the
+   column moves at 420ms, so a viewport-fixed layer would leave them hanging
+   in the air while the page slid out from under them. */
+.qz-col__inner { padding: 0 var(--pa-s-4); position: relative; }
+.qz-fx { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+
+/* The Ink Spray Rule, to the letter: hard-edged squares in an existing ink —
+   no radius, no blur, no glow, no gradient, no rotation, and never a circle,
+   because a dot on this page already means progress. Press Green, because
+   what is being paid off is settled. */
+.qz-spark {
+  position: absolute;
+  width: 5px; height: 5px;
+  background: var(--pa-green);
+  animation: qz-spark 520ms var(--pa-ease) forwards;
+}
+@keyframes qz-spark {
+  from { transform: translate(0, 0); opacity: 1; }
+  to   { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+
+/* One question, one screen.
+
+   The height is measured and handed to CSS rather than guessed at in vh: the
+   column shares the viewport with a masthead, a subject bar and the rail, and
+   a vh guess is wrong on every phone whose browser chrome collapses. Same
+   approach সুডোকু uses to size its board.
+
+   The hairline between questions is gone with the ribbon — a rule separates
+   two things sharing a surface, and these no longer share one. */
+.qz-q {
+  min-height: var(--qz-page, 70vh);
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /* Asymmetric on purpose: the extra padding underneath is what lifts a
+     vertically centred block to sit above the optical centre. */
+  padding: var(--pa-s-5) 0 14%;
+}
+
+/* Question and options are ONE block, set a little above centre.
+
+   Two arrangements were tried and both read wrong. Centring the block dead
+   centre left equal air above and below and looked like an empty page.
+   Pinning the question to the top and centring the options in what was left
+   pulled them apart, so the question read as a heading over an unrelated
+   list. A quiz question and its answers are one thing and are set as one; the
+   slack goes underneath, where the rail already is, and the whole block sits
+   above the optical centre because that is where the eye lands first. */
+.qz-q__head { flex: none; }
+.qz-q .qz-opts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pa-s-3);
+  margin-top: var(--pa-s-4);
+}
+.qz-q .qz-opts li { margin: 0; }
+
+/* With a whole screen to spend, an option is a target rather than a line of a
+   list. It stays the same type at the same size — The Real Step Rule — and
+   simply gets the room the ribbon never had. */
+.qz-q .qz-opt { min-height: 3.5rem; padding: var(--pa-s-3) var(--pa-s-4); }
+
+.qz-q__head { display: flex; gap: var(--pa-s-3); align-items: baseline; }
+/* The number is a clue number, and it is set exactly as শব্দভেদ sets one:
+   full-strength cyan, sans, meta size. Cyan at full strength is text and
+   never a fill, so this does not touch the Cyan Means Blocked Rule. */
+.qz-q__n {
+  flex: none;
+  font: 400 var(--pa-size-meta)/1.6 var(--pa-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--pa-cyan);
+  min-width: 1.5rem;
+}
+.qz-q__t {
+  font: 400 var(--pa-size-body)/var(--pa-leading-tight) var(--pa-serif);
+  color: var(--pa-ink);
+  margin: 0;
+}
+
+.qz-opts { list-style: none; margin: var(--pa-s-4) 0 0; padding: 0 0 0 calc(1.5rem + var(--pa-s-3)); }
+.qz-opts li { margin: 0 0 var(--pa-s-3); }
+.qz-opts li:last-child { margin-bottom: 0; }
+
+/* White is unprinted stock and it means "this one is yours" — the same thing
+   it means inside a grid and on a letter key. An option is exactly that. */
+.qz-opt {
+  width: 100%;
+  min-height: var(--pa-tap);
+  display: flex; align-items: center; gap: var(--pa-s-3);
+  padding: var(--pa-s-2) var(--pa-s-3);
+  background: var(--pa-cell);
+  border: 1px solid var(--pa-rule);
+  border-radius: var(--pa-r-sm);
+  font: 400 var(--pa-size-body)/var(--pa-leading-body) var(--pa-sans);
+  color: var(--pa-ink);
+  text-align: start;
+  cursor: pointer;
+  transition: background 140ms var(--pa-ease), border-color 140ms var(--pa-ease);
+}
+.qz-opt:hover:not(:disabled) { border-color: var(--pa-chrome); background: var(--pa-chrome-tint); }
+.qz-opt:focus-visible { outline: 2px solid var(--pa-chrome); outline-offset: 2px; }
+.qz-opt:disabled { cursor: default; }
+
+/* The mark slot is always there, at its full width, whether or not it holds
+   anything. Reserving it means locking a question cannot reflow the option
+   text sideways under the reader's thumb — the ten answers stay on the same
+   left edge from the moment the page loads. */
+.qz-opt__mark {
+  flex: none;
+  width: 1.25rem; height: 1.25rem;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.qz-opt__t { min-width: 0; }
+
+/* SETTLED: the right answer, marked whether the reader found it or not. Fill
+   is green 30% — the lightest green that exists, because there is no green
+   16% and there is not going to be one (The No Green Sixteen Rule). */
+.qz-opt.is-right {
+  background: var(--pa-green-30);
+  border-color: var(--pa-green-45);
+}
+.qz-opt.is-right .qz-opt__mark { color: var(--pa-green); }
+
+/* WRONG: the reader's own pick. The proof-reader's slash, which is the mark
+   this system already draws over a wrong letter, and Red Deep — full-strength
+   red is 3.51:1 and cannot set text at this size. The ground stays paper: a
+   red fill here would make red mean "wrong" as a surface colour, when in this
+   system red is *now*. */
+/* Drawn as a rule rather than set with text-decoration, because a
+   text-decoration cannot be animated and this mark has to be STRUCK: it draws
+   left to right under the finger, which is what "a press — something strikes
+   and releases" means when the thing striking is a proof-reader's pen. At
+   rest it sits at full width, so a finished day reloaded looks identical
+   without ever having animated. */
+.qz-opt.is-wrong { border-color: var(--pa-red-40); }
+.qz-opt.is-wrong .qz-opt__t { color: var(--pa-red-deep); position: relative; }
+.qz-opt.is-wrong .qz-opt__t::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 2px;
+  background: var(--pa-red);
+  transform: scaleX(1);
+  transform-origin: left center;
+}
+.qz-opt.is-wrong.is-striking .qz-opt__t::after { animation: qz-slash 240ms var(--pa-ease) both; }
+@keyframes qz-slash { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.qz-opt.is-wrong .qz-opt__mark { color: var(--pa-red-deep); }
+
+/* The right answer settles a beat AFTER the slash has drawn: the reader gets
+   the verdict on their own answer first, then the truth. Both inside ~420ms,
+   which reads as one sentence rather than as a wait. */
+.qz-opt.is-right.is-settling { animation: qz-settle 300ms var(--pa-ease) both; }
+@keyframes qz-settle {
+  from { background: var(--pa-cell); border-color: var(--pa-rule); }
+  to   { background: var(--pa-green-30); border-color: var(--pa-green-45); }
+}
+.qz-opt.is-right.is-settling .qz-opt__mark { animation: qz-mark 300ms var(--pa-ease) both; }
+@keyframes qz-mark { from { opacity: 0; } to { opacity: 1; } }
+
+/* Untouched options after a lock. They do NOT go faint: Ink Faint is 2.99:1
+   and is a drawing weight, not a text colour. They simply stop being yours,
+   so they lose the unprinted stock and sit back on the paper. */
+.qz-opt.is-idle { background: transparent; border-color: var(--pa-rule); }
+
+/* Reduced motion flattens every animation here and leaves the whole
+   confirmation intact: the slash still sits at full width, the green is still
+   green, the tick is still inked. The spray is not drawn at all — decided in
+   JS from a LIVE matchMedia listener, because the reader who changes the
+   setting mid-session is exactly the reader who meant it. */
+@media (prefers-reduced-motion: reduce) {
+  .qz-opt { transition: none; }
+  .qz-col { scroll-behavior: auto; }
+  .qz-opt.is-wrong.is-striking .qz-opt__t::after,
+  .qz-opt.is-right.is-settling,
+  .qz-opt.is-right.is-settling .qz-opt__mark,
+  .qz-rail__t.is-striking::after { animation: none; }
+}
+
+/* ---- the rail --------------------------------------------------------- */
+
+/* Ten ticks, filled when answered, and they say nothing about right or
+   wrong. A red-and-green ribbon along the foot would be hue carrying state
+   on its own, which is the one thing this system does not permit — and it
+   would sit under the reader's thumb for the whole ten minutes. */
+.qz-rail {
+  flex: none;
+  display: flex; align-items: center; gap: var(--pa-s-3);
+  padding: var(--pa-s-3) var(--pa-s-4);
+  padding-bottom: calc(var(--pa-s-3) + env(safe-area-inset-bottom));
+  background: var(--pa-paper-lift);
+  border-top: 1px solid var(--pa-rule);
+}
+.qz-rail__ticks { flex: 1 1 auto; display: flex; gap: 3px; }
+/* A tick is 3px of rule and cannot fade in and be seen. It strikes: the ink
+   is laid left to right in the same beat the answer settles, which is what
+   teaches an otherwise silent row of ten what it is counting. */
+.qz-rail__t { flex: 1 1 0; height: 3px; background: var(--pa-rule); position: relative; }
+.qz-rail__t::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: var(--pa-ink);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+.qz-rail__t.is-done::after { transform: scaleX(1); }
+.qz-rail__t.is-striking::after { animation: qz-tick 260ms var(--pa-ease) both; }
+@keyframes qz-tick { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.qz-rail__n {
+  flex: none;
+  font: 400 var(--pa-size-meta)/1 var(--pa-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--pa-ink-2);
+}
+
+/* ---- read-only notice ------------------------------------------------- */
+
+/* A finished day is permanently scored and reopening it is reading, not
+   playing. The page says so once, at the top of the column, rather than
+   letting a reader tap an option and wonder why nothing happened. */
+.qz-locked {
+  margin: 0;
+  padding: var(--pa-s-3) var(--pa-s-4);
+  background: var(--pa-cyan-08);
+  border-bottom: 1px solid var(--pa-rule);
+  font: 400 var(--pa-size-meta)/1.5 var(--pa-sans);
+  color: var(--pa-ink-2);
+}
+
+/* =====================================================================
+   SHEETS
+   ===================================================================== */
+
+.qz-sheetbody { padding-bottom: var(--pa-s-5); }
+
+.qz-htp { margin: 0; padding: 0 0 0 var(--pa-s-5); counter-reset: htp; list-style: none; }
+.qz-htp > li { position: relative; padding: 0 0 var(--pa-s-5); counter-increment: htp; }
+/* counter(htp, bengali), not counter(htp). A CSS counter cannot be routed
+   through B.toBn(), which is how two shipped heroes ended up printing
+   1 2 3 4 on an otherwise fully Bangla page. */
+.qz-htp > li::before {
+  content: counter(htp, bengali);
+  position: absolute; left: calc(-1 * var(--pa-s-5)); top: 0.1rem;
+  font: 400 var(--pa-size-meta)/1.6 var(--pa-sans);
+  color: var(--pa-cyan);
+}
+.qz-htp__h { font: 700 var(--pa-size-body)/1.4 var(--pa-serif); color: var(--pa-ink); margin: 0 0 var(--pa-s-1); }
+.qz-htp__p { font: 400 var(--pa-size-body)/var(--pa-leading-body) var(--pa-sans); color: var(--pa-ink-2); margin: 0; }
+
+.qz-figs { display: flex; gap: var(--pa-s-3); margin-top: var(--pa-s-3); flex-wrap: wrap; }
+.qz-fig { display: flex; flex-direction: column; gap: var(--pa-s-1); align-items: flex-start; }
+.qz-fig__c {
+  display: inline-flex; align-items: center; gap: var(--pa-s-2);
+  padding: var(--pa-s-2) var(--pa-s-3);
+  border: 1px solid var(--pa-rule); border-radius: var(--pa-r-sm);
+  background: var(--pa-cell);
+  font: 400 var(--pa-size-body)/1.4 var(--pa-sans);
+  color: var(--pa-ink);
+}
+.qz-fig__c.is-right { background: var(--pa-green-30); border-color: var(--pa-green-45); }
+.qz-fig__c.is-right svg { color: var(--pa-green); }
+.qz-fig__c.is-wrong { border-color: var(--pa-red-40); }
+.qz-fig__c.is-wrong span {
+  color: var(--pa-red-deep);
+  text-decoration: line-through; text-decoration-color: var(--pa-red);
+  text-decoration-thickness: 2px; text-decoration-skip-ink: none;
+}
+.qz-fig__l { font: 400 var(--pa-size-meta)/1.4 var(--pa-sans); color: var(--pa-ink-2); }
+
+/* ---- completion card -------------------------------------------------- */
+
+.qz-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); border-top: 3px solid var(--pa-green); }
+.qz-win__mark { font: 700 var(--pa-size-masthead)/1.15 var(--pa-serif); color: var(--pa-ink); margin: 0; letter-spacing: -0.015em; }
+.qz-win__theme { font: 400 var(--pa-size-body)/1.4 var(--pa-serif); color: var(--pa-red-deep); margin: var(--pa-s-2) 0 0; }
+.qz-win__nums { display: flex; gap: var(--pa-s-5); margin: var(--pa-s-5) 0 0; padding: var(--pa-s-4) 0; border-top: 1px solid var(--pa-rule); border-bottom: 1px solid var(--pa-rule); }
+.qz-win__num { display: flex; flex-direction: column; gap: var(--pa-s-1); }
+.qz-win__v { font: 400 var(--pa-size-masthead)/1 var(--pa-serif); font-variant-numeric: tabular-nums; color: var(--pa-ink); }
+.qz-win__k { font: 400 var(--pa-size-meta)/1 var(--pa-sans); letter-spacing: 0.07em; color: var(--pa-ink-2); }
+.qz-win__note { font: 400 var(--pa-size-body)/var(--pa-leading-body) var(--pa-sans); color: var(--pa-ink-2); margin: var(--pa-s-4) 0 0; }
+.qz-win__acts { display: flex; flex-direction: column; gap: var(--pa-s-3); margin-top: var(--pa-s-5); }
+.qz-win__ghosts { display: flex; gap: var(--pa-s-3); }
+.qz-win__ghosts .pa-btn { flex: 1 1 0; }
+
+/* =====================================================================
+   THE SPREAD — the same four steps and the same page measure as every
+   other surface in the programme (The One Page Measure).
+   ===================================================================== */
+
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .qz-front__body > * { width: var(--pa-page); margin-inline: auto; }
+
+  .qz-spread {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
+    gap: var(--pa-s-6);
+    align-items: start;
+    padding-top: var(--pa-s-6);
+  }
+  .qz-aside { border-inline-start: 1px solid var(--pa-rule); padding-inline-start: var(--pa-s-5); }
+  .qz-aside__h {
+    display: flex; align-items: baseline; justify-content: space-between; gap: var(--pa-s-2);
+    font: 700 var(--pa-size-body)/1.3 var(--pa-serif);
+    color: var(--pa-ink);
+    margin: 0 0 var(--pa-s-3); padding-bottom: var(--pa-s-2);
+    border-bottom: 1px solid var(--pa-rule);
+  }
+  .qz-aside__n { font: 400 var(--pa-size-meta)/1 var(--pa-sans); color: var(--pa-ink-2); }
+  .qz-aside .qz-arclist { max-height: 26rem; overflow-y: auto; }
+  .qz-aside .qz-arc { padding-inline: 0; }
+  /* The archive is in the rail on a spread, so the row that opens it as a
+     sheet is redundant there and goes. */
+  .qz-rows #fp-archive { display: none; }
+
+  .qz-col__inner { width: min(46rem, 100%); margin-inline: auto; }
+  .qz-themebar, .qz-rail, .qz-locked { padding-inline: max(var(--pa-s-4), calc((100% - 46rem) / 2)); }
+}
+@media not all and (min-width: 60rem) and (min-height: 40rem) {
+  .qz-aside { display: none; }
+}
+</style>
+</head>
+<body>
+<!--
+  THESIS: the paper's quiz column, moved onto a phone. Ten questions in one
+  scroll, four answers apiece, and the answer shown the moment you commit —
+  because finding out is the whole reason a reader plays a quiz.
+
+  OWN-WORLD: the three-colour press, inherited whole. Green is settled and
+  marks the right answer; the proof-reader's slash and Red Deep mark the
+  reader's wrong pick; nothing is decided by hue alone.
+
+  STORY: a reader opens it, sees today's date and today's subject on a front
+  page, taps in, reads down a column answering as they go, watches each
+  answer settle under their finger, and reaches a card that says ৭/১০.
+
+  FORM: front page → column, two views in one document, switched by data-view
+  on the shell. There is no clock anywhere in this game, on purpose.
+-->
+<div class="qz" id="app" data-view="front">
+
+<!-- =====================================================================
+     FRONT PAGE
+     ===================================================================== -->
+<section class="qz-front">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="exit" aria-label="সব গেম">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">কুইজ</h1>
+      <span class="pa-masthead__tail">
+        <button class="pa-iconbtn" id="top-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.2a2.5 2.5 0 114.1 2.2c-.9.7-1.7 1.1-1.7 2.1"/><circle cx="12" cy="17" r="1.1" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </span>
+    </div>
+    <div class="pa-masthead__rule">
+      <button class="pa-masthead__date" id="dateline" aria-haspopup="dialog" aria-label="অন্য দিনের কুইজ বেছে নিন">
+        <span id="date"></span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <div class="qz-front__body pa-scroll">
+    <div class="qz-spread">
+      <section class="qz-lead">
+        <p class="qz-kicker" id="fp-kicker">আজকের কুইজ</p>
+        <h2 class="qz-date" id="fp-date">—</h2>
+        <p class="qz-themeline" id="fp-theme">…</p>
+
+        <div class="qz-lead__row">
+          <div class="qz-mini" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="qz-facts">
+            <span class="qz-facts__m" id="fp-size">১০টি প্রশ্ন · ৪টি করে উত্তর</span>
+            <span class="qz-facts__s"><i class="qz-dot" id="fp-dot"></i><span id="fp-state">লোড হচ্ছে…</span></span>
+          </div>
+        </div>
+
+        <button class="pa-btn pa-btn--primary qz-cta" id="fp-cta">শুরু করুন</button>
+      </section>
+
+      <aside class="qz-aside">
+        <h2 class="qz-aside__h">সব কুইজ<span class="qz-aside__n" id="fp-aside-count"></span></h2>
+        <div class="qz-arclist pa-scroll" id="fp-archlist"></div>
+      </aside>
+    </div>
+
+    <nav class="qz-rows">
+      <button class="qz-row" id="fp-archive" aria-haspopup="dialog">
+        <span class="qz-row__t">সব কুইজ</span>
+        <span class="qz-row__end">
+          <span class="qz-row__m" id="fp-archive-meta"></span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+      <button class="qz-row" id="fp-howto" aria-haspopup="dialog">
+        <span class="qz-row__t">কীভাবে খেলবেন</span>
+        <span class="qz-row__end">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+        </span>
+      </button>
+    </nav>
+
+    <p class="qz-foot">প্রথম আলো</p>
+  </div>
+</section>
+
+<!-- =====================================================================
+     THE COLUMN
+     ===================================================================== -->
+<section class="qz-sheetview" aria-label="আজকের কুইজ">
+  <header class="pa-masthead">
+    <div class="pa-masthead__top">
+      <span class="pa-masthead__lead">
+        <button class="pa-iconbtn" id="back" aria-label="নামপাতা">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+      </span>
+      <h1 class="pa-masthead__title">কুইজ</h1>
+      <span class="pa-masthead__tail">
+        <span class="qz-progress" id="progress" aria-live="polite" aria-label="উত্তর দেওয়া হয়েছে">০/১০</span>
+        <button class="pa-iconbtn" id="paper-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 113.5 2.3c-.6.3-1 .9-1 1.6v.3"/><path d="M12 17h.01"/></svg>
+        </button>
+      </span>
+    </div>
+  </header>
+
+  <div class="qz-themebar">
+    <h2 class="qz-themebar__t" id="paper-theme">…</h2>
+    <span class="qz-themebar__d" id="paper-date"></span>
+  </div>
+
+  <p class="qz-locked" id="locked" hidden>এই কুইজ শেষ হয়ে গেছে। উত্তরগুলো আবার দেখতে পারেন, বদলানো যাবে না।</p>
+
+  <div class="qz-col pa-scroll" id="col">
+    <div class="qz-col__inner" id="qlist"></div>
+  </div>
+
+  <div class="qz-rail">
+    <span class="qz-rail__ticks" id="ticks" aria-hidden="true"></span>
+    <span class="qz-rail__n" id="rail-n">০ / ১০</span>
+  </div>
+</section>
+
+<!-- =====================================================================
+     SHEETS
+     ===================================================================== -->
+<div class="pa-sheet" id="sheet-arch" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="সব কুইজ" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">সব কুইজ</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll">
+      <div class="qz-arclist" id="arch-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-howto" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="কীভাবে খেলবেন" tabindex="-1">
+    <div class="pa-sheet__head">
+      <h3 class="pa-sheet__title">কীভাবে খেলবেন</h3>
+      <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="pa-sheet__body pa-scroll qz-sheetbody">
+      <ol class="qz-htp">
+        <li>
+          <h4 class="qz-htp__h">প্রতিদিন এক বিষয়</h4>
+          <p class="qz-htp__p">প্রতিদিনের কুইজে একটি বিষয়ের দশটি প্রশ্ন থাকে। বিষয়টি ওপরে লেখা থাকে।</p>
+        </li>
+        <li>
+          <h4 class="qz-htp__h">উত্তরে ক্লিক করুন</h4>
+          <p class="qz-htp__p">চারটি উত্তরের যেকোনো একটিতে ক্লিক করুন। ক্লিক করার সঙ্গে সঙ্গেই উত্তরটি বসে যায় — বদলানো যায় না।</p>
+        </li>
+        <li>
+          <h4 class="qz-htp__h">সঙ্গে সঙ্গেই মিলিয়ে নিন</h4>
+          <p class="qz-htp__p">সঠিক উত্তরটি সবুজ হয়ে টিক চিহ্ন পায়, আপনার ভুল উত্তরে কাটা পড়ে। ঠিক হোক বা ভুল, সঠিক উত্তরটি সঙ্গে সঙ্গেই দেখা যায়।</p>
+          <div class="qz-figs">
+            <span class="qz-fig">
+              <span class="qz-fig__c is-right"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4.5 4.5L19 7"/></svg><span>সঠিক</span></span>
+              <span class="qz-fig__l">সঠিক উত্তর</span>
+            </span>
+            <span class="qz-fig">
+              <span class="qz-fig__c is-wrong"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 18L18 6"/></svg><span>ভুল</span></span>
+              <span class="qz-fig__l">আপনার ভুল উত্তর</span>
+            </span>
+          </div>
+        </li>
+        <li>
+          <h4 class="qz-htp__h">কোনো ঘড়ি নেই</h4>
+          <p class="qz-htp__p">সময় গোনা হয় না, তাড়া নেই। দশটি প্রশ্নের উত্তর দিলেই সেদিনের কুইজ শেষ, আর আপনার ফল বসে যায়।</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="pa-sheet" id="sheet-win" hidden>
+  <div class="pa-sheet__scrim"></div>
+  <div class="pa-sheet__panel" role="dialog" aria-modal="true" aria-label="ফল" tabindex="-1">
+    <div class="qz-win">
+      <p class="qz-win__mark" id="win-mark">শেষ!</p>
+      <p class="qz-win__theme" id="win-theme"></p>
+      <div class="qz-win__nums">
+        <span class="qz-win__num"><b class="qz-win__v" id="win-score">০/১০</b><span class="qz-win__k">সঠিক</span></span>
+        <span class="qz-win__num"><b class="qz-win__v" id="win-theme-n">—</b><span class="qz-win__k">বিষয়</span></span>
+      </div>
+      <p class="qz-win__note" id="win-note"></p>
+      <div class="qz-win__acts">
+        <button class="pa-btn pa-btn--primary" id="win-next">পরের কুইজ</button>
+        <span class="qz-win__ghosts">
+          <button class="pa-btn pa-btn--ghost" id="win-review">উত্তর দেখুন</button>
+          <button class="pa-btn pa-btn--ghost" id="win-front">প্রথম পাতা</button>
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+<script src="../../shared/bn-text.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

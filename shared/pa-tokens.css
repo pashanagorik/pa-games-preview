@@ -103,7 +103,20 @@
   --pa-s-6: 2rem;
 
   --pa-bar-h: 3rem;
-  --pa-tap:   2.75rem;   /* WCAG AA touch target floor */
+  /* The WCAG AA touch-target floor, and it is stated in px on purpose.
+
+     This system deliberately runs a 15px root — pa-ui.css sets html's
+     font-size to --pa-size-body, which is what makes the four type steps
+     land on the 24.4 / 18.8 / 14.1 / 11.2px DESIGN.md records as measured.
+     The consequence is that every rem in the programme is 15-based, so the
+     2.75rem this token used to hold computed to 41.25px: three pixels under
+     the floor its own comment claimed, on every icon button, menu row and
+     primary button in four shipped heroes.
+
+     A floor set in the unit that floor is defined in cannot drift with the
+     type ramp. Found on the কুইজ build (2026-08-19) by an assertion that
+     measured a rendered option rather than reading the token. */
+  --pa-tap:   44px;
 
   /* Depth is one press impression: offset plus soft blur, never a halo. */
   --pa-lift-1: 0 1px 2px rgba(22, 23, 26, 0.06), 0 2px 8px rgba(22, 23, 26, 0.05);

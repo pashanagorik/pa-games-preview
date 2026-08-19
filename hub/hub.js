@@ -40,6 +40,8 @@
   var WF_BEST  = 'pa:wf-bn:best:';
   var SD_STORE = 'pa:sd-bn:';
   var SD_BEST  = 'pa:sd-bn:best:';
+  var QZ_STORE = 'pa:qz-bn:';
+  var QZ_BEST  = 'pa:qz-bn:best:';
   var DEMO_KEY = 'pa-hub:demo';
 
   /* সুডোকু prints the day's difficulty rather than a theme; it is the one fact
@@ -59,7 +61,8 @@
       note: '৯×৯ · বাংলা সংখ্যায় ১–৯' },
     { key: 'wf', name: 'শব্দফুল', href: '../games/word-flower-bn/index.html', live: true,
       note: 'সাত অক্ষর · ২৪টি শব্দ' },
-    { key: 'qz', name: 'কুইজ', live: false, when: 'সপ্তাহ ৩', note: 'দিনে ১০টি প্রশ্ন' }
+    { key: 'qz', name: 'কুইজ', href: '../games/quiz-bn/index.html', live: true,
+      note: 'দিনে ১০টি প্রশ্ন · ৪টি করে উত্তর' }
   ];
 
   /* ---- the catalogue ----------------------------------------------------
@@ -112,6 +115,7 @@
   var WS = { puzzles: [], byDate: {} };   // word-search index
   var WF = { puzzles: [], byDate: {} };   // word-flower index
   var SD = { puzzles: [], byDate: {} };   // sudoku index
+  var QZ = { puzzles: [], byDate: {} };   // quiz index
   var GRIDS = {};                          // crossword id -> grid array
 
   /* One row per built game, and the ONLY place a game's wiring is written
@@ -206,6 +210,46 @@
     return n ? { state: 'started', done: (p.n || 0) + n, total: 81 } : { state: 'new', total: 81 };
   }
 
+  /* কুইজ is the one hero with no clock, so its record is an ANSWER SHEET:
+     one option index per question, or -1 where the reader has not answered.
+     Done means all ten answered, not all ten right — ০/১০ is a finished day.
+     The score rides along on the status so the row and the share card can
+     print it where every other game prints a time. */
+  function qzPrint(p) {
+    var s = '', i;
+    for (i = 0; i < p.questions.length; i++) s += p.questions[i].q + '\u0001';
+    var h = 2166136261;
+    for (i = 0; i < s.length; i++) {
+      h ^= s.charCodeAt(i);
+      h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+    }
+    return h.toString(36);
+  }
+
+  function qzStatus(id) {
+    if (!id) return { state: 'none' };
+    var p = QZ.byDate[id.slice(3)];
+    if (!p) return { state: 'none' };
+    var total = p.questions.length;
+    var st = readJSON(QZ_STORE + id);
+    var a = st && st.a;
+    if (!Array.isArray(a) || a.length !== total) return { state: 'new', total: total };
+    /* Same fingerprint the game writes, computed the same way. A day always
+       holds ten questions, so length alone can never tell a rebuilt pack from
+       the one the reader actually answered — and a sheet applied to the wrong
+       questions would have the ledger reporting a score nobody scored. If the
+       game would discard this sheet, so does the hub. */
+    if (st.f !== qzPrint(p)) return { state: 'new', total: total };
+    var n = 0, right = 0, i;
+    for (i = 0; i < total; i++) {
+      if (a[i] < 0 || a[i] === null || a[i] === undefined) continue;
+      n++;
+      if (a[i] === p.questions[i].a) right++;
+    }
+    if (n >= total) return { state: 'solved', score: right, total: total };
+    return n ? { state: 'started', done: n, total: total } : { state: 'new', total: total };
+  }
+
   function bestOf(prefix, id) {
     try { return parseInt(localStorage.getItem(prefix + id) || '0', 10) || 0; } catch (e) { return 0; }
   }
@@ -218,9 +262,13 @@
     wf: { idx: WF, store: WF_STORE, best: WF_BEST, status: wfStatus, demoSecs: 200, demoSeed: 9,
           thumb: function (id, st) { return wfThumb(id, st); } },
     sd: { idx: SD, store: SD_STORE, best: SD_BEST, status: sdStatus, demoSecs: 430, demoSeed: 13,
-          thumb: function (id, st) { return sdThumb(id, st); } }
+          thumb: function (id, st) { return sdThumb(id, st); } },
+    /* scored: this game's result is a count of correct answers, not a time.
+       Every surface that prints a clock asks the registry first. */
+    qz: { idx: QZ, store: QZ_STORE, best: QZ_BEST, status: qzStatus, demoSecs: 0, demoSeed: 21, scored: true,
+          thumb: function (id, st) { return qzThumb(id, st); } }
   };
-  var BUILT = ['xw', 'ws', 'wf', 'sd'];
+  var BUILT = ['xw', 'ws', 'wf', 'sd', 'qz'];
 
   /* ---- what happened on a given day -------------------------------------
      A day is "kept" when at least one of that day's puzzles is solved. Demo
@@ -254,6 +302,14 @@
     if (g.needsTwo && w < 2) return null;
     var d = parseISO(dateISO);
     var seed = d.getDate() * 37 + d.getMonth() * 11 + g.demoSeed;
+    /* A scored game has no time to sample, and handing it one would print a
+       clock on the one surface in the programme that deliberately has none.
+       It gets a plausible score off the same seed instead — never full marks,
+       because sample history that claims a perfect day reads as a boast. */
+    if (g.scored) {
+      var total = (g.idx.byDate[dateISO].questions || []).length || 10;
+      return { state: 'solved', score: 5 + (seed % Math.max(1, total - 5)), total: total, demo: true };
+    }
     return { state: 'solved', secs: g.demoSecs + (seed % 190), demo: true };
   }
 
@@ -471,6 +527,29 @@
     return svg(out + '<rect class="fr" x="1" y="1" width="62" height="62"/>');
   }
 
+  /* কুইজ has no grid to draw, so its silhouette is the ANSWER SHEET: ten
+     rules, one per question, each with a mark box in front of it. A row the
+     reader has answered inks its box; the rest stay hairline. It says nothing
+     about right or wrong — at 3.5rem a green box and a red one are one
+     smudge, and this drawing is a progress mark, not a scoreboard. */
+  function qzThumb(id, status) {
+    var p = QZ.byDate[id ? id.slice(3) : ''];
+    var total = (p && p.questions.length) || 10;
+    var done = 0;
+    if (status && status.state === 'solved') done = total;
+    else if (status && status.state === 'started') done = status.done || 0;
+
+    var out = '', i, step = 56 / total, y;
+    for (i = 0; i < total; i++) {
+      y = 4 + i * step + step / 2;
+      out += '<rect class="' + (i < done ? 'f' : 'g') + '" x="6" y="' + (y - 2).toFixed(2) + '"'
+           + ' width="4" height="4"/>'
+           + '<line class="g" x1="14" y1="' + y.toFixed(2) + '" x2="' + (58 - (i % 3) * 7)
+           + '" y2="' + y.toFixed(2) + '" stroke-width="2"/>';
+    }
+    return svg(out + '<rect class="fr" x="1" y="1" width="62" height="62"/>');
+  }
+
   function soonThumb(key) {
     if (key === 'sd') {
       return svg(gridLines(9)
@@ -630,6 +709,9 @@
            the word search's theme. It leaks nothing — the count is on the
            game's own front page. */
         : h.key === 'sd' ? (DIFF[p.d] || '') + ' · ' + toBn(p.n || 0) + 'টি সংখ্যা দেওয়া'
+        /* The subject is what makes today's quiz different from yesterday's,
+           and it is the one thing the game's own front page leads with. */
+        : h.key === 'qz' && p.theme ? p.theme + ' · ' + toBn(p.questions.length) + 'টি প্রশ্ন'
         : h.note;
       if (!found.exact) deck = shortDate(parseISO(p.date)) + 'ের সংখ্যা · ' + deck;
 
@@ -639,8 +721,9 @@
            off the row's end squeezed the deck until the puzzle's own
            description truncated — the row's last column is for the chevron. */
         line = stateLine('is-done', ICON.check, T.solved
+          + (st.score !== undefined ? ' · ' + toBn(st.score) + '/' + toBn(st.total) + ' সঠিক' : '')
           + (st.secs ? ' · ' + mmss(st.secs) : '')
-          + (best && best !== st.secs ? ' · সেরা ' + mmss(best) : ''));
+          + (!GAMES[h.key].scored && best && best !== st.secs ? ' · সেরা ' + mmss(best) : ''));
       } else if (st.state === 'started') {
         line = stateLine('is-run', ICON.resume, T.resume + ' · ' + toBn(st.done) + '/' + toBn(st.total));
         prog = '<span class="kg-prog"><i style="width:' + Math.round(st.done / st.total * 100) + '%"></i></span>';
@@ -910,12 +993,21 @@
     }
     var figure = h.key === 'wf'
       ? '<div class="kg-share__flower">' + wfThumb(p.id, st) + '</div>'
-      : '<div class="kg-share__grid" style="grid-template-columns:repeat(' + cols + ',12px)">' + grid + '</div>';
+      : h.key === 'qz'
+        ? '<div class="kg-share__flower">' + qzThumb(p.id, st) + '</div>'
+        : '<div class="kg-share__grid" style="grid-template-columns:repeat(' + cols + ',12px)">' + grid + '</div>';
+
+    /* The one line of result the card carries. A scored game has no time to
+       print, and printing 0:00 for it would put a clock on the only surface
+       in the programme that deliberately has none. */
+    var result = GAMES[h.key].scored
+      ? toBn(st.score || 0) + '/' + toBn(st.total || 0) + ' সঠিক'
+      : 'সময় ' + mmss(st.secs || 0);
 
     /* A streak of zero is not a result worth carrying out of the product. */
     var run = streak().n;
     var line = 'প্রথম আলো · খেলাঘর\n' + h.name + ' · ' + shortDate(d) + '\n'
-      + 'সময় ' + mmss(st.secs || 0) + (best && best !== st.secs ? ' · সেরা ' + mmss(best) : '')
+      + result + (!GAMES[h.key].scored && best && best !== st.secs ? ' · সেরা ' + mmss(best) : '')
       + (run ? '\nস্ট্রিক ' + toBn(run) + ' দিন' : '');
 
     host.innerHTML = '<div class="kg-share__card">'
@@ -923,7 +1015,7 @@
       + '<div class="kg-share__rule"></div>'
       + '<p class="kg-share__d">' + longDate(d) + '</p>'
       + figure
-      + '<p class="kg-share__m">সময় ' + mmss(st.secs || 0) + (run ? ' · স্ট্রিক ' + toBn(run) + ' দিন' : '') + '</p>'
+      + '<p class="kg-share__m">' + result + (run ? ' · স্ট্রিক ' + toBn(run) + ' দিন' : '') + '</p>'
       + '</div>'
       + '<p class="kg-share__x">ফলাফল লেখা হিসেবে পাঠানো হবে</p>'
       + '<div class="kg-share__acts">'
@@ -995,6 +1087,11 @@
         SD.puzzles = (j.puzzles || []).slice();
         SD.byDate = indexBy(SD.puzzles);
         SD.puzzles.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+      }).catch(function () {}),
+      getJSON('../games/quiz-bn/puzzles/index.json').then(function (j) {
+        QZ.puzzles = (j.puzzles || []).slice();
+        QZ.byDate = indexBy(QZ.puzzles);
+        QZ.puzzles.sort(function (a, b) { return a.date < b.date ? -1 : 1; });
       }).catch(function () {})
     ];
 
