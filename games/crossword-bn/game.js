@@ -390,6 +390,14 @@
   /* ---- sizing --------------------------------------------------------- */
 
   function sizeGrid() {
+    /* The ResizeObserver below starts observing while the front page is up,
+       and an observer fires once on observe() — so this ran before any puzzle
+       was loaded and threw on P.cols on every single page load, plus again on
+       every resize until a puzzle opened. Nothing visible broke, which is why
+       it survived: the board is rendered again when the puzzle loads. But an
+       uncaught TypeError on first paint is the first thing anyone opening dev
+       tools sees. Nothing to size until there is a puzzle. */
+    if (!P) return;
     var wrap = els.gridwrap;
     var cs = getComputedStyle(wrap);
     var padX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
@@ -406,6 +414,17 @@
     size = Math.max(24, Math.min(size, cap));
     els.grid.style.setProperty('--cell', size + 'px');
     render();
+    /* The arithmetic above counts one gutter per track, but the board also
+       carries its own rule on both edges — so a cell size that "fits" could
+       still overflow by a few pixels, which is exactly enough to clip the
+       last row. Rather than encode the frame's thickness here, where it would
+       drift the moment the rule changes, measure what was actually laid out
+       and step down until it fits. Bounded, and it almost never runs twice. */
+    for (var guard = 0; guard < 6 && size > 24
+         && (els.grid.offsetHeight > availH || els.grid.offsetWidth > availW); guard++) {
+      size -= 1;
+      els.grid.style.setProperty('--cell', size + 'px');
+    }
     requestAnimationFrame(function () {
       wrap.classList.toggle('is-scrollable', wrap.scrollHeight > wrap.clientHeight + 1);
     });

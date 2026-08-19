@@ -225,7 +225,9 @@
   /* ---- what happened on a given day -------------------------------------
      A day is "kept" when at least one of that day's puzzles is solved. Demo
      history fills only days BEFORE today, so the ribbon and today's own
-     rows can never contradict each other. */
+     rows can never contradict each other — but only for issues that really
+     belong to the day being rendered; a back-dated fallback issue opts out
+     of the sample history entirely (see statusFor's allowDemo). */
 
   var DEMO_BACK = [1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15];
 
@@ -256,14 +258,22 @@
   }
 
   /* The one place a game's state for a date is decided: the game's own record
-     first, the sample history only where the reader has played nothing. */
-  function statusFor(key, dateISO) {
+     first, the sample history only where the reader has played nothing.
+
+     allowDemo exists because a day column can serve an issue that is NOT that
+     day's — when a pack runs short, issueFor() falls back to the most recent
+     earlier issue. That issue's own date is in the past, so the sample history
+     would happily call it solved, and the row would print a solve time for a
+     puzzle the game itself still reports as new. The caller that renders a
+     fallback issue passes false; every caller walking real per-puzzle dates
+     leaves it alone. Real records are never suppressed — only the samples. */
+  function statusFor(key, dateISO, allowDemo) {
     var g = GAMES[key];
     if (!g) return { state: 'none' };
     var p = g.idx.byDate[dateISO];
     if (!p) return { state: 'none' };
     var st = g.status(p.id);
-    if (st.state === 'new' || st.state === 'none') {
+    if (allowDemo !== false && (st.state === 'new' || st.state === 'none')) {
       var d = demoSolve(key, dateISO);
       if (d) return d;
     }
@@ -600,7 +610,7 @@
       if (!found) { li.innerHTML = soonRow(h, 'এই তারিখে কোনো সংখ্যা নেই'); host.appendChild(li); return; }
 
       var p = found.p;
-      var st = statusFor(h.key, p.date);
+      var st = statusFor(h.key, p.date, found.exact);
       var best = bestOf(GAMES[h.key].best, p.id);
 
       /* The deck says what makes THIS issue different from yesterday's: the

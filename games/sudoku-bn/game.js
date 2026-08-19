@@ -768,7 +768,11 @@
     var w = wrap.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
     var h = wrap.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
     var max = parseFloat(cs.getPropertyValue('--sd-max')) || 544;
-    var side = Math.max(234, Math.min(w, h, max));
+    /* The 234px floor keeps a portrait board tappable, but it is a floor, not
+       a licence to overflow: on a short viewport it used to win outright and
+       the board rendered taller than the space it was measured into, landing
+       on the deck. Clamp the floor back to what actually fits. */
+    var side = Math.min(Math.max(Math.min(w, h, max), 234), w, h);
     /* Snapped so the nine cells divide the remaining width evenly. The ink is
        18px of the side and never scales: 3px of padding either side, a 3px
        gutter between the three boxes twice, and a 1px gutter twice inside

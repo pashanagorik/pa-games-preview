@@ -6,6 +6,7 @@
 <title>সুডোকু · প্রথম আলো</title>
 <meta name="description" content="প্রথম আলোর দৈনিক সুডোকু। ৯×৯ ঘরে ১–৯ সংখ্যা বসান, কোনো সারি, কলাম বা বাক্সে একই সংখ্যা দুবার নয়।">
 <meta name="theme-color" content="#F4F3EF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%23F4F3EF'/%3E%3Crect%20x='13.1'%20y='13.1'%20width='5.8'%20height='5.8'%20fill='%23EE4023'/%3E%3Cg%20stroke='%2316171A'%20stroke-width='1.5'%20fill='none'%3E%3Crect%20x='6.75'%20y='6.75'%20width='18.5'%20height='18.5'/%3E%3Cpath%20d='M6.75%2012.9h18.5M6.75%2019.1h18.5M12.9%206.75v18.5M19.1%206.75v18.5'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="../../shared/pa-fonts.css">
 <link rel="stylesheet" href="../../shared/pa-tokens.css">
 <link rel="stylesheet" href="../../shared/pa-ui.css">
@@ -535,6 +536,41 @@
 /* ---- tablet ----------------------------------------------------------
    Still the phone column, but full-bleed surfaces are capped and centred. A
    nine-key pad stretched across 768px gives absurd keys. */
+/* ---- landscape phone --------------------------------------------------
+   A rotated phone is not a narrow portrait phone: the width roughly doubles
+   and the height halves. A deck docked UNDER the board assumes height is the
+   cheap axis, and in landscape it is the scarce one — the board is then
+   bounded by a height that no longer fits it and lands on top of the pad. So
+   the deck stops being a strip beneath the board and becomes a column beside
+   it, which is also where the spare width went. Bounded by height, not by
+   width, so a landscape tablet keeps the portrait composition. */
+@media (orientation: landscape) and (max-height: 34rem) {
+  /* .sd-board, never .sd — the app shell carries .sd too, and turning THAT
+     into the two-column grid makes the board a 1fr track of it instead of the
+     grid itself. */
+  .sd-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(9rem, 30%, 16rem);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .sd-board > .pa-masthead,
+  .sd-head { grid-column: 1 / -1; }
+  .sd-main { grid-column: 1; grid-row: 3; padding: var(--pa-s-2); }
+  .sd-deck {
+    grid-column: 2; grid-row: 3;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    overflow-y: auto;
+    border-top: 0;
+    border-inline-start: 1px solid var(--pa-rule);
+  }
+  /* Nine keys across a 17rem column would be 30px taps. A numeral pad is a
+     3x3 anyway — this is the shape the numerals already have on the board. */
+  .sd-pad { grid-template-columns: repeat(3, 1fr); }
+  .sd-tools { grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (min-width: 48rem) {
   .sd-head > * { max-width: 34rem; margin-inline: auto; }
   .sd-deck > * { width: min(34rem, 100%); margin-inline: auto; }

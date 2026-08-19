@@ -6,6 +6,7 @@
 <title>শব্দফুল · প্রথম আলো</title>
 <meta name="description" content="প্রথম আলোর দৈনিক শব্দফুল। সাতটি অক্ষর, মাঝের অক্ষরটি প্রতিটি শব্দে, যত শব্দ পারেন বানান।">
 <meta name="theme-color" content="#F4F3EF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%23F4F3EF'/%3E%3Cpath%20d='M16%206.5L24%2011.25V20.75L16%2025.5L8%2020.75V11.25Z'%20fill='none'%20stroke='%2316171A'%20stroke-width='1.6'/%3E%3Cpath%20d='M16%2011.6L20%2014V18.8L16%2021.2L12%2018.8V14Z'%20fill='%23EE4023'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="../../shared/pa-fonts.css">
 <link rel="stylesheet" href="../../shared/pa-tokens.css">
 <link rel="stylesheet" href="../../shared/pa-ui.css">
@@ -648,6 +649,43 @@
 .wf-win__ghosts .pa-btn { flex: 1; }
 
 /* ---- tablet ----------------------------------------------------------- */
+/* ---- landscape phone --------------------------------------------------
+   Rotated, the found-words list moves out from under the flower and becomes
+   a rail beside it — the desktop arrangement at phone scale. Stacked, the
+   flower's zone was measured at nearly zero height and, because that zone
+   clips, the flower simply vanished: the game with nothing left on screen
+   but its controls. Bounded by height, so a landscape tablet is untouched. */
+@media (orientation: landscape) and (max-height: 34rem) {
+  .wf-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(9rem, 30%, 15rem);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  }
+  .wf-board > .pa-masthead { grid-column: 1 / -1; }
+  .wf-band { grid-column: 1; grid-row: 2; }
+  .wf-why  { grid-column: 1; grid-row: 3; }
+  .wf-main { grid-column: 1; grid-row: 4; padding: var(--pa-s-2); }
+  .wf-rail {
+    grid-column: 1; grid-row: 5;
+    background: none;
+    padding-block: var(--pa-s-1);
+  }
+  .wf-listzone {
+    grid-column: 2; grid-row: 2 / -1;
+    display: flex; flex-direction: column; min-height: 0;
+    background: none; border-top: 0;
+    border-inline-start: 1px solid var(--pa-rule);
+  }
+  .wf-listzone > * { width: auto; margin-inline: 0; }
+  .wf-panel { max-height: none; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+  .wf-slots {
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: var(--pa-s-1);
+    padding: var(--pa-s-2) var(--pa-s-3);
+  }
+}
+
 @media (min-width: 48rem) {
   .wf-rail { padding-inline: max(var(--pa-s-2), calc((100% - 34rem) / 2)); }
   .wf-listzone > * { width: min(34rem, 100%); margin-inline: auto; }

@@ -626,7 +626,10 @@
     /* The ceiling is declared in CSS per breakpoint, not hardcoded here, so
        the board grows with the screen alongside the type ramp. */
     var max = parseFloat(cs.getPropertyValue('--ws-max')) || 544;
-    var side = Math.max(200, Math.min(w, h, max));
+    /* A floor, not a licence to overflow: on a short viewport the 200px
+       minimum used to beat the measured height outright and the board painted
+       over the word list. Clamp it back to what actually fits. */
+    var side = Math.min(Math.max(Math.min(w, h, max), 200), w, h);
     $('grid').style.setProperty('--ws-side', side + 'px');
   }
 

@@ -6,6 +6,7 @@
 <title>শব্দ সন্ধান · প্রথম আলো</title>
 <meta name="description" content="প্রথম আলোর দৈনিক শব্দ সন্ধান। ৮×৮ ঘরে লুকানো আটটি বাংলা শব্দ খুঁজে বের করুন।">
 <meta name="theme-color" content="#F4F3EF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%23F4F3EF'/%3E%3Cg%20stroke='%2316171A'%20stroke-width='1.5'%20fill='none'%3E%3Crect%20x='6.75'%20y='6.75'%20width='18.5'%20height='18.5'/%3E%3Cpath%20d='M6.75%2013h18.5M6.75%2019h18.5M13%206.75v18.5M19%206.75v18.5'/%3E%3C/g%3E%3Cpath%20d='M8.5%208.5L23.5%2023.5'%20stroke='%23EE4023'%20stroke-width='2.6'%20stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="../../shared/pa-fonts.css">
 <link rel="stylesheet" href="../../shared/pa-tokens.css">
 <link rel="stylesheet" href="../../shared/pa-ui.css">
@@ -525,6 +526,39 @@
 /* ---- tablet ----------------------------------------------------------
    Still the phone column, but full-bleed surfaces are capped and centred —
    a reading band and a two-up word list stretched across 768px is neither. */
+/* ---- landscape phone --------------------------------------------------
+   The rotated phone gets the desktop's arrangement rather than the phone's:
+   the word list is a rail beside the board, not a strip under it. Stacked,
+   the list and the board compete for a height that has just halved, and the
+   board — sized from a measurement it then ignored — printed straight over
+   the words. Bounded by height, so a landscape tablet keeps the phone
+   composition it was designed for. */
+@media (orientation: landscape) and (max-height: 34rem) {
+  .ws-board {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(9rem, 32%, 15rem);
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  .ws-board > .pa-masthead { grid-column: 1 / -1; }
+  .ws-reading { grid-column: 1; grid-row: 2; }
+  .ws-main { grid-column: 1; grid-row: 3; padding: var(--pa-s-2); }
+  .ws-listzone {
+    grid-column: 2; grid-row: 2 / -1;
+    display: flex; flex-direction: column; min-height: 0;
+    border-top: 0;
+    border-inline-start: 1px solid var(--pa-rule);
+  }
+  .ws-listzone > * { width: auto; margin-inline: 0; }
+  .ws-words {
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: var(--pa-s-1);
+    max-height: none;
+    min-height: 0;
+    overflow-y: auto;
+  }
+}
+
 @media (min-width: 48rem) {
   .ws-reading { padding-inline: max(var(--pa-s-3), calc((100% - 34rem) / 2)); }
   .ws-listzone > * { width: min(34rem, 100%); margin-inline: auto; }

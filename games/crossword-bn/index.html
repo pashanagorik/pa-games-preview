@@ -6,6 +6,7 @@
 <title>শব্দভেদ · প্রথম আলো</title>
 <meta name="description" content="প্রথম আলোর দৈনিক শব্দভেদ। ৮×৮ বাংলা শব্দজট, প্রতিদিন নতুন।">
 <meta name="theme-color" content="#F4F3EF">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2032%2032'%3E%3Crect%20width='32'%20height='32'%20fill='%23F4F3EF'/%3E%3Crect%20x='7'%20y='7'%20width='5.5'%20height='5.5'%20fill='%2316171A'/%3E%3Crect%20x='19.5'%20y='19.5'%20width='5.5'%20height='5.5'%20fill='%23EE4023'/%3E%3Cg%20stroke='%2316171A'%20stroke-width='1.5'%20fill='none'%3E%3Crect%20x='6.75'%20y='6.75'%20width='18.5'%20height='18.5'/%3E%3Cpath%20d='M6.75%2013h18.5M6.75%2019h18.5M13%206.75v18.5M19%206.75v18.5'/%3E%3C/g%3E%3C/svg%3E">
 <link rel="stylesheet" href="../../shared/pa-fonts.css">
 <link rel="stylesheet" href="../../shared/pa-tokens.css">
 <link rel="stylesheet" href="../../shared/pa-ui.css">
@@ -879,6 +880,50 @@
    is right but its full-bleed surfaces are not: a 14-column keyboard across
    768px gives absurd keys, and the reading strip runs wider than any word
    in it. Cap the surfaces, leave the board free to grow. */
+
+/* ---- short portrait phone ---------------------------------------------
+   On a 640px-tall phone the head zone and the type case together leave the
+   board 192px, and eight rows cannot be drawn under 205px without going below
+   a 24px tap. The board was therefore clipped at rest, which reads as broken
+   even though the wrap scrolls. The reading strip is the one thing here that
+   duplicates something already on screen — the active entry is highlighted in
+   the grid — so it is what goes, exactly as it does on desktop. */
+@media (orientation: portrait) and (max-height: 41rem) {
+  .xw-strip { display: none; }
+}
+
+/* ---- landscape phone --------------------------------------------------
+   The type case is eleven keys wide and five rows deep. Docked under the
+   board it needs about 200px of height, which on a rotated phone is most of
+   the screen — the board was left a sliver and the grid scrolled inside it.
+   So the keyboard takes the width the rotation just handed us and stands
+   beside the board instead of under it. It gets the larger share because it
+   is the wider object; the board is square and bounded by height either way.
+   Bounded by height, so a landscape tablet keeps the docked composition. */
+@media (orientation: landscape) and (max-height: 34rem) {
+  .xw {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 54%);
+    grid-template-rows: auto auto auto auto minmax(0, 1fr);
+  }
+  .xw > .pa-masthead { grid-column: 1; grid-row: 1; }
+  .xw-clue     { grid-column: 1; grid-row: 2; }
+  .xw-coach    { grid-column: 1; grid-row: 3; }
+  .xw-full     { grid-column: 1; grid-row: 4; }
+  .xw-gridwrap { grid-column: 1; grid-row: 5; padding: var(--pa-s-1); }
+  /* The reading strip crosses to the keyboard's column rather than being
+     dropped. It is the one surface that exists to be legible, and at these
+     cell sizes it is needed more than on a desktop, not less — but every
+     pixel it takes in the board's column comes straight off the board. */
+  .xw-strip { grid-column: 2; grid-row: 1; border-bottom: 0; }
+  .xw-kb {
+    grid-column: 2; grid-row: 2 / -1;
+    align-self: center;
+    border-top: 0;
+    border-inline-start: 1px solid var(--pa-rule);
+    padding: var(--pa-s-2);
+  }
+}
 
 @media (min-width: 48rem) {
   .xw-kb { width: min(34rem, 100%); margin-inline: auto; }
