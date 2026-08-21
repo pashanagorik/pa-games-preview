@@ -49,6 +49,10 @@
     newBest: 'নতুন সেরা সময়',
     firstSolve: 'প্রথমবার সমাধান',
     unaided: 'একবারও যাচাই না করে',
+    /* The board's number: the clock plus ৪৫ সেকেন্ড for every সাহায্য
+       (ADS-SPEC §4, Rank). Printed once, on the card, beside the raw time. */
+    ranked: 'সাহায্যে ৪৫ সেকেন্ড করে যোগ হয়ে তালিকায় ',
+    hintWhat: 'একটি ঘর পূরণ হবে',
     puzzle: ' ধাঁধা',
     coach: 'নিশ্চিত না হলে পেন্সিল চেপে সম্ভাব্য সংখ্যা টুকে রাখুন।',
     full: 'কিছু সংখ্যা মিলছে না।',
@@ -78,6 +82,12 @@
   var marks = [];       // 81 — arrays of pencil digits
   var wrong = [];       // 81 — caught by পরীক্ষা, cleared when the cell changes
   var checks = 0;
+  var hinted = new Array(81).fill(false);   // squares the press filled (সাহায্য)
+  var H = null;          // this puzzle's hint budget, from PaAds.hints()
+  var strip = null;      // the সাহায্য strip on the masthead, PaAds.strip()
+  var HINT_SECS = 45;    // ADS-SPEC §4, Rank: one সাহায্য on the board's clock
+  function hintCount() { var n = 0; for (var i = 0; i < 81; i++) if (hinted[i]) n++; return n; }
+  function locked(i) { return !!(P.given[i] || hinted[i]); }
   var sel = -1;
   var pencil = false;
   var undoStack = [];
@@ -181,7 +191,7 @@
      entry landing on a cell that is now a given is discarded on the way in,
      so a stale record can never contradict the printed board. */
   function loadState(id, given) {
-    var blank = { e: new Array(81).fill(0), m: {}, t: 0, c: 0, s: false };
+    var blank = { e: new Array(81).fill(0), m: {}, t: 0, c: 0, s: false, h: new Array(81).fill(false) };
     try {
       var raw = localStorage.getItem(STORE + id);
       if (!raw) return blank;
@@ -197,7 +207,9 @@
         var ki = +k;
         if (ki >= 0 && ki < 81 && !given[ki] && !e[ki]) m[ki] = String(v.m[k]).split('').map(Number).filter(function (x) { return x >= 1 && x <= 9; });
       }
-      return { e: e, m: m, t: v.t || 0, c: v.c || 0, s: !!v.s };
+      var h = new Array(81).fill(false);
+      (Array.isArray(v.h) ? v.h : []).forEach(function (x) { if (x >= 0 && x < 81 && !given[x]) h[x] = true; });
+      return { e: e, m: m, t: v.t || 0, c: v.c || 0, s: !!v.s, h: h };
     } catch (err) { return blank; }
   }
 
@@ -209,7 +221,9 @@
         e += entries[i] ? String(entries[i]) : '0';
         if (marks[i] && marks[i].length) mo[i] = marks[i].join('');
       }
-      localStorage.setItem(STORE + P.id, JSON.stringify({ e: e, m: mo, t: clock.secs, c: checks, s: solvedFlag }));
+      var h = [];
+      for (i = 0; i < 81; i++) if (hinted[i]) h.push(i);
+      localStorage.setItem(STORE + P.id, JSON.stringify({ e: e, m: mo, t: clock.secs, c: checks, s: solvedFlag, h: h }));
     } catch (err) {}
   }
 
@@ -352,6 +366,7 @@
     var v = given || entries[i];
     var cls = 'sd-cell';
     if (given) cls += ' is-given';
+    if (hinted[i]) cls += ' is-hinted';
     if (dup[i]) cls += ' is-dup';
     if (wrong[i] && !given) cls += ' is-wrong';
     if (selVal && v === selVal && i !== sel) cls += ' is-same';
@@ -382,6 +397,7 @@
     if (sel >= 0) for (i = 0; i < PEERS[sel].length; i++) peerOf[PEERS[sel][i]] = 1;
     for (i = 0; i < 81; i++) paintCell(i, dup, selVal, peerOf);
     paintPad();
+    paintStrip();
   }
 
   /* A numeral all nine of which are on the board has nothing left to place.
@@ -484,6 +500,9 @@
     entries = s.e;
     marks = s.m;
     wrong = s.w;
+    /* A hinted square was filled by the press, not the reader: undo walks
+       back the reader's moves and leaves it standing. */
+    for (var hi = 0; hi < 81; hi++) if (hinted[hi]) { entries[hi] = P.sol[hi]; wrong[hi] = false; }
     $('t-undo').disabled = !undoStack.length;
     fullNoticeArmed = true;
     saveState();
@@ -517,7 +536,7 @@
   function input(d) {
     if (sel < 0 || solvedFlag) return;
     var i = sel;
-    if (P.given[i]) return;                       // printed: not yours to change
+    if (locked(i)) return;                        // printed, or filled by the press: not yours to change
 
     snapshot();
 
@@ -550,7 +569,7 @@
   function erase() {
     if (sel < 0 || solvedFlag) return;
     var i = sel;
-    if (P.given[i]) return;
+    if (locked(i)) return;
     if (!entries[i] && !(marks[i] && marks[i].length)) return;
     snapshot();
     entries[i] = 0;
@@ -569,7 +588,7 @@
     if (solvedFlag) return;
     var any = false;
     for (var i = 0; i < 81; i++) {
-      wrong[i] = !P.given[i] && !!entries[i] && entries[i] !== P.sol[i];
+      wrong[i] = !locked(i) && !!entries[i] && entries[i] !== P.sol[i];
       if (wrong[i]) any = true;
     }
     checks++;
@@ -588,11 +607,81 @@
   }
   var replyHold = null;
 
+  /* ---- সাহায্য — one square ------------------------------------------------
+
+     The most-constrained empty square — fewest candidates against the board
+     as it stands — is the square a solver would take next, so that is the
+     one the press fills. The selected square wins a tie: a reader who has
+     put the cursor somewhere has said where they are stuck. Filled from
+     `P.sol`, marked green, locked like a given. Wrong entries in the way are
+     not corrected: the press adds one truth, it does not check. */
+  function hintTarget() {
+    var best = -1, bestN = 10, i, d;
+    for (i = 0; i < 81; i++) {
+      if (locked(i) || entries[i]) continue;
+      var seen = {}, p = PEERS[i], k;
+      for (k = 0; k < p.length; k++) { var v = valueAt(p[k]); if (v) seen[v] = 1; }
+      var n = 0;
+      for (d = 1; d <= 9; d++) if (!seen[d]) n++;
+      if (n < bestN || (n === bestN && i === sel)) { bestN = n; best = i; }
+    }
+    return best;
+  }
+
+  function applyHint(i) {
+    if (i < 0 || solvedFlag || locked(i)) return;
+    hinted[i] = true;
+    entries[i] = P.sol[i];
+    marks[i] = [];
+    wrong[i] = false;
+    clearPeerMarks(i, P.sol[i]);
+    sel = i;
+    retireCoach();
+    if (noteKind() === 'full') hideNote();
+    saveState();
+    paintBoard();
+    checkGridFull();
+    if (isCorrect()) win();
+  }
+
+  /* The strip is the ad module's; this page mounts it once per puzzle and
+     says what a press does. */
+  function mountStrip() {
+    if (strip) { strip.destroy(); strip = null; }
+    var hud = $('hud');
+    if (!H || !window.PaAds) { hud.hidden = true; return; }
+    strip = PaAds.strip(hud, {
+      hints: H,
+      kind: 'cell',
+      what: T.hintWhat,
+      canUse: function () {
+        if (solvedFlag) return { ok: false };
+        var t = hintTarget();
+        return t < 0 ? { ok: false } : { ok: true, ctx: P.id };
+      },
+      onUse: function (id) { if (P && P.id === id) applyHint(hintTarget()); }
+    });
+    hud.hidden = false;
+  }
+  function paintStrip() { if (strip) strip.paint(); }
+
+
+  /* Two reserved slots, ADS-SPEC §3: `front` below the lead, `result` under
+     the score. The module reserves the box at full height before it asks for
+     anything, and a kill switch collapses it — this file only says where. */
+  function mountAd(id, name, fresh) {
+    var A = window.PaAds, el = $(id);
+    if (!A || !el) return;
+    if (fresh) A.unmount(el);
+    A.slot(el, name);
+  }
+
   function resetPuzzle() {
     snapshot();
     entries = new Array(81).fill(0);
     marks = new Array(81).fill(null).map(function () { return []; });
     wrong = new Array(81).fill(false);
+    hinted = new Array(81).fill(false);
     checks = 0;
     solvedFlag = false;
     clock.secs = 0;
@@ -630,17 +719,23 @@
     var isBest = !prev || clock.secs < prev;
     if (isBest) { try { localStorage.setItem(BEST + P.id, String(clock.secs)); } catch (e) {} }
 
-    emit('game:complete', { id: P.id, difficulty: P.d, secs: clock.secs, checks: checks });
+    /* The board ranks on the clock plus ৪৫ s per সাহায্য; the best stays the
+       raw clock, which is what the hub's ledger prints. */
+    var hints = hintCount(), rankedSecs = clock.secs + HINT_SECS * hints;
+    emit('game:complete', { id: P.id, difficulty: P.d, secs: clock.secs, checks: checks, hints: hints, rankedSecs: rankedSecs });
 
     $('win-diff').textContent = DIFF[P.d] + T.puzzle;
     $('win-time').textContent = fmt(clock.secs);
     $('win-best').textContent = fmt(isBest ? clock.secs : prev);
     $('win-checks').textContent = num(checks);
-    $('win-note').textContent = checks === 0 ? T.unaided
-      : (!prev ? T.firstSolve : (isBest ? T.newBest : ''));
+    $('win-hints').textContent = num(hints);
+    $('win-note').textContent = hints ? T.ranked + fmt(rankedSecs) + '।'
+      : (checks === 0 ? T.unaided : (!prev ? T.firstSolve : (isBest ? T.newBest : '')));
+    paintStrip();
     paintClock();
     paintBoard();
 
+    mountAd('ad-result', 'result', true);
     /* The board gets its moment before the card covers it: the sweep is
        ~560ms plus a 16-square diagonal at 16ms. */
     solveSweep();
@@ -734,6 +829,7 @@
 
   function goBoard() {
     buildBoard();
+    mountStrip();
     paintBand();
     paintDates();
     paintClock();
@@ -943,8 +1039,11 @@
     marks = new Array(81).fill(null).map(function () { return []; });
     for (var k in st.m) marks[+k] = st.m[k];
     wrong = new Array(81).fill(false);
+    hinted = st.h;
+    for (i = 0; i < 81; i++) if (hinted[i]) entries[i] = sol[i];
     checks = st.c;
     clock.secs = st.t;
+    H = window.PaAds ? PaAds.hints(P.id) : null;
     /* Trust the stored flag only if the board still agrees with it: a pack
        rebuilt under the same id must not inherit someone else's solve. */
     solvedFlag = st.s && isCorrect();
@@ -979,28 +1078,36 @@
 
     /* A `#p=` that arrives after boot is the same request as one that arrives
        with it — খেলাঘর links to a dated board, and a reader who follows a
-       second such link while the game is already open must land on that
-       board rather than on nothing. Ignored when it names the board already
-       open, so re-entering the same link does not restart the reader's
-       puzzle. */
+       second such link while the game is already open must land on that day
+       rather than on nothing. It lands where a boot link lands: the front
+       page for that day, not the board. Ignored when it names the board
+       already open, so re-entering the same link does not take the reader off
+       a puzzle they are in the middle of. */
     window.addEventListener('hashchange', function () {
       if (!PACK) return;
       var pz = puzzleFromHash();
-      if (pz && (!P || pz.id !== P.id)) openPuzzle(pz, true);
+      if (pz && (!P || pz.id !== P.id)) openPuzzle(pz, false);
     });
 
     PaData.json('puzzles/index.json')
       .then(function (pack) {
         PACK = pack;
-        /* A #p= link is a request for THAT board, so it skips the front page.
-           An id the game cannot serve — unknown, or not yet due — falls
-           through to the ordinary daily, so a stale or future-dated link from
-           খেলাঘর degrades to something playable rather than to an error. */
+        /* A #p= link is a request for that DAY, and it stops there. It picks
+           which issue is open; the front page still opens on it, because the
+           reader pressing শুরু করুন themselves is what starts a puzzle. Landing
+           straight on the board out of খেলাঘর meant the timer was already
+           running before the reader had read what the day was. An id we
+           cannot serve — unknown, or not yet due — falls through to the
+           ordinary daily, so a stale or future-dated link degrades to
+           something playable rather than to an error. */
         var wanted = puzzleFromHash();
         if (!loadPuzzle(wanted || pickForToday().pz)) return;
         bind();
+        if (window.PaAds) PaAds.setConsent({ ads: true, personalized: false });
         bindBoard();
-        if (wanted) goBoard(); else goFront();
+        goFront();
+        /* The front page is laid out; the slot can measure its column. */
+        mountAd('ad-front', 'front');
       })
       .catch(function (err) {
         console.error(err);

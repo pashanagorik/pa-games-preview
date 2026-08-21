@@ -376,24 +376,8 @@
    fraction rather than as "পাওয়া গেছে ০/২৪, and here is a hint". */
 .wf-listhead__t { flex: none; }
 .wf-listhead__n { flex: none; font-variant-numeric: tabular-nums; color: var(--pa-ink-2); }
-.wf-listhead .wf-hint { margin-inline-start: auto; }
-/* A control sitting inside an editorial section head is type on the paper's
-   own head, not chrome — so it takes ink at weight 600 with an offset
-   underline and hovers to Red Deep, never portal violet. The Borrowed
-   Chrome Rule's stated limit, applied. */
-.wf-hint {
-  font-family: var(--pa-sans);
-  font-size: var(--pa-size-meta);
-  letter-spacing: 0.07em;
-  font-weight: 600;
-  color: var(--pa-ink);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  padding: 0.15rem 0.1rem;
-}
-.wf-hint:hover { color: var(--pa-red-deep); }
-.wf-hint:disabled { color: var(--pa-ink-3); text-decoration: none; cursor: default; }
-.wf-hint__n { font-variant-numeric: tabular-nums; }
+/* The hint control used to sit here as a link in the section head; it is
+   the ad module's strip on the masthead now (ADS-SPEC §4). */
 .wf-hint__n:not(:empty)::before { content: ' '; }
 /* The running count is where a reader confirms the NUMBER, as against the
    word — so it takes the settled ink and a press impression, not colour
@@ -419,6 +403,12 @@
   max-height: 26svh;
   overflow-y: auto; overscroll-behavior: contain;
 }
+/* The সাহায্য strip on the masthead is ~3.75rem the flower no longer has on a
+   640px phone, and the flower is the one thing here that cannot shrink
+   below a thumb. The word list yields instead: it scrolls anyway. The
+   landscape and spread layouts give the list a column of its own and are
+   untouched. */
+#app.is-strip .wf-panel { max-height: 17svh; }
 
 /* ---- the taken list --------------------------------------------------
    A found word LEAVES the blanks. A blank carries its length; once the word
@@ -635,7 +625,10 @@
 
 /* ---- completion card -------------------------------------------------- */
 
-.wf-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; }
+.wf-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.wf-win .pa-ad { margin: var(--pa-s-4) 0 var(--pa-s-3); border-block-end: 0; text-align: start; }
+.wf-lead .pa-ad { margin: var(--pa-s-5) 0 0; }
+.wf-lead .pa-ad + .wf-cta { margin-top: var(--pa-s-4); }
 .wf-win__mark { margin: 0 0 var(--pa-s-1); font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead); }
 .wf-win__sub { margin: 0 0 var(--pa-s-4); color: var(--pa-ink-2); }
 .wf-win__nums { display: grid; grid-template-columns: repeat(3, 1fr); margin-bottom: var(--pa-s-3); border-block: 1px solid var(--pa-rule); }
@@ -677,7 +670,7 @@
     border-inline-start: 1px solid var(--pa-rule);
   }
   .wf-listzone > * { width: auto; margin-inline: 0; }
-  .wf-panel { max-height: none; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+  .wf-panel, #app.is-strip .wf-panel { max-height: none; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
   .wf-slots {
     grid-template-columns: 1fr;
     align-content: start;
@@ -724,7 +717,7 @@
   /* The rail does not overflow, so the scroll cap is released — but the
      construction is otherwise identical to the phone's. A game that reorders
      its list on one screen and not on the other is two games. */
-  .wf-panel { max-height: none; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
+  .wf-panel, #app.is-strip .wf-panel { max-height: none; min-height: 0; flex: 1 1 auto; overflow-y: auto; }
   .wf-slots {
     grid-template-columns: 1fr;
     align-content: start;
@@ -816,6 +809,8 @@
           </div>
         </div>
 
+        <div id="ad-front"></div>
+
         <button class="pa-btn pa-btn--primary wf-cta" id="fp-cta">শুরু করুন</button>
       </section>
 
@@ -870,6 +865,10 @@
     <div class="pa-masthead__rule">
       <span class="pa-masthead__date" id="board-date"></span>
     </div>
+    <!-- সাহায্য, as a game shows lives: the ad module builds the strip here,
+         on the masthead, above the flower. The action reveals the first
+         akshara of the longest unfound word. -->
+    <div id="hud" hidden></div>
   </header>
 
   <p class="wf-band" id="band" aria-live="polite"></p>
@@ -888,7 +887,6 @@
     <div class="wf-listhead">
       <span class="wf-listhead__t">পাওয়া গেছে</span>
       <span class="wf-listhead__n" id="count">০ / ০</span>
-      <button class="wf-hint" id="hint">ইঙ্গিত<span class="wf-hint__n" id="hint-n"></span></button>
     </div>
     <!-- One scroll container holding both halves of the list, because a found
          word LEAVES the blanks and lands at the head of the taken list — see
@@ -1003,8 +1001,9 @@
       <div class="wf-win__nums">
         <span class="wf-win__num"><b class="wf-win__v" id="win-time">০:০০</b><span class="wf-win__k">সময়</span></span>
         <span class="wf-win__num"><b class="wf-win__v" id="win-best">০:০০</b><span class="wf-win__k">সেরা</span></span>
-        <span class="wf-win__num"><b class="wf-win__v" id="win-hints">০</b><span class="wf-win__k">সহায়তা</span></span>
+        <span class="wf-win__num"><b class="wf-win__v" id="win-hints">০</b><span class="wf-win__k">সাহায্য</span></span>
       </div>
+      <div id="ad-result"></div>
       <p class="wf-win__note" id="win-note"></p>
       <div class="wf-win__acts">
         <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
@@ -1024,6 +1023,21 @@
 <div class="wf-fly" id="fly" aria-hidden="true"></div>
 
 </div>
+<script>
+/* Ad system config — ADS-SPEC.md §2. `dummy` until PA hands over a network
+   code; then provider: 'gpt' and the code, nothing else changes. */
+window.PA_ADS = {
+  provider: 'dummy',
+  network: '',
+  client: '',
+  game: 'wf',
+  enabled: true,
+  rewarded: true,
+  freeHints: 1,
+  maxRewardedHints: 3
+};
+</script>
+<script src="../../shared/pa-ads.js"></script>
 <script src="../../shared/pa-data.js"></script>
 <script src="../../shared/bn-text.js"></script>
 <script src="game.js"></script>

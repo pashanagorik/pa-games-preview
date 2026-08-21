@@ -1,0 +1,259 @@
+{
+  "id": "pa-2026-08-14",
+  "date": "2026-08-14",
+  "source": "Prothom Alo print edition, শব্দভেদ, 2026-08-14. Grid and clues from Screenshot/14.8.2026.png; solution grid from Screenshot/15.8.2026.png.",
+  "verified": true,
+  "verificationNote": "Block pattern derived from ink in the printed solution grid rather than from the tint; all 14 across and 12 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    "আ",
+    "ব",
+    "দা",
+    "র",
+    null,
+    "স",
+    "বু",
+    "জ",
+    "ল",
+    null,
+    "তা",
+    null,
+    "গ",
+    "র্ব",
+    null,
+    "লা",
+    "গা",
+    "ছ",
+    null,
+    "না",
+    null,
+    "দা",
+    "ম",
+    null,
+    null,
+    "ল",
+    "জ্জা",
+    "ক",
+    "র",
+    null,
+    "নো",
+    "য়া",
+    "টো",
+    "কা",
+    null,
+    "চ",
+    null,
+    "স",
+    "ব",
+    null,
+    null,
+    "নো",
+    "না",
+    null,
+    "আ",
+    "দা",
+    "ল",
+    "ত",
+    "না",
+    null,
+    "জু",
+    "ত",
+    "স",
+    "ই",
+    null,
+    "ট",
+    "না",
+    "ম",
+    "ক",
+    null,
+    "ল",
+    null,
+    "সু",
+    "স্থ"
+  ],
+  "entries": [
+    {
+      "n": 1,
+      "dir": "across",
+      "cell": 0,
+      "len": 4,
+      "clue": "বায়না।"
+    },
+    {
+      "n": 1,
+      "dir": "down",
+      "cell": 0,
+      "len": 3,
+      "clue": "শিথিল।"
+    },
+    {
+      "n": 2,
+      "dir": "down",
+      "cell": 2,
+      "len": 2,
+      "clue": "যিনি দান করেন।"
+    },
+    {
+      "n": 3,
+      "dir": "across",
+      "cell": 5,
+      "len": 3,
+      "clue": "হরিৎ।"
+    },
+    {
+      "n": 3,
+      "dir": "down",
+      "cell": 5,
+      "len": 3,
+      "clue": "সব সময়।"
+    },
+    {
+      "n": 4,
+      "dir": "down",
+      "cell": 7,
+      "len": 2,
+      "clue": "জলময় নিম্নভূমি।"
+    },
+    {
+      "n": 5,
+      "dir": "across",
+      "cell": 12,
+      "len": 2,
+      "clue": "অহংকার।"
+    },
+    {
+      "n": 6,
+      "dir": "across",
+      "cell": 16,
+      "len": 2,
+      "clue": "বৃক্ষ।"
+    },
+    {
+      "n": 7,
+      "dir": "down",
+      "cell": 17,
+      "len": 4,
+      "clue": "উছলে পড়া।"
+    },
+    {
+      "n": 8,
+      "dir": "down",
+      "cell": 19,
+      "len": 3,
+      "clue": "রদ, বাতিল।"
+    },
+    {
+      "n": 9,
+      "dir": "across",
+      "cell": 21,
+      "len": 2,
+      "clue": "মূল্য।"
+    },
+    {
+      "n": 10,
+      "dir": "down",
+      "cell": 22,
+      "len": 4,
+      "clue": "মনের জোর।"
+    },
+    {
+      "n": 11,
+      "dir": "across",
+      "cell": 25,
+      "len": 4,
+      "clue": "লজ্জার কারণযুক্ত।"
+    },
+    {
+      "n": 12,
+      "dir": "across",
+      "cell": 30,
+      "len": 2,
+      "clue": "ঝুঁকে পড়া।"
+    },
+    {
+      "n": 13,
+      "dir": "across",
+      "cell": 32,
+      "len": 2,
+      "clue": "আঙুলের আলতো আঘাত।"
+    },
+    {
+      "n": 14,
+      "dir": "across",
+      "cell": 37,
+      "len": 2,
+      "clue": "সকল।"
+    },
+    {
+      "n": 14,
+      "dir": "down",
+      "cell": 37,
+      "len": 3,
+      "clue": "পণ্যদ্রব্য।"
+    },
+    {
+      "n": 15,
+      "dir": "across",
+      "cell": 41,
+      "len": 2,
+      "clue": "লবণাক্ত।"
+    },
+    {
+      "n": 16,
+      "dir": "down",
+      "cell": 42,
+      "len": 3,
+      "clue": "আঘাত সহ্য করতে পারে না এমন।"
+    },
+    {
+      "n": 17,
+      "dir": "across",
+      "cell": 44,
+      "len": 4,
+      "clue": "বিচারালয়।"
+    },
+    {
+      "n": 17,
+      "dir": "down",
+      "cell": 44,
+      "len": 3,
+      "clue": "খাঁটি।"
+    },
+    {
+      "n": 18,
+      "dir": "down",
+      "cell": 47,
+      "len": 3,
+      "clue": "শশব্যস্ত, বিচলিত।"
+    },
+    {
+      "n": 19,
+      "dir": "down",
+      "cell": 48,
+      "len": 2,
+      "clue": "মাতামহ।"
+    },
+    {
+      "n": 20,
+      "dir": "across",
+      "cell": 50,
+      "len": 4,
+      "clue": "সুবিধাজনক বা মানানসই।"
+    },
+    {
+      "n": 21,
+      "dir": "across",
+      "cell": 56,
+      "len": 3,
+      "clue": "নামবিশিষ্ট।"
+    },
+    {
+      "n": 22,
+      "dir": "across",
+      "cell": 62,
+      "len": 2,
+      "clue": "নীরোগ।"
+    }
+  ]
+}

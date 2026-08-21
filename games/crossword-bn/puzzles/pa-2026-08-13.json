@@ -1,0 +1,231 @@
+{
+  "id": "pa-2026-08-13",
+  "date": "2026-08-13",
+  "source": "Prothom Alo print edition, শব্দভেদ, 2026-08-13. Grid and clues from Screenshot/13.8.2026.png; solution grid from Screenshot/14.8.2026.png.",
+  "verified": true,
+  "verificationNote": "Block pattern derived from ink in the printed solution grid rather than from the tint; all 11 across and 11 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    "মে",
+    "ল",
+    "ব",
+    "ন্ধ",
+    "ন",
+    null,
+    "ছা",
+    null,
+    "য়ে",
+    null,
+    "হি",
+    null,
+    "খ",
+    "তি",
+    "য়া",
+    "ন",
+    null,
+    "বি",
+    "রা",
+    "ম",
+    null,
+    "মি",
+    null,
+    "ন্দ্য",
+    "ন",
+    null,
+    "ব",
+    null,
+    "শা",
+    "র",
+    "দ",
+    null,
+    "জ",
+    "ব",
+    "র",
+    "দ",
+    "স্তি",
+    null,
+    "ম",
+    "গ্ন",
+    "র",
+    null,
+    "ণ",
+    null,
+    "বি",
+    "বা",
+    "দ",
+    null,
+    "ব",
+    "ন্ধু",
+    null,
+    "বাঁ",
+    "ধা",
+    null,
+    "ম",
+    "শা",
+    "ন্দী",
+    null,
+    "ভ",
+    "য়া",
+    "ন",
+    "ক",
+    null,
+    "ণ"
+  ],
+  "entries": [
+    {
+      "n": 1,
+      "dir": "across",
+      "cell": 0,
+      "len": 5,
+      "clue": "মিলন বা মিশ্রণ।"
+    },
+    {
+      "n": 1,
+      "dir": "down",
+      "cell": 0,
+      "len": 2,
+      "clue": "কন্যা।"
+    },
+    {
+      "n": 2,
+      "dir": "down",
+      "cell": 2,
+      "len": 6,
+      "clue": "বাইরের আবরণ।"
+    },
+    {
+      "n": 3,
+      "dir": "down",
+      "cell": 4,
+      "len": 2,
+      "clue": "আঙুলের ডগার উপাস্থি।"
+    },
+    {
+      "n": 4,
+      "dir": "down",
+      "cell": 6,
+      "len": 2,
+      "clue": "প্রতিবিম্ব।"
+    },
+    {
+      "n": 5,
+      "dir": "across",
+      "cell": 12,
+      "len": 4,
+      "clue": "বিষয়ানুক্রমিক হিসাবের বই।"
+    },
+    {
+      "n": 6,
+      "dir": "down",
+      "cell": 13,
+      "len": 3,
+      "clue": "অন্ধকার।"
+    },
+    {
+      "n": 7,
+      "dir": "down",
+      "cell": 15,
+      "len": 2,
+      "clue": "প্রশংসার যোগ্য।"
+    },
+    {
+      "n": 8,
+      "dir": "across",
+      "cell": 17,
+      "len": 3,
+      "clue": "বিশ্রাম, বিরতি।"
+    },
+    {
+      "n": 9,
+      "dir": "down",
+      "cell": 24,
+      "len": 5,
+      "clue": "চোখের আড়ালে যেতে দেওয়া হয় না এমন।"
+    },
+    {
+      "n": 10,
+      "dir": "across",
+      "cell": 28,
+      "len": 3,
+      "clue": "শরৎকালীন।"
+    },
+    {
+      "n": 10,
+      "dir": "down",
+      "cell": 28,
+      "len": 5,
+      "clue": "শাস্তি দেওয়া।"
+    },
+    {
+      "n": 11,
+      "dir": "down",
+      "cell": 30,
+      "len": 4,
+      "clue": "অবিরাম দম আওয়াজ।"
+    },
+    {
+      "n": 12,
+      "dir": "across",
+      "cell": 32,
+      "len": 5,
+      "clue": "অন্যায়ভাবে বল প্রয়োগ।"
+    },
+    {
+      "n": 13,
+      "dir": "across",
+      "cell": 38,
+      "len": 2,
+      "clue": "বিভোর।"
+    },
+    {
+      "n": 14,
+      "dir": "across",
+      "cell": 44,
+      "len": 3,
+      "clue": "ঝগড়া।"
+    },
+    {
+      "n": 15,
+      "dir": "across",
+      "cell": 48,
+      "len": 2,
+      "clue": "সখা।"
+    },
+    {
+      "n": 16,
+      "dir": "across",
+      "cell": 51,
+      "len": 2,
+      "clue": "বন্ধনযুক্ত।"
+    },
+    {
+      "n": 16,
+      "dir": "down",
+      "cell": 51,
+      "len": 2,
+      "clue": "ডুগি।"
+    },
+    {
+      "n": 17,
+      "dir": "across",
+      "cell": 54,
+      "len": 2,
+      "clue": "মশক।"
+    },
+    {
+      "n": 18,
+      "dir": "down",
+      "cell": 55,
+      "len": 2,
+      "clue": "অস্ত্রাদিতে ধার দেওয়ার পাথর।"
+    },
+    {
+      "n": 19,
+      "dir": "across",
+      "cell": 58,
+      "len": 4,
+      "clue": "ভীতিজনক।"
+    }
+  ]
+}

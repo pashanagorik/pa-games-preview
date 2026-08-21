@@ -43,8 +43,13 @@
     clear: 'ছক ফাঁকা করুন',
     clearArm: 'নিশ্চিত? আবার ক্লিক করুন',
 
-    noAssist: 'কোনো সহায়তা ছাড়াই সমাধান',
-    withAssist: 'সহায়তা নিয়ে সম্পন্ন',
+    noAssist: 'কোনো যাচাই বা সাহায্য ছাড়াই সমাধান',
+    withAssist: 'যাচাই নিয়ে সম্পন্ন',
+    /* The board's number: the clock plus ৪৫ সেকেন্ড for every সাহায্য
+       (ADS-SPEC §4, Rank). Printed once, on the card, beside the raw time. */
+    ranked: 'সাহায্যে ৪৫ সেকেন্ড করে যোগ হয়ে তালিকায় ',
+    hintWhat: 'চলতি সূত্রের একটি অক্ষর বসবে',
+    answers: 'উত্তর দেখুন',
     newBest: 'এটিই আপনার সেরা সময়',
     nextPuzzle: 'পরের ধাঁধা',
     allPuzzles: 'সব ধাঁধা',
@@ -97,6 +102,10 @@
 
   var INDEX = { puzzles: [] };
   var currentId = null;
+  var H = null;            // this puzzle's hint budget, from PaAds.hints()
+  var hud = null;          // the সাহায্য strip on the masthead, PaAds.strip()
+  var answersMode = false; // a past puzzle opened from the archive as its printed answers
+  var HINT_SECS = 45;      // ADS-SPEC §4, Rank: one সাহায্য on the board's clock
 
   var view = 'front';      // 'front' | 'play' — two views, one document
   var coachDone = false;
@@ -176,6 +185,7 @@
   function bestKey() { return 'pa-xw-best:' + P.id; }
 
   function save() {
+    if (answersMode) return;   /* the printed answers are not the reader's grid */
     try {
       localStorage.setItem(storeKey(), JSON.stringify({
         cells: cells, elapsed: elapsed, solved: solved,
@@ -253,6 +263,7 @@
   function render() {
     var e = currentEntry();
     var inWord = e ? entryCells(e) : [];
+    paintStrip();
 
     // grid
     var kids = els.grid.children;
@@ -276,7 +287,7 @@
     renderClue(e);
     renderLists();
 
-    els.timer.textContent = fmtTime(Math.floor(elapsed));
+    els.timer.textContent = answersMode ? '—' : fmtTime(Math.floor(elapsed));
     els.timer.classList.toggle('is-done', solved);
   }
 
@@ -477,7 +488,7 @@
   }
 
   function typeKey(ch) {
-    if (solved) return;
+    if (solved || answersMode) return;
     var isMark = B.isKar(ch) || B.isSign(ch) || ch === B.VIRAMA;
 
     if (isMark) {
@@ -505,7 +516,7 @@
   }
 
   function backspace() {
-    if (solved) return;
+    if (solved || answersMode) return;
     if (cells[sel]) {
       cells[sel] = B.backspace(cells[sel]);
       delete wrong[sel];
@@ -547,6 +558,49 @@
     });
   }
 
+  /* ---- সাহায্য — one akshara ----------------------------------------------
+
+     The first square of the current clue that is not yet right — empty or
+     wrong — goes in, in blue, the way a revealed square always has. If the
+     current clue is done, the first such square on the board. The cursor
+     lands on it so the reader sees what they bought. */
+  function hintTarget() {
+    var e = currentEntry(), list = e ? entryCells(e) : [], i;
+    for (i = 0; i < list.length; i++) if (!B.equals(cells[list[i]], P.grid[list[i]])) return list[i];
+    var all = allCells();
+    for (i = 0; i < all.length; i++) if (!B.equals(cells[all[i]], P.grid[all[i]])) return all[i];
+    return -1;
+  }
+
+  function applyHint(i) {
+    if (i < 0 || solved || answersMode) return;
+    assists.reveal++;
+    revealCells([i]);
+    sel = i;
+    fresh = true;
+    afterEdit();
+  }
+
+  /* The strip is the ad module's; this page mounts it once per puzzle and
+     says what a press does. */
+  function mountStrip() {
+    if (hud) { hud.destroy(); hud = null; }
+    var host = $('hud');
+    if (!H || !window.PaAds || answersMode) { host.hidden = true; return; }
+    hud = PaAds.strip(host, {
+      hints: H,
+      kind: 'akshara',
+      what: T.hintWhat,
+      canUse: function () {
+        if (solved || answersMode || hintTarget() < 0) return { ok: false };
+        return { ok: true, ctx: currentId };
+      },
+      onUse: function (id) { if (id === currentId) applyHint(hintTarget()); }
+    });
+    host.hidden = false;
+  }
+  function paintStrip() { if (hud) hud.paint(); }
+
   function allCells() {
     var out = [];
     for (var i = 0; i < P.grid.length; i++) if (!isBlock(i)) out.push(i);
@@ -566,9 +620,15 @@
     saveBest(Math.floor(elapsed));
     save();
     els.grid.classList.add('is-solved');
+    /* The board ranks on the clock plus ৪৫ s per সাহায্য; the best stays the
+       raw clock, which is what the hub's ledger prints. */
+    var secs = Math.floor(elapsed);
     emit('game:complete', {
-      elapsedMs: Math.floor(elapsed) * 1000,
+      elapsedMs: secs * 1000,
+      secs: secs,
       assists: assists,
+      hints: assists.reveal,
+      rankedSecs: secs + HINT_SECS * assists.reveal,
       perfect: assists.check === 0 && assists.reveal === 0
     });
     setTimeout(showWin, 900);
@@ -587,6 +647,17 @@
     return null;
   }
 
+
+  /* Two reserved slots, ADS-SPEC §3: `front` below the lead, `result` under
+     the score. The module reserves the box at full height before it asks for
+     anything, and a kill switch collapses it — this file only says where. */
+  function mountAd(id, name, fresh) {
+    var A = window.PaAds, el = $(id);
+    if (!A || !el) return;
+    if (fresh) A.unmount(el);
+    A.slot(el, name);
+  }
+
   function showWin() {
     var perfect = assists.check === 0 && assists.reveal === 0;
     var secs = Math.floor(elapsed);
@@ -594,17 +665,20 @@
 
     els.winTime.textContent = fmtTime(secs);
     els.winBestv.textContent = fmtTime(b || secs);
-    els.winAssist.textContent = B.toBn(assists.check + assists.reveal);
+    els.winAssist.textContent = B.toBn(assists.check);
+    $('win-hints').textContent = B.toBn(assists.reveal);
 
     var note = [];
     if (!b || secs <= b) note.push(T.newBest);
-    note.push(perfect ? T.noAssist : T.withAssist);
+    if (assists.reveal) note.push(T.ranked + fmtTime(secs + HINT_SECS * assists.reveal));
+    else note.push(perfect ? T.noAssist : T.withAssist);
     els.winBest.textContent = note.join(' · ');
 
     var nid = nextUnsolvedId();
     els.winNext.dataset.next = nid || '';
     els.winNext.textContent = nid ? T.nextPuzzle : T.allPuzzles;
 
+    mountAd('ad-result', 'result', true);
     els.win.classList.add('is-open');
     els.winNext.focus();
   }
@@ -679,13 +753,49 @@
     // the board can only be measured once its column has height
     requestAnimationFrame(function () {
       sizeGrid();
-      if (!solved) startTimer();
+      if (!solved && !answersMode) startTimer();
     });
+  }
+
+  /* A past puzzle, opened from the archive as its printed answers — the
+     paper prints yesterday's solution, and so does this. Read-only: the
+     grid is the solution, every square set as revealed, no clock, no strip,
+     nothing saved. Leaving drops the puzzle so the reader's own grid comes
+     back on the next open. */
+  function enterAnswers() {
+    answersMode = true;
+    stopTimer();
+    cells = P.grid.map(function (v) { return v === null ? '' : v; });
+    wrong = {}; revealed = {};
+    allCells().forEach(function (i) { revealed[i] = true; });
+    els.timer.textContent = '—';
+    $('answers').hidden = false;
+    els.coach.hidden = true;
+    mountStrip();
+    render();
+    showView('play');
+    applyKbMode();
+    emit('game:answers');
+    requestAnimationFrame(sizeGrid);
+  }
+
+  function leaveAnswers() {
+    if (!answersMode) return false;
+    answersMode = false;
+    $('answers').hidden = true;
+    currentId = null;   /* force a reload: the solution must not linger as the reader's grid */
+    return true;
   }
 
   function goFront() {
     stopTimer();
     if (P) save();
+    if (leaveAnswers()) {
+      /* The front page must hold a playable puzzle, not the answers. */
+      loadPuzzle(dailyId()).then(function () { showView('front'); renderFront(); });
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+      return;
+    }
     showView('front');
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     renderFront();
@@ -895,6 +1005,7 @@
         return;
       }
       if (act === 'clear') {
+        if (answersMode) return;
         var label = row.querySelector('.pa-menu__label');
         if (!clearArmed) { clearArmed = true; label.textContent = T.clearArm; return; }
         cells = cells.map(function () { return ''; });
@@ -904,10 +1015,11 @@
         return;
       }
 
-      if (act.indexOf('check') === 0) assists.check++; else assists.reveal++;
+      if (act.indexOf('check') !== 0 || answersMode) return;
+      assists.check++;
       var scope = act.split('-')[1];
       var list = scope === 'cell' ? [sel] : scope === 'word' ? (e ? entryCells(e) : [sel]) : allCells();
-      if (act.indexOf('check') === 0) checkCells(list); else revealCells(list);
+      checkCells(list);
       afterEdit();
       closeSheet(els.sheetMenu);
     });
@@ -1032,10 +1144,27 @@
          is the way in, and from the board it is a swap. */
       b.onclick = function () {
         if (els.sheetArchive.classList.contains('is-open')) closeSheet(els.sheetArchive);
+        leaveAnswers();
         if (item.id === currentId) { if (view !== 'play') enterPlay(); return; }
         loadPuzzle(item.id).then(enterPlay);
       };
+      li.className = 'xw-arcitem';
       li.appendChild(b);
+      /* Yesterday's answers: a past date, not yet solved, opens read-only.
+         Today's never gives itself away (ADS-SPEC §4). */
+      if (item.date < t && st.state !== 'solved') {
+        var a = document.createElement('button');
+        a.type = 'button';
+        a.className = 'xw-arcrow__ans';
+        a.textContent = T.answers;
+        a.setAttribute('aria-label', T.answers + ' — ' + dateLabel(item.date));
+        a.onclick = function () {
+          if (els.sheetArchive.classList.contains('is-open')) closeSheet(els.sheetArchive);
+          leaveAnswers();
+          loadPuzzle(item.id).then(enterAnswers);
+        };
+        li.appendChild(a);
+      }
       list.appendChild(li);
     });
   }
@@ -1147,6 +1276,8 @@
         computeNumbers();
         restore();
         if (autocheck) checkCells(allCells());
+        H = window.PaAds ? PaAds.hints(id) : null;
+        mountStrip();
 
         els.datelineText.textContent = (P.date === todayISO() ? T.todayPrefix : '') + dateLabel(P.date);
 
@@ -1198,15 +1329,24 @@
 
         buildKeyboard();
         wire();
+        if (window.PaAds) PaAds.setConsent({ ads: true, personalized: false });
 
-        // a #p= link is a request for that board, so it skips the front page
+        /* A #p= link is a request for that DAY, and it stops there. It picks
+           which issue is open; the front page still opens on it, because the
+           reader pressing শুরু করুন themselves is what starts a puzzle. Landing
+           straight on the board out of খেলাঘর meant the timer was already
+           running before the reader had read what the day was. An id we
+           cannot serve — unknown, or not yet due — falls through to the
+           ordinary daily, so a stale or future-dated link degrades to
+           something playable rather than to an error. */
         var hash = (location.hash.match(/p=([\w-]+)/) || [])[1];
         deepLink = INDEX.puzzles.some(function (x) { return x.id === hash; });
         return loadPuzzle(deepLink ? hash : dailyId());
       })
       .then(function () {
         renderFront();
-        if (deepLink) enterPlay();
+        /* The front page is laid out; the slot can measure its column. */
+        mountAd('ad-front', 'front');
         if (document.fonts && document.fonts.ready) {
           document.fonts.ready.then(function () { if (view === 'play') sizeGrid(); });
         }

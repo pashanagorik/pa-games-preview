@@ -1,0 +1,259 @@
+{
+  "id": "pa-2026-08-16",
+  "date": "2026-08-16",
+  "source": "Prothom Alo print edition, শব্দভেদ, 2026-08-16. Grid and clues from Screenshot/16.8.2026.png; solution grid from Screenshot/17.8.2026.png.",
+  "verified": true,
+  "verificationNote": "Block pattern derived from ink in the printed solution grid rather than from the tint; all 14 across and 12 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    "ঝ",
+    "ড়",
+    "ঝা",
+    "প",
+    "টা",
+    null,
+    "দ",
+    null,
+    "ল",
+    null,
+    "ল",
+    null,
+    "না",
+    "গ",
+    "রি",
+    "ক",
+    "ম",
+    "ল্ল",
+    null,
+    "ফা",
+    "টা",
+    null,
+    "দ্র",
+    null,
+    "লা",
+    null,
+    "য",
+    null,
+    "নি",
+    "ম",
+    null,
+    "হ",
+    "নি",
+    "ম",
+    "ন্ত্র",
+    "ণ",
+    null,
+    "হি",
+    "ম্ম",
+    "ত",
+    null,
+    "ক",
+    "ণা",
+    null,
+    "জা",
+    "মা",
+    null,
+    "ভ",
+    "দ",
+    "র",
+    null,
+    "ভা",
+    "ন",
+    null,
+    "ল",
+    "ম্ব",
+    "ল",
+    null,
+    "দ",
+    "ই",
+    null,
+    "ভ",
+    "য়",
+    null
+  ],
+  "entries": [
+    {
+      "n": 1,
+      "dir": "across",
+      "cell": 0,
+      "len": 5,
+      "clue": "ঝড়ের তাড়না, বাধাবিপত্তি।"
+    },
+    {
+      "n": 1,
+      "dir": "down",
+      "cell": 0,
+      "len": 5,
+      "clue": "ঝলমলে ভাব।"
+    },
+    {
+      "n": 2,
+      "dir": "down",
+      "cell": 2,
+      "len": 2,
+      "clue": "ঝাঁজালো স্বাদযুক্ত।"
+    },
+    {
+      "n": 3,
+      "dir": "down",
+      "cell": 4,
+      "len": 4,
+      "clue": "একে অপরকে টানা, অভাব।"
+    },
+    {
+      "n": 4,
+      "dir": "down",
+      "cell": 6,
+      "len": 3,
+      "clue": "গরিব।"
+    },
+    {
+      "n": 5,
+      "dir": "across",
+      "cell": 12,
+      "len": 4,
+      "clue": "নগরের অধিবাসী।"
+    },
+    {
+      "n": 6,
+      "dir": "across",
+      "cell": 16,
+      "len": 2,
+      "clue": "কুস্তিগির।"
+    },
+    {
+      "n": 7,
+      "dir": "across",
+      "cell": 19,
+      "len": 2,
+      "clue": "বিদীর্ণ হওয়া।"
+    },
+    {
+      "n": 8,
+      "dir": "down",
+      "cell": 26,
+      "len": 3,
+      "clue": "যাতনা।"
+    },
+    {
+      "n": 9,
+      "dir": "across",
+      "cell": 28,
+      "len": 2,
+      "clue": "তেতো ফল ও তার গাছ।"
+    },
+    {
+      "n": 10,
+      "dir": "down",
+      "cell": 29,
+      "len": 3,
+      "clue": "মাহাত্ম্য।"
+    },
+    {
+      "n": 11,
+      "dir": "down",
+      "cell": 31,
+      "len": 4,
+      "clue": "কিংকর্তব্যবিমূঢ়।"
+    },
+    {
+      "n": 12,
+      "dir": "across",
+      "cell": 32,
+      "len": 4,
+      "clue": "দাওয়াত।"
+    },
+    {
+      "n": 13,
+      "dir": "down",
+      "cell": 33,
+      "len": 3,
+      "clue": "রাশিচক্রের দশম রাশি।"
+    },
+    {
+      "n": 14,
+      "dir": "across",
+      "cell": 37,
+      "len": 3,
+      "clue": "সাহস।"
+    },
+    {
+      "n": 15,
+      "dir": "across",
+      "cell": 41,
+      "len": 2,
+      "clue": "অণু, তিল পরিমাণ অংশ।"
+    },
+    {
+      "n": 16,
+      "dir": "across",
+      "cell": 44,
+      "len": 2,
+      "clue": "সেলাইযুক্ত অঙ্গাবরণ।"
+    },
+    {
+      "n": 16,
+      "dir": "down",
+      "cell": 44,
+      "len": 2,
+      "clue": "প্রাণ।"
+    },
+    {
+      "n": 17,
+      "dir": "across",
+      "cell": 48,
+      "len": 2,
+      "clue": "মূল্য।"
+    },
+    {
+      "n": 17,
+      "dir": "down",
+      "cell": 48,
+      "len": 2,
+      "clue": "জোট, সমূহ।"
+    },
+    {
+      "n": 18,
+      "dir": "across",
+      "cell": 51,
+      "len": 2,
+      "clue": "ছল।"
+    },
+    {
+      "n": 18,
+      "dir": "down",
+      "cell": 51,
+      "len": 2,
+      "clue": "ভ্রাতা।"
+    },
+    {
+      "n": 19,
+      "dir": "across",
+      "cell": 54,
+      "len": 2,
+      "clue": "সমকোণে অবস্থিত রেখা।"
+    },
+    {
+      "n": 19,
+      "dir": "down",
+      "cell": 54,
+      "len": 2,
+      "clue": "ধ্বংস।"
+    },
+    {
+      "n": 20,
+      "dir": "across",
+      "cell": 58,
+      "len": 2,
+      "clue": "দধি।"
+    },
+    {
+      "n": 21,
+      "dir": "across",
+      "cell": 61,
+      "len": 2,
+      "clue": "ডর।"
+    }
+  ]
+}

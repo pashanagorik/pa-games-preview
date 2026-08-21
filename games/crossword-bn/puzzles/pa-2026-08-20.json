@@ -1,0 +1,231 @@
+{
+  "id": "pa-2026-08-20",
+  "date": "2026-08-20",
+  "source": "Prothom Alo print edition, শব্দভেদ, 2026-08-20. Grid and clues from Screenshot/20.8.2026.png; solution grid from Screenshot/21.8.2026.png.",
+  "verified": true,
+  "verificationNote": "Block pattern derived from ink in the printed solution grid rather than from the tint; all 11 across and 11 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs. Print correction: the printed solution grid tints the square at row 2, column 4 while printing ম inside it. The square is open — বিমর্ষ across and মস্ত down both need it — so the tint is a printing error, the same kind the 9 August page carries.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    null,
+    "মা",
+    "ছ",
+    null,
+    "হ",
+    "লা",
+    "হ",
+    "ল",
+    "উ",
+    null,
+    "বি",
+    "ম",
+    "র্ষ",
+    null,
+    "র",
+    null,
+    "প",
+    "র",
+    null,
+    "স্ত",
+    null,
+    "আ",
+    "ত",
+    "প",
+    "হা",
+    null,
+    "খা",
+    null,
+    "আ",
+    null,
+    "ন",
+    "র",
+    "স",
+    "লা",
+    "প",
+    "রা",
+    "ম",
+    "র্শ",
+    null,
+    "শ",
+    null,
+    "ভ",
+    null,
+    "জ",
+    "ন",
+    null,
+    "খোঁ",
+    "পা",
+    "আ",
+    "বা",
+    "সি",
+    "ক",
+    null,
+    "ক",
+    null,
+    "থ",
+    null,
+    "ন",
+    null,
+    "ন্যা",
+    "য়",
+    "বি",
+    "চা",
+    "র"
+  ],
+  "entries": [
+    {
+      "n": 1,
+      "dir": "across",
+      "cell": 1,
+      "len": 2,
+      "clue": "মৎস্য।"
+    },
+    {
+      "n": 2,
+      "dir": "down",
+      "cell": 2,
+      "len": 2,
+      "clue": "চিত্র।"
+    },
+    {
+      "n": 3,
+      "dir": "across",
+      "cell": 4,
+      "len": 4,
+      "clue": "তীব্র বিষ।"
+    },
+    {
+      "n": 3,
+      "dir": "down",
+      "cell": 4,
+      "len": 2,
+      "clue": "খুশি বা প্রফুল্লতা।"
+    },
+    {
+      "n": 4,
+      "dir": "down",
+      "cell": 6,
+      "len": 4,
+      "clue": "তাস খেলার একটি বিশেষ রং।"
+    },
+    {
+      "n": 5,
+      "dir": "down",
+      "cell": 8,
+      "len": 4,
+      "clue": "পরিহাস, ঠাট্টা।"
+    },
+    {
+      "n": 6,
+      "dir": "across",
+      "cell": 10,
+      "len": 3,
+      "clue": "মলিন বা হতাশ।"
+    },
+    {
+      "n": 7,
+      "dir": "down",
+      "cell": 11,
+      "len": 2,
+      "clue": "বিরাট।"
+    },
+    {
+      "n": 8,
+      "dir": "across",
+      "cell": 16,
+      "len": 2,
+      "clue": "অনাত্মীয়।"
+    },
+    {
+      "n": 9,
+      "dir": "across",
+      "cell": 21,
+      "len": 3,
+      "clue": "সূর্যের তাপ।"
+    },
+    {
+      "n": 10,
+      "dir": "down",
+      "cell": 23,
+      "len": 6,
+      "clue": "স্পর্শমণি।"
+    },
+    {
+      "n": 11,
+      "dir": "down",
+      "cell": 26,
+      "len": 2,
+      "clue": "তরবারি রাখার কোষ।"
+    },
+    {
+      "n": 12,
+      "dir": "down",
+      "cell": 28,
+      "len": 3,
+      "clue": "হেমন্তকালে জাত ধান।"
+    },
+    {
+      "n": 13,
+      "dir": "across",
+      "cell": 30,
+      "len": 2,
+      "clue": "পুরুষ।"
+    },
+    {
+      "n": 14,
+      "dir": "across",
+      "cell": 32,
+      "len": 6,
+      "clue": "গোপনে করা পরামর্শ।"
+    },
+    {
+      "n": 15,
+      "dir": "down",
+      "cell": 33,
+      "len": 4,
+      "clue": "মুনাফা বা আয় করেছে এমন।"
+    },
+    {
+      "n": 16,
+      "dir": "down",
+      "cell": 35,
+      "len": 4,
+      "clue": "রাজার মেয়ে।"
+    },
+    {
+      "n": 17,
+      "dir": "across",
+      "cell": 43,
+      "len": 2,
+      "clue": "সাধারণ লোক।"
+    },
+    {
+      "n": 18,
+      "dir": "across",
+      "cell": 46,
+      "len": 2,
+      "clue": "মেয়েদের গুচ্ছাকারে বাঁধা চুল।"
+    },
+    {
+      "n": 19,
+      "dir": "across",
+      "cell": 48,
+      "len": 4,
+      "clue": "বসবাসের এলাকা।"
+    },
+    {
+      "n": 20,
+      "dir": "down",
+      "cell": 53,
+      "len": 2,
+      "clue": "কাব্যরচয়িতা।"
+    },
+    {
+      "n": 21,
+      "dir": "across",
+      "cell": 59,
+      "len": 5,
+      "clue": "পক্ষপাতশূন্য বিচার।"
+    }
+  ]
+}

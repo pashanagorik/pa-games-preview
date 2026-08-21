@@ -307,8 +307,16 @@
   font-weight: 500;
   transition: background-color 110ms var(--pa-ease);
 }
-.ws-cell__ch { font-size: var(--ws-fs, 1em); pointer-events: none; }
+/* The size comes from the square. A cell that cannot hold its glyph gets an
+   inline step-down from fitCells(); every other cell inherits and matches. */
+.ws-cell__ch { pointer-events: none; }
 .ws-cell.is-found { background: var(--pa-green-30); }
+/* The first square of a word the press pointed at (সাহায্য): a ring in the
+   chrome colour and the letter set heavy, so it reads as "start here" and
+   not as found — green is for found, and this square is not. Once the word
+   lands, found takes over and the ring goes. */
+.ws-cell.is-hint { box-shadow: inset 0 0 0 2px var(--pa-chrome); color: var(--pa-chrome); font-weight: 700; }
+.ws-cell.is-hint.is-found { box-shadow: none; color: inherit; font-weight: inherit; }
 .ws-cell.is-sel { background: var(--pa-red-16); color: var(--pa-red-deep); }
 .ws-cell.is-miss { animation: ws-miss 320ms var(--pa-ease); }
 @keyframes ws-miss {
@@ -400,6 +408,12 @@
    list already shows which words are found. */
 
 .ws-listzone { flex: none; background: var(--pa-paper-lift); border-top: 1px solid var(--pa-rule); }
+/* The সাহায্য strip on the masthead is ~3.75rem the grid no longer has on a
+   640px phone, and the grid is the one thing here that cannot shrink under
+   a finger. The word list yields instead and scrolls inside itself. The
+   landscape and spread layouts give the list a column of its own and set
+   max-height back to none. */
+#app.is-strip .ws-words { max-height: 6.75rem; overflow-y: auto; }
 .ws-listhead {
   display: flex;
   align-items: baseline;
@@ -499,7 +513,10 @@
 
 /* ---- completion card ------------------------------------------------- */
 
-.ws-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; }
+.ws-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.ws-win .pa-ad { margin: var(--pa-s-4) 0 var(--pa-s-3); border-block-end: 0; text-align: start; }
+.ws-lead .pa-ad { margin: var(--pa-s-5) 0 0; }
+.ws-lead .pa-ad + .ws-cta { margin-top: var(--pa-s-4); }
 .ws-win__mark {
   margin: 0 0 var(--pa-s-1);
   font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead);
@@ -549,7 +566,7 @@
     border-inline-start: 1px solid var(--pa-rule);
   }
   .ws-listzone > * { width: auto; margin-inline: 0; }
-  .ws-words {
+  .ws-words, #app.is-strip .ws-words {
     grid-template-columns: 1fr;
     align-content: start;
     gap: var(--pa-s-1);
@@ -618,7 +635,7 @@
      scrolls inside itself — never by dragging the page. */
   /* One column in the rail, so the list needs its own vertical rhythm — the
      two-up phone gap reads as cramped once the words are stacked. */
-  .ws-words {
+  .ws-words, #app.is-strip .ws-words {
     grid-template-columns: 1fr;
     align-content: start;
     gap: var(--pa-s-2);
@@ -737,6 +754,8 @@
           </div>
         </div>
 
+        <div id="ad-front"></div>
+
         <button class="pa-btn pa-btn--primary ws-cta" id="fp-cta">শুরু করুন</button>
       </section>
 
@@ -788,6 +807,10 @@
     <div class="pa-masthead__rule">
       <span class="pa-masthead__date" id="board-date"></span>
     </div>
+    <!-- সাহায্য, as a game shows lives: the ad module builds the strip here,
+         on the masthead, above the grid. The action inks the first square
+         of the longest unfound word. -->
+    <div id="hud" hidden></div>
   </header>
 
   <p class="ws-reading" id="reading" aria-live="polite"></p>
@@ -875,7 +898,9 @@
         <span class="ws-win__num"><b class="ws-win__v" id="win-time">০:০০</b><span class="ws-win__k">সময়</span></span>
         <span class="ws-win__num"><b class="ws-win__v" id="win-best">০:০০</b><span class="ws-win__k">সেরা</span></span>
         <span class="ws-win__num"><b class="ws-win__v" id="win-words">৮</b><span class="ws-win__k">শব্দ</span></span>
+        <span class="ws-win__num"><b class="ws-win__v" id="win-hints">০</b><span class="ws-win__k">সাহায্য</span></span>
       </div>
+      <div id="ad-result"></div>
       <p class="ws-win__note" id="win-note"></p>
       <div class="ws-win__acts">
         <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
@@ -889,6 +914,21 @@
 </div>
 
 </div>
+<script>
+/* Ad system config — ADS-SPEC.md §2. `dummy` until PA hands over a network
+   code; then provider: 'gpt' and the code, nothing else changes. */
+window.PA_ADS = {
+  provider: 'dummy',
+  network: '',
+  client: '',
+  game: 'ws',
+  enabled: true,
+  rewarded: true,
+  freeHints: 1,
+  maxRewardedHints: 3
+};
+</script>
+<script src="../../shared/pa-ads.js"></script>
 <script src="../../shared/pa-data.js"></script>
 <script src="../../shared/bn-text.js"></script>
 <script src="wsgrid.js"></script>

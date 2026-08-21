@@ -39,6 +39,10 @@
     latestBadge: 'সর্বশেষ',
     newBest: 'নতুন সেরা সময়',
     firstSolve: 'প্রথমবার সমাধান',
+    /* The board's number: the clock plus ৪৫ সেকেন্ড for every সাহায্য
+       (ADS-SPEC §4, Rank). Printed once, on the card, beside the raw time. */
+    ranked: 'সাহায্যে ৪৫ সেকেন্ড করে যোগ হয়ে তালিকায় ',
+    hintWhat: 'একটি শব্দের প্রথম ঘর দেখা যাবে',
     ariaRow: ', সারি ',
     ariaCol: ', কলাম '
   };
@@ -51,6 +55,11 @@
   var GEN = null;       // wsgrid generator, bound to SIZE
   var P = null;         // active puzzle { id, theme, words, grid, places }
   var found = {};       // word -> true, for the active puzzle
+  var hinted = {};      // word -> true, its first square inked by the press (সাহায্য)
+  var H = null;         // this puzzle's hint budget, from PaAds.hints()
+  var strip = null;     // the সাহায্য strip on the masthead, PaAds.strip()
+  var HINT_SECS = 45;   // ADS-SPEC §4, Rank: one সাহায্য on the board's clock
+  function hintCount() { var n = 0; for (var i = 0; i < P.words.length; i++) if (hinted[P.words[i]]) n++; return n; }
   var sel = null;       // { anchor, cells[] } during a drag
 
   /* The clock is a count-up that belongs to the BOARD, not to the document.
@@ -70,20 +79,22 @@
   function loadState(id, words) {
     try {
       var raw = localStorage.getItem(STORE + id);
-      if (!raw) return { w: {}, t: 0 };
+      if (!raw) return { w: {}, t: 0, h: {} };
       var v = JSON.parse(raw);
       if (Array.isArray(v)) v = { w: v, t: 0 };            // pre-timer format
       var valid = {}, i;
       for (i = 0; i < words.length; i++) valid[words[i]] = true;
       var w = {}, list = v.w || [];
       for (i = 0; i < list.length; i++) if (valid[list[i]]) w[list[i]] = true;
-      return { w: w, t: v.t || 0 };
+      var h = {}, hl = v.h || [];
+      for (i = 0; i < hl.length; i++) if (valid[hl[i]]) h[hl[i]] = true;
+      return { w: w, t: v.t || 0, h: h };
     } catch (e) { return { w: {}, t: 0 }; }
   }
 
   function saveState() {
     try {
-      localStorage.setItem(STORE + P.id, JSON.stringify({ w: P.words.filter(function (w) { return found[w]; }), t: clock.secs }));
+      localStorage.setItem(STORE + P.id, JSON.stringify({ w: P.words.filter(function (w) { return found[w]; }), t: clock.secs, h: P.words.filter(function (w) { return hinted[w]; }) }));
     } catch (e) {}
   }
 
@@ -186,13 +197,49 @@
 
   /* ---- rendering -------------------------------------------------------- */
 
-  /* A four-codepoint conjunct in a 40px square gives back some size or turns
-     into a smudge. Step down, never clip — the reading band above the grid is
-     the surface that is actually meant to be read. */
-  function cellFont(ch) {
-    if (ch.length >= 4) return '0.66em';
-    if (ch.length === 3) return '0.78em';
-    return '1em';
+  /* Every square is set at the same size, and a square only steps down if the
+     glyph it holds genuinely does not fit.
+
+     This used to be decided by counting codepoints — four or more meant
+     0.66em, three meant 0.78em — and a codepoint count is not a width. ম্পা is
+     four codepoints and measures 35.6px in a 48px square; স্তু is four and
+     measures 19.8px, narrower than কা at two. The board printed যুক্তাক্ষর at
+     two-thirds the size of everything around them while the widest glyph on
+     the page, নৌ at 31px, was left at full size because its ৌ is one
+     codepoint. The grid read as though the conjuncts had been set in a
+     different font.
+
+     So nothing is guessed: the cells are rendered at one size and the ones
+     that overflow — if any do — are measured and scaled to fit. At 8×8 none
+     of them overflow, which is the point; the measurement is there so a
+     longer cluster or a smaller board cannot smudge, not to make a normal
+     board uneven. */
+  var FIT_PAD = 0.94;   // leave a hair of paper either side of the glyph
+  var FIT_MIN = 0.6;    // below this a cluster is a smudge; clip is worse
+
+  function fitCells() {
+    var grid = $('grid');
+    if (!grid) return;
+    var cells = grid.querySelectorAll('.ws-cell');
+    if (!cells.length) return;
+
+    /* Two passes on purpose: every read happens before any write, so the
+       browser lays the grid out once instead of once per square. */
+    var box = cells[0].getBoundingClientRect();
+    var room = Math.min(box.width, box.height) * FIT_PAD;
+    var i, spans = [], scales = [];
+    for (i = 0; i < cells.length; i++) spans.push(cells[i].querySelector('.ws-cell__ch'));
+    for (i = 0; i < spans.length; i++) {
+      if (!spans[i]) { scales.push(1); continue; }
+      var r = spans[i].getBoundingClientRect();
+      var over = Math.max(r.width, r.height) / (spans[i].__k || 1);
+      scales.push(over > room ? Math.max(FIT_MIN, room / over) : 1);
+    }
+    for (i = 0; i < spans.length; i++) {
+      if (!spans[i]) continue;
+      spans[i].__k = scales[i];
+      spans[i].style.fontSize = scales[i] === 1 ? '' : (scales[i].toFixed(3) + 'em');
+    }
   }
 
   function renderGrid() {
@@ -200,12 +247,12 @@
     for (i = 0; i < P.grid.length; i++) {
       var ch = P.grid[i];
       html += '<button type="button" class="ws-cell" data-i="' + i + '"'
-        + ' style="--ws-fs:' + cellFont(ch) + '"'
         + ' aria-label="' + ch + T.ariaRow + B.toBn(Math.floor(i / SIZE) + 1) + T.ariaCol + B.toBn((i % SIZE) + 1) + '">'
         + '<span class="ws-cell__ch">' + ch + '</span></button>';
     }
     $('grid').innerHTML = html;
     paintFound();
+    fitCells();
   }
 
   function foundCells() {
@@ -217,10 +264,65 @@
     return mark;
   }
 
-  function paintFound() {
-    var mark = foundCells(), nodes = $('grid').children;
-    for (var i = 0; i < nodes.length; i++) nodes[i].classList.toggle('is-found', !!mark[i]);
+  function hintCells() {
+    var mark = {}, i;
+    for (i = 0; i < P.places.length; i++) {
+      if (hinted[P.places[i].word]) mark[P.places[i].cells[0]] = true;
+    }
+    return mark;
   }
+
+  function paintFound() {
+    var mark = foundCells(), hint = hintCells(), nodes = $('grid').children;
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].classList.toggle('is-found', !!mark[i]);
+      nodes[i].classList.toggle('is-hint', !!hint[i]);
+    }
+  }
+
+  /* ---- সাহায্য — one square ------------------------------------------------
+
+     The first square of the longest unfound word inks; the word stays
+     unstruck and the reader still has to find it. Longest-first, so the
+     assist is not spent on filler. */
+  function hintTarget() {
+    var i, w, best = null;
+    for (i = 0; i < P.words.length; i++) {
+      w = P.words[i];
+      if (found[w] || hinted[w]) continue;
+      if (!best || B.segment(w).length > B.segment(best).length) best = w;
+    }
+    return best;
+  }
+
+  function applyHint(w) {
+    if (!w || found[w] || hinted[w]) return;
+    hinted[w] = true;
+    saveState();
+    paintFound();
+    renderWords();
+  }
+
+  /* The strip is the ad module's; this page mounts it once per puzzle and
+     says what a press does. */
+  function mountStrip() {
+    if (strip) { strip.destroy(); strip = null; }
+    var hud = $('hud');
+    if (!H || !window.PaAds) { hud.hidden = true; $('app').classList.remove('is-strip'); return; }
+    $('app').classList.add('is-strip');
+    strip = PaAds.strip(hud, {
+      hints: H,
+      kind: 'square',
+      what: T.hintWhat,
+      canUse: function () {
+        if (isComplete() || !hintTarget()) return { ok: false };
+        return { ok: true, ctx: P.id };
+      },
+      onUse: function (id) { if (P && P.id === id) applyHint(hintTarget()); }
+    });
+    hud.hidden = false;
+  }
+  function paintStrip() { if (strip) strip.paint(); }
 
   /* Split deliberately. When a word lands, the squares must drop the drag
      tint IMMEDIATELY while the band keeps holding the word it accepted —
@@ -256,10 +358,11 @@
   function renderWords() {
     var html = '';
     for (var i = 0; i < P.words.length; i++) {
-      html += '<li class="ws-word' + (found[P.words[i]] ? ' is-found' : '') + '">' + P.words[i] + '</li>';
+      html += '<li class="ws-word' + (found[P.words[i]] ? ' is-found' : '') + (hinted[P.words[i]] ? ' is-hinted' : '') + '">' + P.words[i] + '</li>';
     }
     $('words').innerHTML = html;
     $('count').textContent = B.toBn(foundCount()) + T.of + B.toBn(P.words.length);
+    paintStrip();
   }
 
   function renderFront() {
@@ -561,6 +664,7 @@
 
   function goBoard() {
     renderGrid();
+    mountStrip();
     renderWords();
     paintSelection();
     paintClock();
@@ -582,6 +686,17 @@
     setTimeout(function () { sheet.hidden = true; }, 260);
   }
 
+
+  /* Two reserved slots, ADS-SPEC §3: `front` below the lead, `result` under
+     the score. The module reserves the box at full height before it asks for
+     anything, and a kill switch collapses it — this file only says where. */
+  function mountAd(id, name, fresh) {
+    var A = window.PaAds, el = $(id);
+    if (!A || !el) return;
+    if (fresh) A.unmount(el);
+    A.slot(el, name);
+  }
+
   function win() {
     clockStop();
     saveState();
@@ -590,15 +705,20 @@
     var isBest = !prev || clock.secs < prev;
     if (isBest) { try { localStorage.setItem(BEST + P.id, String(clock.secs)); } catch (e) {} }
 
-    emit('game:complete', { id: P.id, theme: P.theme, words: P.words.length, secs: clock.secs });
+    /* The board ranks on the clock plus ৪৫ s per সাহায্য; the best stays the
+       raw clock, which is what the hub's ledger prints. */
+    var hints = hintCount(), rankedSecs = clock.secs + HINT_SECS * hints;
+    emit('game:complete', { id: P.id, theme: P.theme, words: P.words.length, secs: clock.secs, hints: hints, rankedSecs: rankedSecs });
 
     $('win-theme').textContent = P.theme;
     $('win-time').textContent = fmt(clock.secs);
     $('win-best').textContent = fmt(isBest ? clock.secs : prev);
     $('win-words').textContent = B.toBn(P.words.length);
-    $('win-note').textContent = !prev ? T.firstSolve : (isBest ? T.newBest : '');
+    $('win-hints').textContent = B.toBn(hints);
+    $('win-note').textContent = hints ? T.ranked + fmt(rankedSecs) + '।' : (!prev ? T.firstSolve : (isBest ? T.newBest : ''));
     paintClock();
 
+    mountAd('ad-result', 'result', true);
     /* The board gets its moment before the card covers it. The sweep is
        ~560ms plus a 15-square diagonal at 16ms, so the card follows it
        rather than interrupting it. */
@@ -631,6 +751,9 @@
        over the word list. Clamp it back to what actually fits. */
     var side = Math.min(Math.max(Math.min(w, h, max), 200), w, h);
     $('grid').style.setProperty('--ws-side', side + 'px');
+    /* The squares just changed size, so what fits in one has changed with
+       them — re-fit against the board that is actually on screen. */
+    fitCells();
   }
 
   /* ---- boot ------------------------------------------------------------- */
@@ -643,8 +766,10 @@
     P = built;
     var st = loadState(P.id, P.words);
     found = st.w;
+    hinted = st.h;
     clock.secs = st.t;
     sel = null;
+    H = window.PaAds ? PaAds.hints(P.id) : null;
     return true;
   }
 
@@ -720,18 +845,25 @@
       .then(function (pack) {
         PACK = pack;
         SIZE = pack.size || 8;
-        /* A #p= link is a request for that board, so it skips the front page.
-           Same contract শব্দভেদ already answers, so খেলাঘর can address a dated
-           issue in either game with one link shape. A future-dated id is not
-           a valid request and falls through to today's. */
+        /* A #p= link is a request for that DAY, and it stops there. It picks
+           which issue is open; the front page still opens on it, because the
+           reader pressing শুরু করুন themselves is what starts a puzzle. Landing
+           straight on the board out of খেলাঘর meant the timer was already
+           running before the reader had read what the day was. An id we
+           cannot serve — unknown, or not yet due — falls through to the
+           ordinary daily, so a stale or future-dated link degrades to
+           something playable rather than to an error. */
         var hash = (location.hash.match(/p=([\w-]+)/) || [])[1], wanted = null, i;
         for (i = 0; i < PACK.puzzles.length; i++) {
           if (PACK.puzzles[i].id === hash && isDue(PACK.puzzles[i])) { wanted = PACK.puzzles[i]; break; }
         }
         if (!loadPuzzle(wanted || pickForToday().pz)) return;
         bind();
+        if (window.PaAds) PaAds.setConsent({ ads: true, personalized: false });
         bindGrid();
-        if (wanted) goBoard(); else goFront();
+        goFront();
+        /* The front page is laid out; the slot can measure its column. */
+        mountAd('ad-front', 'front');
       })
       .catch(function (err) {
         console.error(err);

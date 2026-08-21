@@ -1,0 +1,245 @@
+{
+  "id": "pa-2026-08-10",
+  "date": "2026-08-10",
+  "source": "Prothom Alo print edition, শব্দভেদ, 10 August 2026. Grid and clues from Screenshot/10.8.26.png; solution grid from Screenshot/11.8.2026.png.",
+  "verified": true,
+  "verificationNote": "Block pattern derived from ink in the printed solution grid, not from the tint; all 12 across and 12 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    "জা",
+    "য়",
+    "গা",
+    "জ",
+    "মি",
+    null,
+    "পু",
+    "ব",
+    "ম",
+    null,
+    "ন",
+    null,
+    "ন",
+    "ম্র",
+    null,
+    "লা",
+    null,
+    "শো",
+    null,
+    "দা",
+    "মি",
+    null,
+    "ফাঁ",
+    "কা",
+    "টা",
+    "ক",
+    "রা",
+    null,
+    "ন",
+    "ন",
+    "দ",
+    null,
+    "ন",
+    null,
+    "নি",
+    "দ",
+    null,
+    "ড়",
+    null,
+    "ক",
+    null,
+    "ন",
+    null,
+    "ল",
+    "ট",
+    "ব",
+    "হ",
+    "র",
+    "অ",
+    "ব",
+    "য়",
+    "ব",
+    null,
+    "ড়ে",
+    null,
+    "দা",
+    null,
+    "ম",
+    null,
+    "ল",
+    "ব্ধ",
+    null,
+    "ক্রে",
+    "তা"
+  ],
+  "entries": [
+    {
+      "n": 1,
+      "dir": "across",
+      "cell": 0,
+      "len": 5,
+      "clue": "ভূসম্পত্তি।"
+    },
+    {
+      "n": 1,
+      "dir": "down",
+      "cell": 0,
+      "len": 2,
+      "clue": "গাঢ় বেগুনি রঙের গ্রীষ্মকালীন ফল।"
+    },
+    {
+      "n": 2,
+      "dir": "down",
+      "cell": 2,
+      "len": 2,
+      "clue": "সংগীত।"
+    },
+    {
+      "n": 3,
+      "dir": "down",
+      "cell": 4,
+      "len": 4,
+      "clue": "দ্বিধা বা দুর্বলতাজনিত ক্ষীণ স্বর।"
+    },
+    {
+      "n": 4,
+      "dir": "across",
+      "cell": 6,
+      "len": 2,
+      "clue": "পূর্ব দিক।"
+    },
+    {
+      "n": 5,
+      "dir": "down",
+      "cell": 7,
+      "len": 3,
+      "clue": "স্ত্রী বক।"
+    },
+    {
+      "n": 6,
+      "dir": "across",
+      "cell": 12,
+      "len": 2,
+      "clue": "বিনয়ী।"
+    },
+    {
+      "n": 7,
+      "dir": "down",
+      "cell": 17,
+      "len": 2,
+      "clue": "মাতম।"
+    },
+    {
+      "n": 8,
+      "dir": "across",
+      "cell": 19,
+      "len": 2,
+      "clue": "মূল্যবান।"
+    },
+    {
+      "n": 9,
+      "dir": "across",
+      "cell": 22,
+      "len": 2,
+      "clue": "খালি, শূন্য।"
+    },
+    {
+      "n": 9,
+      "dir": "down",
+      "cell": 22,
+      "len": 2,
+      "clue": "পশুপাখি ধরার যন্ত্র।"
+    },
+    {
+      "n": 10,
+      "dir": "across",
+      "cell": 24,
+      "len": 3,
+      "clue": "তালু।"
+    },
+    {
+      "n": 10,
+      "dir": "down",
+      "cell": 24,
+      "len": 2,
+      "clue": "আকর্ষণ।"
+    },
+    {
+      "n": 11,
+      "dir": "down",
+      "cell": 26,
+      "len": 2,
+      "clue": "রাজার স্ত্রী।"
+    },
+    {
+      "n": 12,
+      "dir": "across",
+      "cell": 28,
+      "len": 3,
+      "clue": "স্বামীর বোন।"
+    },
+    {
+      "n": 13,
+      "dir": "down",
+      "cell": 29,
+      "len": 4,
+      "clue": "শিথিল, ঢিলা।"
+    },
+    {
+      "n": 14,
+      "dir": "across",
+      "cell": 34,
+      "len": 2,
+      "clue": "ঘুম।"
+    },
+    {
+      "n": 15,
+      "dir": "down",
+      "cell": 35,
+      "len": 4,
+      "clue": "স্বপক্ষীয় লোকজন।"
+    },
+    {
+      "n": 16,
+      "dir": "down",
+      "cell": 39,
+      "len": 4,
+      "clue": "রাজস্ব প্রদানকারী।"
+    },
+    {
+      "n": 17,
+      "dir": "down",
+      "cell": 41,
+      "len": 3,
+      "clue": "৯ সংখ্যার পূরক।"
+    },
+    {
+      "n": 18,
+      "dir": "across",
+      "cell": 43,
+      "len": 5,
+      "clue": "যাত্রীদের সঙ্গের মালামাল।"
+    },
+    {
+      "n": 19,
+      "dir": "across",
+      "cell": 48,
+      "len": 4,
+      "clue": "চেহারা, আকৃতি।"
+    },
+    {
+      "n": 20,
+      "dir": "across",
+      "cell": 59,
+      "len": 2,
+      "clue": "লাভ হয়েছে এমন।"
+    },
+    {
+      "n": 21,
+      "dir": "across",
+      "cell": 62,
+      "len": 2,
+      "clue": "খরিদদার।"
+    }
+  ]
+}

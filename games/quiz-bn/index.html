@@ -47,6 +47,22 @@
 #app[data-view='front'] .qz-sheetview { display: none; }
 #app[data-view='paper'] .qz-front { display: none; }
 
+/* TURNING TO THE PAGE.
+
+   শুরু করুন used to swap the front page for question one inside the same
+   frame the finger left the button: no beat, no direction, and the reader
+   arrived already mid-quiz. This is the paper being turned instead — the
+   subject bar comes down off the masthead, the question rises behind it, and
+   the rail inks last. It is a page turn, not a wait: the column is live and
+   answerable from the first frame, nothing is gated on the animation, and the
+   whole move is spent in 380ms. */
+#app.is-turning .qz-themebar { animation: qz-turn-bar 240ms var(--pa-ease) both; }
+#app.is-turning .qz-col__inner { animation: qz-turn-page 340ms var(--pa-ease) 60ms both; }
+#app.is-turning .qz-rail { animation: qz-turn-rail 260ms var(--pa-ease) 120ms both; }
+@keyframes qz-turn-bar  { from { opacity: 0; transform: translateY(-100%); } to { opacity: 1; transform: none; } }
+@keyframes qz-turn-page { from { opacity: 0; transform: translateY(14px); }  to { opacity: 1; transform: none; } }
+@keyframes qz-turn-rail { from { opacity: 0; transform: translateY(100%); }  to { opacity: 1; transform: none; } }
+
 /* Progress vocabulary shared by the front page and the archive rows, so the
    two surfaces can never tell different stories. Same dots as শব্দভেদ. */
 .qz-dot {
@@ -125,6 +141,10 @@
 .qz-mini i:nth-child(4) { width: 60%; }
 
 .qz-cta { width: 100%; margin: var(--pa-s-5) 0 var(--pa-s-4); }
+/* The front slot sits between the facts and শুরু করুন. It keeps the block's
+   own rules and lift; only the margins are the lead's. */
+.qz-lead .pa-ad { margin: var(--pa-s-5) 0 0; }
+.qz-lead .pa-ad + .qz-cta { margin-top: var(--pa-s-4); }
 
 .qz-rows { border-top: 1px solid var(--pa-rule); margin-top: var(--pa-s-2); }
 .qz-row {
@@ -409,6 +429,79 @@
    so they lose the unprinted stock and sit back on the paper. */
 .qz-opt.is-idle { background: transparent; border-color: var(--pa-rule); }
 
+/* STRUCK BY A সাহায্য. Taken out of play, not marked wrong by the reader: no
+   red, no slash, no mark — the option goes to ink-3 with a hairline through
+   the text and its border fades to the rule, and it stays that way after the
+   answer lands. The proof-reader's red slash is the reader's own error and
+   is never borrowed for this. */
+.qz-opt.is-struck {
+  background: transparent;
+  border-color: var(--pa-rule);
+  color: var(--pa-ink-3);
+  transition: color 200ms var(--pa-ease), border-color 200ms var(--pa-ease), background 200ms var(--pa-ease);
+}
+.qz-opt.is-struck .qz-opt__t { text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--pa-ink-3); }
+.qz-opt.is-struck .qz-opt__mark { color: transparent; }
+
+/* The সাহায্য strip is the ad module's (`PaAds.strip`, styled in pa-ui.css);
+   this page only reserves its place, between the subject bar and the
+   column, and tells it which question is in view. */
+/* THE ANSWER SHEET. A finished day is read, not played, so the column stops
+   being ten screens and becomes the paper's printed answers: number,
+   question, the right answer under it with the tick, the reader's own wrong
+   pick struck beneath that, and `সাহায্য` in the meta voice where one was
+   taken. Nothing is a button. The marks are the same marks the options
+   took, so a reader who has just played recognises every one. */
+#app.is-review .qz-col { scroll-snap-type: none; }
+.qz-sheet { list-style: none; margin: 0; padding: var(--pa-s-2) 0 var(--pa-s-6); }
+.qz-sheet__row {
+  display: flex; gap: var(--pa-s-3); align-items: baseline;
+  padding: var(--pa-s-4) 0;
+  border-bottom: 1px solid var(--pa-rule);
+}
+.qz-sheet__row:last-child { border-bottom: 0; }
+.qz-sheet__body { min-width: 0; flex: 1 1 auto; }
+.qz-sheet__q {
+  margin: 0;
+  font: 400 var(--pa-size-body)/var(--pa-leading-tight) var(--pa-serif);
+  color: var(--pa-ink);
+  text-wrap: pretty;
+}
+.qz-sheet__a {
+  display: flex; align-items: baseline; gap: var(--pa-s-2);
+  margin: var(--pa-s-2) 0 0;
+  font: 400 var(--pa-size-body)/1.45 var(--pa-sans);
+}
+.qz-sheet__mark {
+  flex: none; width: 1rem; height: 1rem; align-self: center;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.qz-sheet__a.is-right { color: var(--pa-ink); font-weight: 600; }
+.qz-sheet__a.is-right .qz-sheet__mark { color: var(--pa-green); }
+.qz-sheet__a.is-wrong { color: var(--pa-red-deep); }
+.qz-sheet__a.is-wrong .qz-sheet__mark { color: var(--pa-red-deep); }
+.qz-sheet__a.is-wrong .qz-sheet__t { position: relative; }
+.qz-sheet__a.is-wrong .qz-sheet__t::after {
+  content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--pa-red);
+}
+.qz-sheet__tag {
+  margin-inline-start: var(--pa-s-2);
+  font: 400 var(--pa-size-meta)/1 var(--pa-sans);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-2);
+}
+
+/* The way back to the result on a finished day: the progress count has
+   nothing left to count, so its place in the masthead goes to ফল. */
+.qz-result { height: 2.5rem; padding: 0 var(--pa-s-3); }
+.qz-result[hidden] { display: none; }
+#app.is-review .qz-progress { display: none; }
+
+/* The chevron alone is a glyph; on a spread it has room to say where it
+   goes. Phone keeps the glyph — the bar is 360px wide and the label would
+   crowd the nameplate. */
+.qz-back__t { display: none; }
+
 /* Reduced motion flattens every animation here and leaves the whole
    confirmation intact: the slash still sits at full width, the green is still
    green, the tick is still inked. The spray is not drawn at all — decided in
@@ -417,6 +510,9 @@
 @media (prefers-reduced-motion: reduce) {
   .qz-opt { transition: none; }
   .qz-col { scroll-behavior: auto; }
+  #app.is-turning .qz-themebar,
+  #app.is-turning .qz-col__inner,
+  #app.is-turning .qz-rail { animation: none; }
   .qz-opt.is-wrong.is-striking .qz-opt__t::after,
   .qz-opt.is-right.is-settling,
   .qz-opt.is-right.is-settling .qz-opt__mark,
@@ -515,7 +611,16 @@
 
 /* ---- completion card -------------------------------------------------- */
 
-.qz-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); border-top: 3px solid var(--pa-green); }
+/* THE CARD SCROLLS, THE BUTTONS DO NOT.
+
+   The result slot is 300×250 under the score, and on a 640px phone that is
+   more card than the sheet can show at once. So the card becomes the
+   scrolling region and its actions pin to the bottom of it: the ad sits
+   where it earns the most attention, and পরের কুইজ is on screen the moment
+   the card opens, whatever the viewport. */
+.qz-win { padding: var(--pa-s-5) var(--pa-s-4) 0; border-top: 3px solid var(--pa-green); border-radius: var(--pa-r-xl) var(--pa-r-xl) 0 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.qz-win .pa-ad { margin: var(--pa-s-4) 0 0; border-block-end: 0; }
+.qz-win .pa-ad + .qz-win__note { margin-top: var(--pa-s-3); }
 .qz-win__mark { font: 700 var(--pa-size-masthead)/1.15 var(--pa-serif); color: var(--pa-ink); margin: 0; letter-spacing: -0.015em; }
 .qz-win__theme { font: 400 var(--pa-size-body)/1.4 var(--pa-serif); color: var(--pa-red-deep); margin: var(--pa-s-2) 0 0; }
 .qz-win__nums { display: flex; gap: var(--pa-s-5); margin: var(--pa-s-5) 0 0; padding: var(--pa-s-4) 0; border-top: 1px solid var(--pa-rule); border-bottom: 1px solid var(--pa-rule); }
@@ -523,7 +628,13 @@
 .qz-win__v { font: 400 var(--pa-size-masthead)/1 var(--pa-serif); font-variant-numeric: tabular-nums; color: var(--pa-ink); }
 .qz-win__k { font: 400 var(--pa-size-meta)/1 var(--pa-sans); letter-spacing: 0.07em; color: var(--pa-ink-2); }
 .qz-win__note { font: 400 var(--pa-size-body)/var(--pa-leading-body) var(--pa-sans); color: var(--pa-ink-2); margin: var(--pa-s-4) 0 0; }
-.qz-win__acts { display: flex; flex-direction: column; gap: var(--pa-s-3); margin-top: var(--pa-s-5); }
+.qz-win__acts {
+  position: sticky; bottom: 0;
+  display: flex; flex-direction: column; gap: var(--pa-s-3);
+  margin-top: var(--pa-s-5); padding: var(--pa-s-3) 0 var(--pa-s-4);
+  background: var(--pa-paper-lift);
+  box-shadow: 0 -12px 12px -12px rgba(22, 23, 26, 0.12);
+}
 .qz-win__ghosts { display: flex; gap: var(--pa-s-3); }
 .qz-win__ghosts .pa-btn { flex: 1 1 0; }
 
@@ -533,15 +644,33 @@
    ===================================================================== */
 
 @media (min-width: 60rem) and (min-height: 40rem) {
-  .qz-front__body > * { width: var(--pa-page); margin-inline: auto; }
+  /* THE PAGE EDGE.
+
+     সুডোকু, শব্দভেদ, শব্দ সন্ধান and শব্দফুল all box their surface to the shared
+     page measure on a desktop and print a hairline either side, so the paper
+     has edges and the reader can see the ground it sits on. কুইজ ran
+     full-bleed on both views — masthead, subject bar, column and rail all
+     hitting the window — which is the one surface in the programme that was
+     not a page. Both views take the measure, so nothing inside them has to
+     re-state it: the head, the bar and the rail simply stop where the paper
+     stops. */
+  .qz-front,
+  .qz-sheetview {
+    width: min(var(--pa-page), 100%);
+    margin-inline: auto;
+    border-inline: 1px solid var(--pa-rule);
+  }
+
+  .qz-front__body > * { width: 100%; margin-inline: auto; }
 
   .qz-spread {
     display: grid;
     grid-template-columns: minmax(0, 1.15fr) minmax(18rem, 0.85fr);
     gap: var(--pa-s-6);
     align-items: start;
-    padding-top: var(--pa-s-6);
+    padding: var(--pa-s-6) var(--pa-s-5) 0;
   }
+  .qz-rows { padding-inline: var(--pa-s-5); }
   .qz-aside { border-inline-start: 1px solid var(--pa-rule); padding-inline-start: var(--pa-s-5); }
   .qz-aside__h {
     display: flex; align-items: baseline; justify-content: space-between; gap: var(--pa-s-2);
@@ -557,8 +686,47 @@
      sheet is redundant there and goes. */
   .qz-rows #fp-archive { display: none; }
 
-  .qz-col__inner { width: min(46rem, 100%); margin-inline: auto; }
-  .qz-themebar, .qz-rail, .qz-locked { padding-inline: max(var(--pa-s-4), calc((100% - 46rem) / 2)); }
+  /* THE QUESTION, SET FOR A DESKTOP.
+
+     A question owns a whole screen here, and it was being set at the body
+     step inside a 46rem measure: seventeen pixels of type marooned in the
+     middle of a 1280px page with a screenful of empty paper over and under
+     it. A phone block on a monitor, which is exactly what The Desktop Scale
+     Rule exists to stop — type, target and measure step together or none of
+     them do.
+
+     So all three step. The question takes the display step, the options take
+     the step under it, the option rows grow with the type they hold, and the
+     measure comes IN to 38rem rather than out: a wide bar holding the word
+     "ভিসা" is empty paper, and shortening the line is what turns four bars
+     into a column of answers. Still four type steps, still the same ramp —
+     nothing new is invented here, the block is simply set one step up. */
+  .qz-col__inner { width: min(38rem, 100%); margin-inline: auto; }
+  .qz-themebar, .qz-rail, .qz-locked, .pa-strip { padding-inline: max(var(--pa-s-4), calc((100% - 38rem) / 2)); }
+
+  .qz-q__t { font-size: var(--pa-size-masthead); }
+  .qz-q__n { font-size: var(--pa-size-title); min-width: 2rem; }
+  .qz-q .qz-opts {
+    margin-top: var(--pa-s-5);
+    padding-inline-start: calc(2rem + var(--pa-s-3));
+  }
+
+  .pa-masthead .qz-back { width: auto; padding: 0 var(--pa-s-3) 0 var(--pa-s-2); gap: var(--pa-s-1); }
+  .qz-back__t { display: inline; font: 400 var(--pa-size-body)/1 var(--pa-sans); color: var(--pa-ink-2); }
+
+  .qz-sheet__row { padding: var(--pa-s-5) 0; }
+  .qz-sheet__q { font-size: var(--pa-size-title); }
+  .qz-sheet__a { font-size: var(--pa-size-body); }
+  .qz-q .qz-opt {
+    min-height: 4rem;
+    font-size: var(--pa-size-title);
+    padding: var(--pa-s-3) var(--pa-s-4);
+    gap: var(--pa-s-4);
+  }
+  .qz-q .qz-opt__mark { width: 1.5rem; height: 1.5rem; }
+  /* The block sits above the optical centre on every viewport; with a taller
+     block there is less slack to spend, so the drop underneath comes back. */
+  .qz-q { padding-bottom: 9%; }
 }
 @media not all and (min-width: 60rem) and (min-height: 40rem) {
   .qz-aside { display: none; }
@@ -625,6 +793,8 @@
           </div>
         </div>
 
+        <div id="ad-front"></div>
+
         <button class="pa-btn pa-btn--primary qz-cta" id="fp-cta">শুরু করুন</button>
       </section>
 
@@ -661,13 +831,15 @@
   <header class="pa-masthead">
     <div class="pa-masthead__top">
       <span class="pa-masthead__lead">
-        <button class="pa-iconbtn" id="back" aria-label="নামপাতা">
+        <button class="pa-iconbtn qz-back" id="back" aria-label="প্রথম পাতা">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
+          <span class="qz-back__t" aria-hidden="true">প্রথম পাতা</span>
         </button>
       </span>
       <h1 class="pa-masthead__title">কুইজ</h1>
       <span class="pa-masthead__tail">
         <span class="qz-progress" id="progress" aria-live="polite" aria-label="উত্তর দেওয়া হয়েছে">০/১০</span>
+        <button type="button" class="pa-btn pa-btn--ghost qz-result" id="paper-result" hidden>ফল</button>
         <button class="pa-iconbtn" id="paper-howto" aria-label="কীভাবে খেলবেন" aria-haspopup="dialog">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 113.5 2.3c-.6.3-1 .9-1 1.6v.3"/><path d="M12 17h.01"/></svg>
         </button>
@@ -679,6 +851,10 @@
     <h2 class="qz-themebar__t" id="paper-theme">…</h2>
     <span class="qz-themebar__d" id="paper-date"></span>
   </div>
+
+  <!-- সাহায্য, as a game shows lives: the ad module builds the strip here,
+       above the column; the action works on the question in view. -->
+  <div id="hud" hidden></div>
 
   <p class="qz-locked" id="locked" hidden>এই কুইজ শেষ হয়ে গেছে। উত্তরগুলো আবার দেখতে পারেন, বদলানো যাবে না।</p>
 
@@ -759,9 +935,10 @@
       <p class="qz-win__mark" id="win-mark">শেষ!</p>
       <p class="qz-win__theme" id="win-theme"></p>
       <div class="qz-win__nums">
-        <span class="qz-win__num"><b class="qz-win__v" id="win-score">০/১০</b><span class="qz-win__k">সঠিক</span></span>
-        <span class="qz-win__num"><b class="qz-win__v" id="win-theme-n">—</b><span class="qz-win__k">বিষয়</span></span>
+        <span class="qz-win__num"><b class="qz-win__v" id="win-score">০/১০</b><span class="qz-win__k" id="win-score-k">সঠিক</span></span>
+        <span class="qz-win__num"><b class="qz-win__v" id="win-pts">০</b><span class="qz-win__k">পয়েন্ট</span></span>
       </div>
+      <div id="ad-result"></div>
       <p class="qz-win__note" id="win-note"></p>
       <div class="qz-win__acts">
         <button class="pa-btn pa-btn--primary" id="win-next">পরের কুইজ</button>
@@ -775,6 +952,21 @@
 </div>
 
 </div>
+<script>
+/* Ad system config — ADS-SPEC.md §2. `dummy` until PA hands over a network
+   code; then provider: 'gpt' and the code, nothing else changes. */
+window.PA_ADS = {
+  provider: 'dummy',
+  network: '',
+  client: '',
+  game: 'quiz',
+  enabled: true,
+  rewarded: true,
+  freeHints: 1,
+  maxRewardedHints: 3
+};
+</script>
+<script src="../../shared/pa-ads.js"></script>
 <script src="../../shared/pa-data.js"></script>
 <script src="../../shared/bn-text.js"></script>
 <script src="game.js"></script>

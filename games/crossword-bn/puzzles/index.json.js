@@ -5,11 +5,70 @@
   "title": "শব্দভেদ",
   "note": "Archive. The daily is the puzzle whose date is today, falling back to the most recent one already published; a future-dated puzzle is never served. Everything listed here is browsable in-game, so only validated transcriptions belong — run `node puzzles/validate.mjs` before adding one.",
   "puzzles": [
-    { "id": "pa-2026-08-05", "date": "2026-08-05" },
-    { "id": "pa-2026-08-06", "date": "2026-08-06" },
-    { "id": "pa-2026-08-07", "date": "2026-08-07" },
-    { "id": "pa-2026-08-08", "date": "2026-08-08" },
-    { "id": "pa-2026-08-09", "date": "2026-08-09" }
+    {
+      "id": "pa-2026-08-05",
+      "date": "2026-08-05"
+    },
+    {
+      "id": "pa-2026-08-06",
+      "date": "2026-08-06"
+    },
+    {
+      "id": "pa-2026-08-07",
+      "date": "2026-08-07"
+    },
+    {
+      "id": "pa-2026-08-08",
+      "date": "2026-08-08"
+    },
+    {
+      "id": "pa-2026-08-09",
+      "date": "2026-08-09"
+    },
+    {
+      "id": "pa-2026-08-10",
+      "date": "2026-08-10"
+    },
+    {
+      "id": "pa-2026-08-11",
+      "date": "2026-08-11"
+    },
+    {
+      "id": "pa-2026-08-12",
+      "date": "2026-08-12"
+    },
+    {
+      "id": "pa-2026-08-13",
+      "date": "2026-08-13"
+    },
+    {
+      "id": "pa-2026-08-14",
+      "date": "2026-08-14"
+    },
+    {
+      "id": "pa-2026-08-15",
+      "date": "2026-08-15"
+    },
+    {
+      "id": "pa-2026-08-16",
+      "date": "2026-08-16"
+    },
+    {
+      "id": "pa-2026-08-17",
+      "date": "2026-08-17"
+    },
+    {
+      "id": "pa-2026-08-18",
+      "date": "2026-08-18"
+    },
+    {
+      "id": "pa-2026-08-19",
+      "date": "2026-08-19"
+    },
+    {
+      "id": "pa-2026-08-20",
+      "date": "2026-08-20"
+    }
   ]
 };
   d["puzzles/index.json"] = v;

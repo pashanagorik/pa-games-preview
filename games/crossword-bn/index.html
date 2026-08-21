@@ -463,11 +463,14 @@
   letter-spacing: -0.015em;
 }
 .xw-win__rule { height: 1px; margin: 0 0 var(--pa-s-3); background: var(--pa-rule); }
+.xw-win__card .pa-ad { margin: var(--pa-s-3) 0 var(--pa-s-3); border-block-end: 0; }
+.fp-lead .pa-ad { margin: var(--pa-s-5) 0 0; }
+.fp-lead .pa-ad + .fp-cta { margin-top: var(--pa-s-4); }
 
 /* three numbers under a hairline — a result line, not a score panel */
 .xw-win__stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   margin: 0 0 var(--pa-s-3);
 }
 .xw-win__stat { display: flex; flex-direction: column; gap: 0.1rem; padding-inline: var(--pa-s-2); }
@@ -762,6 +765,26 @@
   border-block-end: 1px solid var(--pa-red-40);
 }
 .xw-full[hidden] { display: none; }
+.xw-answers {
+  padding: var(--pa-s-2) var(--pa-s-4);
+  background: var(--pa-cyan-08);
+  border-block-end: 1px solid var(--pa-rule);
+}
+.xw-answers[hidden] { display: none; }
+.xw-answers__t { margin: 0; font: 400 var(--pa-size-meta)/1.5 var(--pa-sans); color: var(--pa-ink-2); }
+/* The archive row's second action, for a past date not yet solved. */
+.xw-arcrow__ans {
+  flex: none;
+  margin-inline-start: var(--pa-s-2);
+  font: 600 var(--pa-size-meta)/1 var(--pa-sans);
+  letter-spacing: 0.04em;
+  color: var(--pa-chrome);
+  padding: 0.4rem var(--pa-s-2);
+  border-radius: var(--pa-r-sm);
+}
+.xw-arcrow__ans:hover { background: var(--pa-chrome-tint); }
+.xw-arcitem { display: flex; align-items: center; }
+.xw-arcitem .xw-arcrow { flex: 1 1 auto; min-width: 0; }
 .xw-full__t {
   flex: 1 1 auto;
   min-width: 0;
@@ -1066,6 +1089,7 @@
           <span class="fp-facts__m" id="fp-sub"></span>
         </div>
       </div>
+      <div id="ad-front"></div>
       <button class="pa-btn pa-btn--primary fp-cta" id="fp-cta" disabled>শুরু করুন</button>
     </section>
 
@@ -1118,6 +1142,15 @@
         <span id="dateline-text">—</span>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
       </button>
+    </div>
+    <!-- সাহায্য, as a game shows lives: the ad module builds the strip here,
+         on the masthead, above the clue. The action puts one akshara of the
+         current clue in blue. -->
+    <div id="hud" hidden></div>
+    <!-- archive only, a past date: the printed answers, read-only, no clock.
+         Inside the masthead so the two grid layouts need no new row. -->
+    <div class="xw-answers" id="answers" role="status" hidden>
+      <p class="xw-answers__t">উত্তর দেখানো হচ্ছে — সময় গোনা হচ্ছে না।</p>
     </div>
   </header>
 
@@ -1248,11 +1281,11 @@
         </section>
 
         <section class="ht__sec">
-          <h3 class="ht__h"><span class="ht__n">৩</span>যাচাই ও প্রকাশ</h3>
-          <p class="ht__p">ওপরের ডানদিকের সহায়তা বোতাম থেকে যাচাই করলে ভুল অক্ষরের ওপর লাল দাগ পড়ে। প্রকাশ করলে অক্ষরটি নীল রঙে বসে, যাতে মনে থাকে কোনটি নিজে থেকে মেলানো হয়নি।</p>
+          <h3 class="ht__h"><span class="ht__n">৩</span>যাচাই ও সাহায্য</h3>
+          <p class="ht__p">ওপরের ডানদিকের বোতাম থেকে যাচাই করলে ভুল অক্ষরের ওপর লাল দাগ পড়ে — যতবার খুশি, বিনা মূল্যে। ছকের ওপরের সাহায্য নিন চাপলে চলতি সূত্রের একটি অক্ষর নীল রঙে বসে, যাতে মনে থাকে কোনটি নিজে থেকে মেলানো হয়নি। প্রতি ধাঁধায় একটি সাহায্য বিনা মূল্যে, তারপর একটি বিজ্ঞাপন দেখে আরও তিনটি।</p>
           <div class="ht__fig">
             <span class="ht-item"><span class="ht-cell ht-cell--wrong">ক</span><span class="ht-item__l">ভুল</span></span>
-            <span class="ht-item"><span class="ht-cell ht-cell--revealed">খ</span><span class="ht-item__l">প্রকাশ করা</span></span>
+            <span class="ht-item"><span class="ht-cell ht-cell--revealed">খ</span><span class="ht-item__l">সাহায্যে বসানো</span></span>
           </div>
         </section>
 
@@ -1272,7 +1305,7 @@
   <div class="pa-sheet__scrim" data-close></div>
   <div class="pa-sheet__panel" tabindex="-1">
     <div class="pa-sheet__head">
-      <h2 class="pa-sheet__title">সহায়তা</h2>
+      <h2 class="pa-sheet__title">যাচাই ও সেটিংস</h2>
       <button class="pa-iconbtn" data-close aria-label="বন্ধ করুন">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
@@ -1284,10 +1317,6 @@
         <button class="pa-menu__row" data-act="check-cell"><span class="pa-menu__label">ঘর যাচাই</span></button>
         <button class="pa-menu__row" data-act="check-word"><span class="pa-menu__label">শব্দ যাচাই</span></button>
         <button class="pa-menu__row" data-act="check-all"><span class="pa-menu__label">পুরো ছক যাচাই</span></button>
-        <div class="pa-menu__sep"></div>
-        <button class="pa-menu__row" data-act="reveal-cell"><span class="pa-menu__label">ঘর প্রকাশ</span></button>
-        <button class="pa-menu__row" data-act="reveal-word"><span class="pa-menu__label">শব্দ প্রকাশ</span></button>
-        <button class="pa-menu__row" data-act="reveal-all"><span class="pa-menu__label">পুরো ছক প্রকাশ</span><span class="pa-menu__hint">সমাধান দেখাবে</span></button>
         <div class="pa-menu__sep"></div>
         <button class="pa-menu__row" id="row-autocheck" role="switch" aria-checked="false" data-act="autocheck">
           <span class="pa-menu__label">স্বয়ংক্রিয় যাচাই</span><span class="pa-switch" aria-hidden="true"></span>
@@ -1307,8 +1336,10 @@
     <div class="xw-win__stats">
       <span class="xw-win__stat"><span class="xw-win__v" id="win-time">০:০০</span><span class="xw-win__k">সময়</span></span>
       <span class="xw-win__stat"><span class="xw-win__v" id="win-bestv">—</span><span class="xw-win__k">সেরা</span></span>
-      <span class="xw-win__stat"><span class="xw-win__v" id="win-assist">০</span><span class="xw-win__k">সহায়তা</span></span>
+      <span class="xw-win__stat"><span class="xw-win__v" id="win-assist">০</span><span class="xw-win__k">যাচাই</span></span>
+      <span class="xw-win__stat"><span class="xw-win__v" id="win-hints">০</span><span class="xw-win__k">সাহায্য</span></span>
     </div>
+    <div id="ad-result"></div>
     <p class="xw-win__best" id="win-best"></p>
     <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
     <div class="xw-win__row">
@@ -1318,6 +1349,21 @@
   </div>
 </div>
 
+<script>
+/* Ad system config — ADS-SPEC.md §2. `dummy` until PA hands over a network
+   code; then provider: 'gpt' and the code, nothing else changes. */
+window.PA_ADS = {
+  provider: 'dummy',
+  network: '',
+  client: '',
+  game: 'xw',
+  enabled: true,
+  rewarded: true,
+  freeHints: 1,
+  maxRewardedHints: 3
+};
+</script>
+<script src="../../shared/pa-ads.js"></script>
 <script src="../../shared/pa-data.js"></script>
 <script src="../../shared/bn-text.js"></script>
 <script src="game.js"></script>

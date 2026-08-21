@@ -44,7 +44,11 @@
     latestBadge: 'সর্বশেষ',
     newBest: 'নতুন সেরা সময়',
     firstSolve: 'প্রথমবার সমাধান',
-    unaided: 'কোনো সহায়তা ছাড়াই সমাধান',
+    unaided: 'কোনো সাহায্য ছাড়াই সমাধান',
+    /* The board's number: the clock plus ৪৫ সেকেন্ড for every সাহায্য
+       (ADS-SPEC §4, Rank). Printed once, on the card, beside the raw time. */
+    ranked: 'সাহায্যে ৪৫ সেকেন্ড করে যোগ হয়ে তালিকায় ',
+    hintWhat: 'একটি শব্দের প্রথম অক্ষর দেখা যাবে',
     prompt: 'অক্ষরে ক্লিক করুন',
     /* A refusal that does not say why is the failure the two-list design
        exists to prevent. Four reasons, one line, replaced not stacked. */
@@ -60,7 +64,6 @@
     askThis: 'অনুরোধ করুন',
     askSent: 'ধন্যবাদ, শব্দটি পাঠানো হয়েছে',
     bonusTook: 'অতিরিক্ত শব্দ',
-    hintNone: 'সব শব্দ পাওয়া গেছে',
     winWords: 'টি শব্দ, ',
     winLetters: 'টি অক্ষর'
   };
@@ -77,6 +80,8 @@
 
   var PACK = null;
   var P = null;          // active puzzle
+  var H = null;          // this puzzle's hint budget, from PaAds.hints()
+  var strip = null;      // the সাহায্য strip on the masthead, PaAds.strip()
   var petals = [];       // the six outer letters, in display order
   var found = {};        // target word -> true
   var order = [];        // target words IN FIND ORDER — the taken list reads this
@@ -228,6 +233,8 @@
     return n;
   }
   function isComplete() { return P && foundCount() >= P.words.length; }
+
+  var HINT_SECS = 45;   /* ADS-SPEC §4, Rank: one সাহায্য on the board's clock */
 
   /* ---- clock ------------------------------------------------------------ */
 
@@ -431,10 +438,29 @@
     sizeHive();
   }
 
-  function paintHint() {
-    var n = hintCount();
-    $('hint-n').textContent = n ? B.toBn(n) : '';
-    $('hint').disabled = isComplete() || nextHintable() === null;
+  function paintHint() { if (strip) strip.paint(); }
+
+  /* The strip is the ad module's; this page mounts it once per puzzle and
+     says what a press does: the first akshara of the longest unfound word.
+     The budget is the module's (1 + 3); the record of WHICH words were
+     hinted stays this game's, in `hinted`, because the card and the slots
+     read it. */
+  function mountStrip() {
+    if (strip) { strip.destroy(); strip = null; }
+    var hud = $('hud');
+    if (!H || !window.PaAds) { hud.hidden = true; $('app').classList.remove('is-strip'); return; }
+    $('app').classList.add('is-strip');
+    strip = PaAds.strip(hud, {
+      hints: H,
+      kind: 'akshara',
+      what: T.hintWhat,
+      canUse: function () {
+        if (isComplete() || nextHintable() === null) return { ok: false };
+        return { ok: true, ctx: P.id };
+      },
+      onUse: function (id) { if (P && P.id === id) hint(); }
+    });
+    hud.hidden = false;
   }
 
   function renderHive() {
@@ -831,12 +857,23 @@
 
   function hint() {
     var w = nextHintable();
-    if (!w) { say(T.hintNone, false); return; }
+    if (!w) return;
     hinted[w] = true;
     saveState();
     renderSlots();
     var slot = $('slots').querySelector('[data-w="' + w + '"]');
     if (slot && slot.scrollIntoView) slot.scrollIntoView({ block: 'nearest' });
+  }
+
+
+  /* Two reserved slots, ADS-SPEC §3: `front` below the lead, `result` under
+     the score. The module reserves the box at full height before it asks for
+     anything, and a kill switch collapses it — this file only says where. */
+  function mountAd(id, name, fresh) {
+    var A = window.PaAds, el = $(id);
+    if (!A || !el) return;
+    if (fresh) A.unmount(el);
+    A.slot(el, name);
   }
 
   /* ---- views ------------------------------------------------------------ */
@@ -850,6 +887,7 @@
 
   function goBoard() {
     renderHive();
+    mountStrip();
     renderSlots();
     clearWord();
     clearWhy();
@@ -880,16 +918,23 @@
     var isBest = !prev || clock.secs < prev;
     if (isBest) { try { localStorage.setItem(BEST + P.id, String(clock.secs)); } catch (e) {} }
 
-    emit('game:complete', { id: P.id, words: P.words.length, hints: hintCount(), secs: clock.secs });
+    /* The board ranks on the clock plus ৪৫ s per সাহায্য; the best stays the
+       raw clock, which is what the hub's ledger prints. */
+    var rankedSecs = clock.secs + HINT_SECS * hintCount();
+    emit('game:complete', { id: P.id, words: P.words.length, hints: hintCount(), secs: clock.secs, rankedSecs: rankedSecs });
 
     $('win-sub').textContent = B.toBn(P.words.length) + T.winWords + B.toBn(P.petals.length + 1) + T.winLetters;
     $('win-time').textContent = fmt(clock.secs);
     $('win-best').textContent = fmt(isBest ? clock.secs : prev);
     $('win-hints').textContent = B.toBn(hintCount());
-    $('win-note').textContent = !prev ? T.firstSolve : (isBest ? T.newBest : (hintCount() === 0 ? T.unaided : ''));
+    $('win-note').textContent = hintCount() ? T.ranked + fmt(rankedSecs) + '।'
+      : (!prev ? T.firstSolve : (isBest ? T.newBest : T.unaided));
     paintClock();
     paintHint();
 
+    /* The card's slot is requested as the card is about to open, once per
+       card: a second puzzle finished in the same document is a second view. */
+    mountAd('ad-result', 'result', true);
     /* The board gets its moment before the card covers it. */
     solveSweep();
     setTimeout(function () { openSheet($('sheet-win')); }, 1100);
@@ -969,7 +1014,6 @@
       if (mark) { typeChar(mark); buzz(4); }
     });
 
-    $('hint').onclick = hint;
 
     /* The Input Follows the Device Rule: on a spread there is a real keyboard,
        and a reader with a Bangla input method should be able to use it. Any
@@ -1198,6 +1242,7 @@
     found = st.w; order = st.o; bonus = st.b; hinted = st.h;
     clock.secs = st.t;
     cells = []; buf = '';
+    H = window.PaAds ? PaAds.hints(P.id) : null;
     loadAccept(P.id);
     return true;
   }
@@ -1213,10 +1258,14 @@
         PACK = pack;
         if (!PACK.puzzles || !PACK.puzzles.length) throw new Error('empty pack');
         renderRail();
-        /* A #p= link is a request for THAT board, so it skips the front page.
-           The same contract both siblings answer, so খেলাঘর addresses a dated
-           issue in any hero game with one link shape. An id we cannot serve
-           falls through to the daily rather than to an error. */
+        /* A #p= link is a request for that DAY, and it stops there. It picks
+           which issue is open; the front page still opens on it, because the
+           reader pressing শুরু করুন themselves is what starts a puzzle. Landing
+           straight on the board out of খেলাঘর meant the timer was already
+           running before the reader had read what the day was. An id we
+           cannot serve — unknown, or not yet due — falls through to the
+           ordinary daily, so a stale or future-dated link degrades to
+           something playable rather than to an error. */
         var hash = (location.hash.match(/p=([\w-]+)/) || [])[1], wanted = null, i;
         for (i = 0; i < PACK.puzzles.length; i++) {
           if (PACK.puzzles[i].id === hash && isDue(PACK.puzzles[i])) { wanted = PACK.puzzles[i]; break; }
@@ -1224,7 +1273,10 @@
         loadPuzzle(wanted || pickForToday().pz);
         bind();
         bindBoard();
-        if (wanted) goBoard(); else goFront();
+        if (window.PaAds) PaAds.setConsent({ ads: true, personalized: false });
+        goFront();
+        /* The front page is laid out; the slot can measure its column. */
+        mountAd('ad-front', 'front');
       })
       .catch(function (err) {
         console.error(err);

@@ -179,6 +179,25 @@ button { font: inherit; color: inherit; background: none; border: 0; margin: 0; 
 .pa-sheet.is-open .pa-sheet__scrim { opacity: 1; }
 .pa-sheet.is-open .pa-sheet__panel { transform: translateY(0); }
 
+/* On a spread the same sheet is a dialog: centred, all four corners, and it
+   arrives by settling rather than sliding — a bottom sheet on a 1280px page
+   is a phone habit showing through. Same markup, same focus trap, same
+   Escape; only where it sits. The width is the reading measure the games
+   already use for a sheet, not the page. */
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .pa-sheet { align-items: center; }
+  .pa-sheet__panel {
+    width: min(36rem, calc(100% - 2 * var(--pa-s-6)));
+    max-height: min(85dvh, 52rem);
+    border-radius: var(--pa-r-xl);
+    padding-bottom: 0;
+    opacity: 0;
+    transform: translateY(1.25rem) scale(0.985);
+    transition: transform 280ms var(--pa-ease), opacity 200ms var(--pa-ease);
+  }
+  .pa-sheet.is-open .pa-sheet__panel { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .pa-sheet__head {
   display: flex;
   align-items: center;
@@ -257,3 +276,181 @@ button { font: inherit; color: inherit; background: none; border: 0; margin: 0; 
 }
 .pa-menu__row[aria-checked='true'] .pa-switch { background: var(--pa-chrome); }
 .pa-menu__row[aria-checked='true'] .pa-switch::after { transform: translateX(1.125rem); }
+
+/* ---- ad slot ---------------------------------------------------------
+   An ad is commercial and the page must say so. The slot is a lifted block
+   bounded by a rule above and below, with বিজ্ঞাপন set in the meta voice
+   over a hairline before the creative begins — the marker a newspaper prints
+   over paid space, and the one thing that must hold on the day no ad is
+   sold: the box stays, labelled, at full height. It must never read as the
+   paper's own column, so it is never on --pa-paper and never borderless.
+
+   Height is reserved structurally, not measured: pa-ads.js sizes the frame
+   inline at mount from the declared slot size, before any request is made.
+   Nothing in this block may depend on the creative's own height. */
+
+.pa-ad {
+  display: grid;
+  /* minmax(0, 1fr), not auto: an auto track grows to the frame's intrinsic
+     320px and overflows a 319px column; this track lets the frame's
+     max-width: 100% bite instead. No inline padding for the same reason —
+     a 320 creative in a 330 phone column has ten pixels to spare, not
+     thirty. */
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  margin-block: var(--pa-s-4);
+  padding: var(--pa-s-2) 0 var(--pa-s-3);
+  background: var(--pa-paper-lift);
+  border-block: 1px solid var(--pa-rule);
+  overflow: hidden;
+}
+.pa-ad[hidden] { display: none; }
+.pa-ad__label {
+  width: 100%;
+  padding-block-end: 2px;
+  margin-block-end: var(--pa-s-2);
+  border-block-end: 1px solid var(--pa-rule);
+  text-align: center;
+  font-size: var(--pa-size-meta);
+  letter-spacing: 0.07em;
+  line-height: var(--pa-leading-tight);
+  color: var(--pa-ink-3);
+  user-select: none;
+  -webkit-user-select: none;
+}
+.pa-ad__frame {
+  position: relative;
+  overflow: hidden;
+  /* The vendor's iframe or the placeholder fills this; nothing else does. */
+}
+.pa-ad__frame > * { display: block; }
+
+/* ---- the সাহায্য strip ------------------------------------------------
+   Built by pa-ads.js into a host the game reserves above its board, the way
+   a game shows lives: four tokens, spent one at a time, and one action that
+   works on whatever the game says is in front of the reader. Tokens are a
+   bulb in the system's stroke: filled chrome = the reader's (free), outlined
+   chrome = a view each, hollow ink-3 = spent — three shapes, never hue
+   alone. Spending one is the strip's one motion: the token pops and goes
+   out. The count beside the tokens is for assistive tech on a phone — the
+   tokens are the count — and printed on a spread. */
+
+.pa-strip {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--pa-s-3);
+  padding: var(--pa-s-2) var(--pa-s-4);
+  background: var(--pa-paper-lift);
+  border-bottom: 1px solid var(--pa-rule);
+}
+.pa-strip[hidden] { display: none; }
+.pa-strip__lives { display: flex; align-items: center; gap: var(--pa-s-3); min-width: 0; }
+.pa-strip__k {
+  font: 400 var(--pa-size-meta)/1 var(--pa-sans);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-2);
+}
+.pa-strip__tokens { display: inline-flex; gap: var(--pa-s-1); }
+.pa-token {
+  display: inline-flex; width: 1.5rem; height: 1.5rem;
+  color: var(--pa-chrome);
+  transition: color 200ms var(--pa-ease), opacity 200ms var(--pa-ease);
+}
+.pa-token svg { width: 100%; height: 100%; display: block; }
+.pa-token .pa-token__fill { fill: currentColor; }
+.pa-token.is-ad .pa-token__fill { fill: transparent; }
+.pa-token.is-spent { color: var(--pa-ink-3); opacity: 0.55; }
+.pa-token.is-spent .pa-token__fill { fill: transparent; }
+.pa-token.is-going { animation: pa-token-out 420ms var(--pa-ease) both; }
+@keyframes pa-token-out {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.35); }
+  100% { transform: scale(1); }
+}
+.pa-strip__n {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+  font: 400 var(--pa-size-meta)/1 var(--pa-sans);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+.pa-strip__use {
+  flex: none;
+  display: inline-flex; align-items: center; gap: var(--pa-s-2);
+  min-height: max(var(--pa-tap), 44px);
+  padding: 0 var(--pa-s-4);
+  border-radius: var(--pa-r-lg);
+  background: var(--pa-chrome);
+  color: #fff;
+  font: 600 var(--pa-size-body)/1 var(--pa-sans);
+  white-space: nowrap;
+  transition: background-color 140ms var(--pa-ease), opacity 140ms var(--pa-ease);
+}
+.pa-strip__use:hover:not(:disabled) { background: var(--pa-chrome-strong); }
+.pa-strip__use:disabled { cursor: default; background: var(--pa-rule); color: var(--pa-ink-2); }
+.pa-strip__use[aria-busy='true'] { opacity: 0.6; }
+.pa-strip__ad { flex: none; }
+/* At the ceiling the action is a statement, not a disabled button. */
+.pa-strip__use.is-out { background: transparent; color: var(--pa-ink-3); padding-inline: 0; font-weight: 400; }
+
+@media (min-width: 60rem) and (min-height: 40rem) {
+  .pa-strip { padding-block: var(--pa-s-3); }
+  .pa-token { width: 1.75rem; height: 1.75rem; }
+  .pa-strip__n { position: static; width: auto; height: auto; clip: auto; overflow: visible; }
+  .pa-strip__use { padding-inline: var(--pa-s-5); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pa-token.is-going { animation: none; }
+}
+
+/* ---- rewarded sheet --------------------------------------------------
+   Built by pa-ads.js, never written into a page. A pa-sheet with two states:
+   the offer and the spot. The offer is set as a receipt — what you get at
+   the title step, then the price and the balance as two ruled rows with
+   their labels in the meta voice — so the trade is read before it is made,
+   the way a paper prints an offer: terms first, coupon under. The spot then
+   plays in the sheet's own host. No display ad ever sits in here. */
+
+.pa-reward { padding: var(--pa-s-4) var(--pa-s-4) var(--pa-s-5); }
+.pa-reward__what {
+  margin: 0;
+  font: 700 var(--pa-size-title)/1.25 var(--pa-serif);
+  color: var(--pa-ink);
+  text-wrap: balance;
+}
+.pa-reward__terms {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  margin: var(--pa-s-4) 0 0;
+  border-top: 1px solid var(--pa-rule);
+}
+.pa-reward__terms > div {
+  display: contents;
+}
+.pa-reward__terms dt,
+.pa-reward__terms dd {
+  margin: 0;
+  padding: var(--pa-s-2) 0;
+  border-bottom: 1px solid var(--pa-rule);
+  line-height: 1.5;
+}
+.pa-reward__terms dt {
+  font: 400 var(--pa-size-meta)/1.5 var(--pa-sans);
+  letter-spacing: 0.07em;
+  color: var(--pa-ink-2);
+  padding-top: calc(var(--pa-s-2) + 0.15em);
+}
+.pa-reward__terms dd {
+  padding-inline-start: var(--pa-s-5);
+  font: 400 var(--pa-size-body)/1.5 var(--pa-sans);
+  color: var(--pa-ink);
+}
+.pa-reward__terms dd .pa-reward__last { color: var(--pa-red-deep); }
+.pa-reward__actions {
+  display: flex;
+  gap: var(--pa-s-2);
+  flex-wrap: wrap;
+  margin-top: var(--pa-s-5);
+}
+.pa-reward__actions .pa-btn--primary { flex: 1 1 12rem; }
+.pa-reward__host { width: 100%; }
+.pa-reward__host[hidden], .pa-reward__offer[hidden] { display: none; }

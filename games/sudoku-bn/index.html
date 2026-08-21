@@ -352,6 +352,12 @@
 /* A given was printed before the reader arrived: full ink, 700. Their own
    entries are pencil — the same ink, lighter, at normal weight. */
 .sd-cell.is-given { color: var(--pa-ink); font-weight: 700; }
+/* A square the press filled for the reader (সাহায্য). Distinct from both: a
+   given is ink at 700, an entry is ink-2 at 400, this is press green at
+   700 — the colour that marks a settled right answer across the five games.
+   Never cyan: on this board cyan would read as blocked. Locked like a
+   given; it cannot be erased or overwritten. */
+.sd-cell.is-hinted { color: var(--pa-green); font-weight: 700; }
 
 /* Every other square holding the same numeral, drawn as a hairline RULE
    rather than a fill. It has to survive underneath the peer tint without
@@ -509,7 +515,10 @@
 
 /* ---- completion card ------------------------------------------------- */
 
-.sd-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; }
+.sd-win { padding: var(--pa-s-5) var(--pa-s-4) var(--pa-s-4); text-align: center; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.sd-win .pa-ad { margin: var(--pa-s-4) 0 var(--pa-s-3); border-block-end: 0; text-align: start; }
+.sd-lead .pa-ad { margin: var(--pa-s-5) 0 0; }
+.sd-lead .pa-ad + .sd-cta { margin-top: var(--pa-s-4); }
 .sd-win__mark {
   margin: 0 0 var(--pa-s-1);
   font-family: var(--pa-serif); font-weight: 700; font-size: var(--pa-size-masthead);
@@ -692,6 +701,8 @@
           </div>
         </div>
 
+        <div id="ad-front"></div>
+
         <button class="pa-btn pa-btn--primary sd-cta" id="fp-cta">শুরু করুন</button>
       </section>
 
@@ -750,6 +761,9 @@
     <div class="pa-masthead__rule">
       <span class="pa-masthead__date" id="board-date"></span>
     </div>
+    <!-- সাহায্য, as a game shows lives: the ad module builds the strip here,
+         on the masthead, above the board. The action fills one square. -->
+    <div id="hud" hidden></div>
   </header>
 
   <div class="sd-head" id="head">
@@ -888,7 +902,9 @@
         <span class="sd-win__num"><b class="sd-win__v" id="win-time">০:০০</b><span class="sd-win__k">সময়</span></span>
         <span class="sd-win__num"><b class="sd-win__v" id="win-best">০:০০</b><span class="sd-win__k">সেরা</span></span>
         <span class="sd-win__num"><b class="sd-win__v" id="win-checks">০</b><span class="sd-win__k">যাচাই</span></span>
+        <span class="sd-win__num"><b class="sd-win__v" id="win-hints">০</b><span class="sd-win__k">সাহায্য</span></span>
       </div>
+      <div id="ad-result"></div>
       <p class="sd-win__note" id="win-note"></p>
       <div class="sd-win__acts">
         <button class="pa-btn pa-btn--primary" id="win-next">পরের ধাঁধা</button>
@@ -902,6 +918,21 @@
 </div>
 
 </div>
+<script>
+/* Ad system config — ADS-SPEC.md §2. `dummy` until PA hands over a network
+   code; then provider: 'gpt' and the code, nothing else changes. */
+window.PA_ADS = {
+  provider: 'dummy',
+  network: '',
+  client: '',
+  game: 'sd',
+  enabled: true,
+  rewarded: true,
+  freeHints: 1,
+  maxRewardedHints: 3
+};
+</script>
+<script src="../../shared/pa-ads.js"></script>
 <script src="../../shared/pa-data.js"></script>
 <script src="../../shared/bn-text.js"></script>
 <script src="game.js"></script>

@@ -1,0 +1,259 @@
+{
+  "id": "pa-2026-08-12",
+  "date": "2026-08-12",
+  "source": "Prothom Alo print edition, শব্দভেদ, 2026-08-12. Grid and clues from Screenshot/12.8.2026.png; solution grid from Screenshot/13.8.2026.png.",
+  "verified": true,
+  "verificationNote": "Block pattern derived from ink in the printed solution grid rather than from the tint; all 14 across and 12 down clues resolve against the grid; numbering, interlock and akshara-per-cell confirmed by puzzles/validate.mjs.",
+  "rows": 8,
+  "cols": 8,
+  "grid": [
+    "আ",
+    null,
+    "কা",
+    "দা",
+    "খোঁ",
+    "চা",
+    null,
+    "ম",
+    "রা",
+    "গা",
+    "রা",
+    "গি",
+    null,
+    "প",
+    "ত",
+    "ঙ্গ",
+    "ম",
+    null,
+    "গা",
+    null,
+    "ব",
+    "কা",
+    null,
+    "ল",
+    null,
+    "আ",
+    "র",
+    "জি",
+    null,
+    "ন",
+    "ত",
+    null,
+    "প্রা",
+    "য়",
+    null,
+    "নি",
+    "দ্রা",
+    null,
+    "র",
+    "প্ত",
+    "দে",
+    null,
+    "হাঁ",
+    "স",
+    null,
+    "থা",
+    "বা",
+    null,
+    "শি",
+    "রো",
+    "পা",
+    null,
+    "ঘা",
+    null,
+    "রি",
+    "পু",
+    "ক",
+    null,
+    "নি",
+    "রা",
+    "ম",
+    "য়",
+    null,
+    "লি"
+  ],
+  "entries": [
+    {
+      "n": 1,
+      "dir": "down",
+      "cell": 0,
+      "len": 3,
+      "clue": "আয়েশ।"
+    },
+    {
+      "n": 2,
+      "dir": "across",
+      "cell": 2,
+      "len": 4,
+      "clue": "খঞ্জনজাতীয় পাখি।"
+    },
+    {
+      "n": 2,
+      "dir": "down",
+      "cell": 2,
+      "len": 4,
+      "clue": "জেলখানা।"
+    },
+    {
+      "n": 3,
+      "dir": "down",
+      "cell": 3,
+      "len": 2,
+      "clue": "অপরাধের জন্য পূর্বদণ্ডিত।"
+    },
+    {
+      "n": 4,
+      "dir": "down",
+      "cell": 5,
+      "len": 4,
+      "clue": "লম্বা ঝুলের ঢিলা জামা।"
+    },
+    {
+      "n": 5,
+      "dir": "down",
+      "cell": 7,
+      "len": 3,
+      "clue": "কল্যাণ।"
+    },
+    {
+      "n": 6,
+      "dir": "across",
+      "cell": 8,
+      "len": 4,
+      "clue": "পরস্পরের প্রতি ক্রোধ প্রকাশ।"
+    },
+    {
+      "n": 7,
+      "dir": "across",
+      "cell": 13,
+      "len": 3,
+      "clue": "ডানাযুক্ত ছোট ছোট উড়ন্ত পোকামাকড়।"
+    },
+    {
+      "n": 8,
+      "dir": "across",
+      "cell": 20,
+      "len": 2,
+      "clue": "ধমক দেওয়া।"
+    },
+    {
+      "n": 9,
+      "dir": "across",
+      "cell": 25,
+      "len": 3,
+      "clue": "দরখাস্ত, প্রার্থনা।"
+    },
+    {
+      "n": 9,
+      "dir": "down",
+      "cell": 25,
+      "len": 2,
+      "clue": "উপার্জন।"
+    },
+    {
+      "n": 10,
+      "dir": "down",
+      "cell": 27,
+      "len": 3,
+      "clue": "বস্তু।"
+    },
+    {
+      "n": 11,
+      "dir": "across",
+      "cell": 29,
+      "len": 2,
+      "clue": "হেঁট।"
+    },
+    {
+      "n": 12,
+      "dir": "down",
+      "cell": 30,
+      "len": 4,
+      "clue": "তলোয়ার।"
+    },
+    {
+      "n": 13,
+      "dir": "across",
+      "cell": 32,
+      "len": 2,
+      "clue": "সাধারণত, সচরাচর।"
+    },
+    {
+      "n": 13,
+      "dir": "down",
+      "cell": 32,
+      "len": 4,
+      "clue": "প্রদেশসম্বন্ধীয়।"
+    },
+    {
+      "n": 14,
+      "dir": "across",
+      "cell": 35,
+      "len": 2,
+      "clue": "ঘুম।"
+    },
+    {
+      "n": 15,
+      "dir": "across",
+      "cell": 38,
+      "len": 2,
+      "clue": "আয়ত্ত।"
+    },
+    {
+      "n": 16,
+      "dir": "across",
+      "cell": 42,
+      "len": 2,
+      "clue": "হংস।"
+    },
+    {
+      "n": 16,
+      "dir": "down",
+      "cell": 42,
+      "len": 3,
+      "clue": "শ্বাসকষ্টজনিত রোগ।"
+    },
+    {
+      "n": 17,
+      "dir": "across",
+      "cell": 45,
+      "len": 2,
+      "clue": "করতল।"
+    },
+    {
+      "n": 18,
+      "dir": "across",
+      "cell": 48,
+      "len": 3,
+      "clue": "ট্রফি, খেতাব।"
+    },
+    {
+      "n": 19,
+      "dir": "down",
+      "cell": 52,
+      "len": 2,
+      "clue": "ঘর্ম।"
+    },
+    {
+      "n": 20,
+      "dir": "across",
+      "cell": 54,
+      "len": 2,
+      "clue": "দুষ্ট প্রবৃত্তি।"
+    },
+    {
+      "n": 21,
+      "dir": "down",
+      "cell": 55,
+      "len": 2,
+      "clue": "একধরনের পিঠা।"
+    },
+    {
+      "n": 22,
+      "dir": "across",
+      "cell": 58,
+      "len": 4,
+      "clue": "আরোগ্য।"
+    }
+  ]
+}
